@@ -1,25 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ARTIKELEN } from "../articles.js";
-import { GEWENST, leesRegels, extraheer } from "../tools/extract-articles.mjs";
+import { ARTICLES } from "../articles.js";
+import { WANTED, readLines, extract } from "../tools/extract-articles.mjs";
 
-test("articles.js bevat elk gevraagd artikel", () => {
-  for (const nummer of GEWENST) {
-    assert.ok(ARTIKELEN[nummer], `artikel ${nummer} ontbreekt`);
-    assert.ok(ARTIKELEN[nummer].tekst.length > 0, `artikel ${nummer} is leeg`);
+test("articles.js contains every requested article", () => {
+  for (const number of WANTED) {
+    assert.ok(ARTICLES[number], `article ${number} is missing`);
+    assert.ok(ARTICLES[number].text.length > 0, `article ${number} is empty`);
   }
 });
 
-test("elke artikeltekst is nog woordelijk gelijk aan het Bondsreglement", () => {
-  const vers = extraheer(leesRegels());
-  for (const nummer of GEWENST) {
-    assert.equal(ARTIKELEN[nummer].tekst, vers[nummer].tekst, `artikel ${nummer} wijkt af van de PDF`);
-    assert.equal(ARTIKELEN[nummer].titel, vers[nummer].titel, `titel van ${nummer} wijkt af`);
+test("every article text still matches the Bondsreglement word for word", () => {
+  const fresh = extract(readLines());
+  for (const number of WANTED) {
+    assert.equal(ARTICLES[number].text, fresh[number].text, `article ${number} differs from the PDF`);
+    assert.equal(ARTICLES[number].title, fresh[number].title, `title of ${number} differs`);
   }
 });
 
-test("de artikelen die de regellogica noemt zijn allemaal opgenomen", () => {
-  for (const nummer of [
+test("the articles the rule logic names are all included", () => {
+  for (const number of [
     "3.1.1",
     "3.1.3",
     "5.1.1",
@@ -31,33 +31,33 @@ test("de artikelen die de regellogica noemt zijn allemaal opgenomen", () => {
     "5.3.6",
     "5.3.6.1",
   ]) {
-    assert.ok(ARTIKELEN[nummer], `artikel ${nummer} wordt genoemd maar is niet opgenomen`);
+    assert.ok(ARTICLES[number], `article ${number} is named but not included`);
   }
 });
 
-// Ticket #8, #9 en #10: deze drie artikelen kunnen het antwoord omdraaien maar ontbraken nog
-// helemaal in de extractie. Expliciete test naast de generieke GEWENST-tests hierboven, zodat
-// duidelijk is welke drie artikelen deze taak toevoegt.
-test("artikel 5.3.6, 5.3.6.1 en 5.1.1 zitten in ARTIKELEN met een niet-lege tekst", () => {
-  for (const nummer of ["5.3.6", "5.3.6.1", "5.1.1"]) {
-    assert.ok(ARTIKELEN[nummer], `artikel ${nummer} ontbreekt`);
-    assert.ok(ARTIKELEN[nummer].tekst.length > 0, `artikel ${nummer} is leeg`);
+// Ticket #8, #9 and #10: these three articles can flip the answer but were missing from the
+// extraction entirely. An explicit test next to the generic WANTED tests above, so it is clear
+// which three articles this task adds.
+test("article 5.3.6, 5.3.6.1 and 5.1.1 are in ARTICLES with a non-empty text", () => {
+  for (const number of ["5.3.6", "5.3.6.1", "5.1.1"]) {
+    assert.ok(ARTICLES[number], `article ${number} is missing`);
+    assert.ok(ARTICLES[number].text.length > 0, `article ${number} is empty`);
   }
 });
 
-test("de artikeltekst begint niet met een restje van de eigen titel", () => {
-  // Als een titel in de PDF over meerdere regels loopt en de kopregex mist een vervolgregel,
-  // belandt dat stukje titel als eerste regel in de tekst. Zo'n stukje is (na het wegnemen
-  // van overtollige spaties) altijd het slot van de titel, terwijl de echte artikeltekst
-  // een eigen zin is die daar niet mee overeenkomt. Werkt voor elk artikel, niet alleen 5.3.3.
-  for (const nummer of GEWENST) {
-    const artikel = ARTIKELEN[nummer];
-    const eersteRegel = artikel.tekst.split("\n")[0].replace(/\s+/g, " ").trim().toLowerCase();
-    const titel = artikel.titel.replace(/\s+/g, " ").trim().toLowerCase();
-    const isTitelrestje = eersteRegel.length > 1 && titel.endsWith(eersteRegel);
+test("the article text does not start with a leftover of its own title", () => {
+  // When a title spans multiple lines in the PDF and the heading regex misses a continuation
+  // line, that piece of title ends up as the first line of the text. Such a piece is (after
+  // stripping redundant spaces) always the tail of the title, whereas the real article text
+  // is a sentence of its own that does not match it. Works for every article, not just 5.3.3.
+  for (const number of WANTED) {
+    const article = ARTICLES[number];
+    const firstLine = article.text.split("\n")[0].replace(/\s+/g, " ").trim().toLowerCase();
+    const title = article.title.replace(/\s+/g, " ").trim().toLowerCase();
+    const isTitleLeftover = firstLine.length > 1 && title.endsWith(firstLine);
     assert.ok(
-      !isTitelrestje,
-      `artikel ${nummer}: eerste regel van de tekst ("${artikel.tekst.split("\n")[0]}") lijkt een restje van de titel te zijn`
+      !isTitleLeftover,
+      `article ${number}: first line of the text ("${article.text.split("\n")[0]}") looks like a leftover of the title`
     );
   }
 });
