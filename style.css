@@ -369,3 +369,11 @@ footer {
 .repo-icoon {
   flex: none;
 }
+
+/* De disclaimer staat bovenaan de voettekst en moet opvallen zonder te schreeuwen: iets donkerder
+   dan de rest van de voettekst, met een lijntje ervoor zodat hij als los blok leest. */
+.disclaimer {
+  border-left: 3px solid var(--rand);
+  padding-left: 0.9rem;
+  color: #3a3a3a;
+}
