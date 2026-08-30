@@ -1,6 +1,7 @@
 import { CATEGORIEEN, KLASSEN, KOLOMMEN, SEIZOEN, TAK } from "./data.js";
 import { assess, overzicht, categorieIMelding } from "./rules.js";
 import { ARTIKELEN } from "./articles.js";
+import { naarBlokken } from "./artikeltekst.js";
 
 const doelCategorie = document.getElementById("doel-categorie");
 const doelKlasse = document.getElementById("doel-klasse");
@@ -154,13 +155,24 @@ function lijst(titel, regels) {
   return `<h3>${titel}</h3><ul>${items}</ul>`;
 }
 
+// Rendert een blok uit naarBlokken() als een leesbaar HTML-element. Een alinea wordt een
+// gewone paragraaf, een item krijgt een bullet via CSS (zie style.css) en de bijbehorende
+// inspringing op basis van het niveau.
+function blokHtml(blok) {
+  if (blok.soort === "item") {
+    return `<p class="artikel-item artikel-item-${blok.niveau}">${escape(blok.tekst)}</p>`;
+  }
+  return `<p class="artikel-alinea">${escape(blok.tekst)}</p>`;
+}
+
 function artikelBlok(nummers) {
   if (nummers.length === 0) return "";
   const items = nummers
     .map((nummer) => {
       const artikel = ARTIKELEN[nummer];
       if (!artikel) return "";
-      return `<details><summary>Artikel ${escape(nummer)}: ${escape(artikel.titel)}</summary><pre>${escape(artikel.tekst)}</pre></details>`;
+      const blokken = naarBlokken(artikel.tekst).map(blokHtml).join("");
+      return `<details><summary>Artikel ${escape(nummer)}: ${escape(artikel.titel)}</summary><div class="artikel-tekst">${blokken}</div></details>`;
     })
     .join("");
   return `<h3>De artikelen zelf</h3>${items}`;

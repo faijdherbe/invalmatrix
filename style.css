@@ -176,10 +176,34 @@ details {
 
 summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
 
-details pre {
+.artikel-tekst {
   margin: 0.7rem 0 0.2rem;
-  font: 0.85rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.artikel-tekst p { margin: 0 0 0.7em; }
+.artikel-tekst p:last-child { margin-bottom: 0; }
+
+.artikel-item {
+  position: relative;
+  padding-left: 1.3em;
+}
+
+.artikel-item::before {
+  content: "•";
+  position: absolute;
+  left: 0.1em;
+}
+
+.artikel-item-2 {
+  padding-left: 2.6em;
+}
+
+.artikel-item-2::before {
+  content: "o";
+  left: 1.4em;
 }
 
 footer {
