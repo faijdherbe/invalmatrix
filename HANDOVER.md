@@ -71,6 +71,37 @@ De asserts in `build.py` dekken de voorbeelden uit art. 5.3.5.1 t/m 5.3.5.3 en d
 - Eventueel uitbreiden naar jongensteams en oudere categorieen (O16/O18 hebben eigen kolommen in de tabel; O16/O18 in Landelijk/Top/Subtop vallen deels in categorie I, hoofdstuk 4, met extra regels in 4.3.8).
 - Eventueel zaalhockey: andere aantallen (6 spelers) en andere klassenindeling in de tabel.
 
+## Vragen voor de competitieleiding
+
+Gevonden bij het bouwen van de webversie, nog niet voorgelegd:
+
+1. De toelichting bij de tabel klassengrenzen zegt "O12- en O14-spelers mogen invallen bij O25-
+   en seniorenteams", terwijl de bijbehorende tabellen alleen mappings voor O16- en O18-spelers
+   geven. Dat leest als een fout in de tabel.
+2. De tabel zet bij O16 en O18 geen sterretje bij Landelijk, terwijl hoofdstuk 2 van het
+   reglement de Landelijke Competitie wel onder categorie I schaart.
+3. Het reglement gebruikt "voor 1 oktober" (art. 3.1.1) en "op 1 oktober" (art. 5.2.4, 5.2.5)
+   door elkaar.
+4. O11 en O12 staan in de tabel in dezelfde kolom, terwijl art. 5.3.5.1 spreekt van een klasse
+   erbij per leeftijdscategorie.
+5. Art. 5.3.5.3 legt een maximum van twee invallers op bij de 5e klasse en lager, terwijl die
+   klassen volgens de tabel op gelijk niveau staan en art. 5.3.5.1 daar geen maximum kent.
+6. Hoofdstuk 2 noemt bij O14 veldhockey alleen de Super Competitie onder categorie I. De tabel
+   klassengrenzen zet wel een sterretje bij Super O14, IDC-O14 en Topklasse samen, waardoor het
+   lijkt alsof alle drie categorie I zijn. Artikel 5.3.5.4 staat in hoofdstuk 5 en gaat juist
+   expliciet over O14 Topklasse en Subtopklasse. De tool behandelt O14 Topklasse daarom als
+   categorie II, en Super O14 samen met IDC-O14 als categorie I.
+7. Hoofdstuk 2 zegt dat IDC-O14 vanaf de winterstop onder categorie II valt, maar IDC-O14 staat
+   in de tabel klassengrenzen in dezelfde regel als Super O14, dat altijd categorie I is. De tool
+   behandelt die combinatie daarom altijd als categorie I. Dat is de veilige kant, maar voor
+   IDC-O14 na de winterstop mogelijk te streng.
+8. Artikel 5.3.5.3 legt bij de 5e klasse en lager een maximum van twee invallers op, terwijl die
+   klassen volgens de tabel klassengrenzen op gelijk niveau staan en artikel 5.3.5.1 daar geen
+   maximum kent (zie ook punt 5 hierboven, specifiek voor de webversie). De tool volgt het
+   specifieke artikel en toont bij zulke combinaties dat er hooguit twee spelers mogen invallen.
+   Zegt de competitieleiding dat artikel 5.3.5.1 hier gewoon geldt, dan moet dat een
+   onvoorwaardelijk ja worden.
+
 ## Stijlvoorkeuren van de opdrachtgever
 
 - Nederlands, casual en direct.
