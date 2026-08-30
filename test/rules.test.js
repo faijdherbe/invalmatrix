@@ -652,18 +652,40 @@ test("artikel 5.2.4 blokkeert nog steeds: O14 5e klasse naar O14 4e klasse met e
 });
 
 // Fout 2: artikel 5.3.5.4, de aanvullende regel voor O14 Topklasse en Subtopklasse.
+// Ticket #6: artikel 5.3.5.4 kent twee niveaugroepen: de voorcompetitie (Topklasse en
+// Subtopklasse) en de lentecompetitie (Super O14 en IDC-O14). Beide moeten door
+// beoordeelKlasse worden herkend, elk met een voorwaardetekst die de eigen periode noemt.
 
-test("artikel 5.3.5.4: O14 Topklasse naar O14 Subtopklasse krijgt de aanvullende voorwaarde over het eerste team", () => {
+test("artikel 5.3.5.4: O14 Topklasse naar O14 Subtopklasse krijgt de aanvullende voorwaarde over het eerste team, met de voorcompetitie genoemd", () => {
   const r = check("O14", "top", "O14", "subtop");
   assert.equal(r.toegestaan, true);
   assert.ok(r.artikelen.includes("5.3.5.4"));
   assert.ok(r.voorwaarden.some((v) => /eerste team/.test(v)));
+  assert.ok(r.voorwaarden.some((v) => /voorcompetitie/.test(v)));
 });
 
 test("artikel 5.3.5.4 geldt ook de andere kant op, van Subtopklasse naar Topklasse", () => {
   const r = check("O14", "subtop", "O14", "top");
   assert.equal(r.toegestaan, true);
   assert.ok(r.artikelen.includes("5.3.5.4"));
+});
+
+test("artikel 5.3.5.4: O14 Super O14 naar O14 IDC-O14 krijgt de aanvullende voorwaarde met de lentecompetitie genoemd (via beoordeelKlasse, want assess geeft hier buiten-scope)", () => {
+  const r = check("O14", "super", "O14", "idc");
+  assert.equal(r.toegestaan, true);
+  assert.ok(r.artikelen.includes("5.3.5.4"));
+  assert.ok(r.voorwaarden.some((v) => /eerste team/.test(v)));
+  assert.ok(r.voorwaarden.some((v) => /lentecompetitie/.test(v)));
+});
+
+test("artikel 5.3.5.4 geldt niet tussen O14 Topklasse en O14 1e klasse: die klassen zitten niet samen in een niveaugroep", () => {
+  const r = check("O14", "top", "O14", "1e");
+  assert.ok(!r.artikelen.includes("5.3.5.4"));
+});
+
+test("artikel 5.3.5.4 geldt niet tussen O14 Topklasse en O14 IDC-O14: dat zijn verschillende niveaugroepen", () => {
+  const r = check("O14", "top", "O14", "idc");
+  assert.ok(!r.artikelen.includes("5.3.5.4"));
 });
 
 test("artikel 5.3.5.4 geldt niet buiten de Topklasse en Subtopklasse van O14", () => {

@@ -76,6 +76,14 @@ export const NIVEAU = {
   O18: { landelijk: 1, super: 2, subtop: 3, ...ladder(4) },
 };
 
+// Artikel 5.3.5.4: niveaugroepen voor de aanvullende O14-regel. Binnen een groep zijn de
+// spelers van het eerste team zonder toestemming van de competitieleiding niet
+// speelgerechtigd voor de andere teams van de vereniging op een klasse uit diezelfde groep.
+export const O14_NIVEAUGROEPEN = [
+  { periode: "voorcompetitie", klassen: ["top", "subtop"] },
+  { periode: "lentecompetitie", klassen: ["super", "idc"] },
+];
+
 // Klassen die volgens de indeling van hoofdstuk 2 onder categorie I vallen.
 // Voor categorie I gelden de speelgerechtigdheidsregels van hoofdstuk 4.
 // Deze tool dekt alleen categorie II en doet hier geen uitspraak over.

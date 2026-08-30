@@ -7,6 +7,7 @@ import {
   CATEGORIE_I_PERIODE,
   LEEFTIJDSGRENZEN,
   OUDERE_SPELER_UITZONDERING,
+  O14_NIVEAUGROEPEN,
   PEILDATUM,
 } from "./data.js";
 
@@ -81,22 +82,24 @@ export function beoordeelKlasse(bron, doel) {
     redenering.push(`De speler komt uit een oudere leeftijdscategorie, dus de leeftijdsgrens van ${doel.categorie} is bepalend.`);
   }
 
-  // Artikel 5.3.5.4: aanvullende regel voor O14-veldhockey. Bij Topklasse en Subtopklasse mogen
-  // spelers van het eerste team niet zonder toestemming van de competitieleiding invallen bij de
-  // andere teams op dat niveau. De tool kent geen teamlijst en kan dus niet weten of een team het
+  // Artikel 5.3.5.4: aanvullende regel voor O14-veldhockey. Het artikel kent twee
+  // niveaugroepen, elk in een eigen periode van het seizoen (de voorcompetitie met Topklasse en
+  // Subtopklasse, de lentecompetitie met Super O14 en IDC-O14). Binnen een groep mogen spelers
+  // van het eerste team niet zonder toestemming van de competitieleiding invallen bij de andere
+  // teams op dat niveau. De tool kent geen teamlijst en kan dus niet weten of een team het
   // eerste team is, dus deze voorwaarde geldt hier altijd als waarschuwing.
-  const O14_TOP_SUBTOP = ["top", "subtop"];
-  const beideO14TopOfSubtop =
-    bron.categorie === "O14" &&
-    doel.categorie === "O14" &&
-    O14_TOP_SUBTOP.includes(bron.klasse) &&
-    O14_TOP_SUBTOP.includes(doel.klasse);
-  if (beideO14TopOfSubtop) {
-    voorwaarden.push(
-      "Als de vereniging meerdere O14-teams op de Topklasse of de Subtopklasse heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.",
+  if (bron.categorie === "O14" && doel.categorie === "O14") {
+    const groep = O14_NIVEAUGROEPEN.find(
+      (g) => g.klassen.includes(bron.klasse) && g.klassen.includes(doel.klasse),
     );
-    artikelen.push("5.3.5.4");
-    redenering.push("Beide teams spelen O14 in de Topklasse of de Subtopklasse, dus de aanvullende regel van artikel 5.3.5.4 geldt.");
+    if (groep) {
+      const klasseNamen = groep.klassen.map((k) => klasseLabel("O14", k));
+      voorwaarden.push(
+        `In de ${groep.periode} geldt: als de vereniging meerdere O14-teams op de ${klasseNamen.join(" of de ")} heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.`,
+      );
+      artikelen.push("5.3.5.4");
+      redenering.push(`Beide teams spelen O14 in dezelfde niveaugroep van artikel 5.3.5.4 (${groep.periode}: ${klasseNamen.join(" en ")}).`);
+    }
   }
 
   const zelfdeCategorie = bron.categorie === doel.categorie;
