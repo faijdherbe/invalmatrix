@@ -1,4 +1,4 @@
-# Invalmatrix
+# Invalmatrix voor de veldhockeycompetities van de KNHB
 
 Beantwoordt de vraag of een speler uit het ene team mag invallen in het andere, volgens het
 KNHB Bondsreglement 2026 en de tabel klassengrenzen 2026-2027.
