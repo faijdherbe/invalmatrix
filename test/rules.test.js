@@ -157,6 +157,12 @@ test("O11 gebruikt negen spelers in plaats van elf in de voorwaarde van 5.3.5.2"
   const r = check("O11", "3e", "O11", "4e");
   assert.equal(r.grond, "een-hoger");
   assert.ok(r.voorwaarden.some((v) => /maximaal 9/.test(v)));
+
+  // Het getal negen hoort bij de categorie van het doelteam, niet van de bron: een speler uit
+  // O12 die invalt in een O11-doelteam moet hier ook 9 zien, niet 11.
+  const r2 = check("O12", "3e", "O11", "4e");
+  assert.equal(r2.grond, "een-hoger");
+  assert.ok(r2.voorwaarden.some((v) => /maximaal 9/.test(v)));
 });
 
 test("de twaalf gevallen uit build.py leveren dezelfde uitkomst", () => {
