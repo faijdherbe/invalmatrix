@@ -212,8 +212,8 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
   // Artikel 5.2.5 maakt de O11-categorie een uitzondering op "te oud": een O12-jarige (een jaar
   // boven de bovengrens van O11) mag daar worden ingedeeld als de vereniging op basis van
   // aantallen problemen heeft om tot volledige teams te komen in de O11- en O12-categorie. Dat is
-  // uitdrukkelijk geen dispensatiegeval (artikel 3.1.3), dus dit mag niet blokkeren en de eerste
-  // melding mag niet beweren dat dispensatie nodig is.
+  // uitdrukkelijk geen dispensatiegeval (artikel 3.1.3), dus dit mag
+  // niet blokkeren en de eerste melding mag niet beweren dat dispensatie nodig is.
   const isAantallenuitzonderingO11 =
     doel.categorie === "O11" && leeftijd === grensDoel.max + 1;
   if (leeftijd > grensDoel.max) {
@@ -326,8 +326,7 @@ export function assess(bron, doel, geboortedatum) {
   };
 }
 
-// Grond waarbij de aantallen-eis van artikel 5.3.5.2 geldt: een niveau hoger. Als daarbij ook
-// een leeftijdsvoorwaarde geldt, weegt die zwaarder voor het vakje, zie soortVanVakje hieronder.
+// Grond waarbij de aantallen-eis van artikel 5.3.5.2 geldt: een niveau hoger.
 const AANTALLEN_GRONDEN = ["een-hoger"];
 
 // Grond waarbij artikel 5.3.5.3 geldt: de uitzondering vanaf de 5e klasse binnen dezelfde
@@ -335,21 +334,36 @@ const AANTALLEN_GRONDEN = ["een-hoger"];
 // invallers zonder toestemming van de competitieleiding.
 const MAX2_GRONDEN = ["vijfde-klasse"];
 
-// Bepaalt hoe een vakje in het overzichtsraster getekend moet worden.
-// Volgorde van zwaarte: een leeftijdsvoorwaarde weegt het zwaarst, want daar valt voor de
-// vereniging niets aan te regelen. Pas daarna volgen de aantallen-eis (5.3.5.2) en de
-// max-twee-uitzondering (5.3.5.3), waar de vereniging wel iets aan kan doen. Een vakje kan zowel
-// de aantallen-eis als een leeftijdsvoorwaarde hebben (lenen uit een oudere categorie die een
-// klasse hoger speelt); dan krijgt het soort leeftijd, niet aantallen, want een onhaalbare
-// leeftijdsgrens kan nooit groen worden.
-function soortVanVakje(uitkomst) {
-  if (uitkomst.verdict === "buiten-scope") return "buiten-scope";
-  if (uitkomst.verdict === "niet-toegestaan") return "nee";
-  if (uitkomst.voorwaarden.some((v) => /leeftijdsgrenzen van/.test(v))) return "leeftijd";
-  if (AANTALLEN_GRONDEN.includes(uitkomst.grond)) return "aantallen";
-  if (MAX2_GRONDEN.includes(uitkomst.grond)) return "max2";
-  if (uitkomst.voorwaarden.length > 0) return "leeftijd";
-  return "vrij";
+// Bepaalt hoe een vakje in het overzichtsraster getekend moet worden: een grondslag plus de lijst
+// eisen die er daadwerkelijk gelden.
+//
+// Een vakje kan meer dan een eis dragen. Eerder koos deze functie er een en gooide de rest weg,
+// waardoor het raster voorwaarden verzweeg: een vakje waar zowel de leeftijdsgrens als de
+// aantallen-eis van artikel 5.3.5.2 gold, toonde alleen de leeftijd, en een vakje waarvan de
+// enige voorwaarde uit artikel 5.3.5.4 kwam kreeg ten onrechte het label leeftijd.
+//
+// De volgorde van de eisen ligt vast, zodat de labels in het raster voorspelbaar zijn.
+// Kanttekeningen (uitkomst.kanttekeningen) zijn geen voorwaarden en leveren dus geen eis op.
+export function vakjeVanUitkomst(uitkomst) {
+  if (uitkomst.verdict === "buiten-scope") return { basis: "buiten-scope", eisen: [] };
+  if (uitkomst.verdict === "niet-toegestaan") return { basis: "nee", eisen: [] };
+
+  const eisen = [];
+  // Artikel 5.3.5.2: lenen uit een team dat een niveau hoger speelt mag alleen bij aantoonbaar te
+  // weinig eigen spelers.
+  if (AANTALLEN_GRONDEN.includes(uitkomst.grond)) eisen.push("aantallen");
+  // Artikel 5.3.5.1, derde bullet: de invaller moet voldoen aan de leeftijdsgrenzen van de
+  // categorie waarin zij invalt.
+  if (uitkomst.voorwaarden.some((v) => /leeftijdsgrenzen van/.test(v))) eisen.push("leeftijd");
+  // Artikel 5.3.5.4: spelers van het eerste team zijn binnen dezelfde O14-niveaugroep niet
+  // speelgerechtigd voor de andere teams. Het artikel draagt deze voorwaarde, dus de aanwezigheid
+  // van het artikelnummer is hier de afleiding.
+  if (uitkomst.artikelen.includes("5.3.5.4")) eisen.push("eerste-team");
+  // Artikel 5.3.5.3: vanaf de 5e klasse binnen dezelfde leeftijdscategorie mogen zonder
+  // toestemming van de competitieleiding maximaal twee spelers invallen.
+  if (MAX2_GRONDEN.includes(uitkomst.grond)) eisen.push("max2");
+
+  return { basis: "vrij", eisen };
 }
 
 // Bouwt de gegevens voor het overzichtsraster: per leeftijdscategorie een rij, per kolom een vakje.
@@ -361,12 +375,14 @@ export function overzicht(doel) {
       const klasse = KLASSEN[categorie].find((k) => k.id === kolom);
       if (!klasse) return { klasse: kolom, bestaat: false };
       const uitkomst = assess({ categorie, klasse: kolom }, doel, null);
+      const vakje = vakjeVanUitkomst(uitkomst);
       return {
         klasse: kolom,
         label: klasse.label,
         bestaat: true,
         verdict: uitkomst.verdict,
-        soort: soortVanVakje(uitkomst),
+        basis: vakje.basis,
+        eisen: vakje.eisen,
       };
     }),
   }));

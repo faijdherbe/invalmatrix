@@ -10,6 +10,7 @@ import {
   peildatumNederlands,
   assess,
   overzicht,
+  vakjeVanUitkomst,
 } from "../rules.js";
 
 const d = (s) => new Date(`${s}T00:00:00Z`);
@@ -19,6 +20,22 @@ function check(bronCat, bronKlasse, doelCat, doelKlasse) {
     { categorie: bronCat, klasse: bronKlasse },
     { categorie: doelCat, klasse: doelKlasse },
   );
+}
+
+// Het vakje zoals het raster het tekent, voor een bron- en doelteam. Het raster kent geen
+// geboortedatum, dus assess() krijgt hier ook geen datum mee.
+function vakjeVoor(bronCat, bronKlasse, doelCat, doelKlasse) {
+  return vakjeVanUitkomst(
+    assess({ categorie: bronCat, klasse: bronKlasse }, { categorie: doelCat, klasse: doelKlasse }, null),
+  );
+}
+
+// Compacte weergave van een vakje uit overzicht(), voor de rastertests hieronder: de basis, en
+// als er eisen zijn de eisen erachter met een plus ertussen. Een klasse die de categorie niet
+// heeft levert null op.
+function vakjeCode(vakje) {
+  if (!vakje.bestaat) return null;
+  return vakje.eisen.length > 0 ? `${vakje.basis}:${vakje.eisen.join("+")}` : vakje.basis;
 }
 
 test("O11 en O12 staan in dezelfde kolom van de tabel klassengrenzen", () => {
@@ -436,7 +453,8 @@ test("overzicht laat zien dat een team op gelijk niveau vrij mag invallen", () =
   const o14 = rijen.find((r) => r.categorie === "O14");
   const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
   assert.equal(vijfde.verdict, "toegestaan");
-  assert.equal(vijfde.soort, "vrij");
+  assert.equal(vijfde.basis, "vrij");
+  assert.deepEqual(vijfde.eisen, []);
 });
 
 test("overzicht laat zien dat een klasse hoger onder de aantallen-eis mag", () => {
@@ -444,85 +462,92 @@ test("overzicht laat zien dat een klasse hoger onder de aantallen-eis mag", () =
   const o14 = rijen.find((r) => r.categorie === "O14");
   const derde = o14.vakjes.find((v) => v.klasse === "3e");
   assert.equal(derde.verdict, "toegestaan");
-  assert.equal(derde.soort, "aantallen");
+  assert.equal(derde.basis, "vrij");
+  assert.deepEqual(derde.eisen, ["aantallen"]);
 });
 
-test("soort leeg: een klasse die de categorie niet heeft krijgt geen verdere velden", () => {
+test("vakje leeg: een klasse die de categorie niet heeft krijgt geen verdere velden", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o11 = rijen.find((r) => r.categorie === "O11");
   const subtop = o11.vakjes.find((v) => v.klasse === "subtop");
   assert.equal(subtop.bestaat, false);
-  assert.equal(subtop.soort, undefined);
+  assert.equal(subtop.basis, undefined);
+  assert.equal(subtop.eisen, undefined);
 });
 
-test("soort buiten-scope: O16 Subtopklasse valt onder categorie I en krijgt geen klasseoordeel", () => {
+test("basis buiten-scope: O16 Subtopklasse valt onder categorie I en krijgt geen klasseoordeel", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o16 = rijen.find((r) => r.categorie === "O16");
   const subtop = o16.vakjes.find((v) => v.klasse === "subtop");
   assert.equal(subtop.verdict, "buiten-scope");
-  assert.equal(subtop.soort, "buiten-scope");
+  assert.equal(subtop.basis, "buiten-scope");
+  assert.deepEqual(subtop.eisen, []);
 });
 
-test("soort nee: te groot niveauverschil is niet toegestaan", () => {
+test("basis nee: te groot niveauverschil is niet toegestaan", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o14 = rijen.find((r) => r.categorie === "O14");
   const tweede = o14.vakjes.find((v) => v.klasse === "2e");
   assert.equal(tweede.verdict, "niet-toegestaan");
-  assert.equal(tweede.soort, "nee");
+  assert.equal(tweede.basis, "nee");
+  assert.deepEqual(tweede.eisen, []);
 });
 
-test("soort aantallen: een niveau hoger mag alleen onder de voorwaarden van 5.3.5.2, dat is de zwaarste horde", () => {
+test("eis aantallen: een niveau hoger mag alleen onder de voorwaarden van 5.3.5.2", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o14 = rijen.find((r) => r.categorie === "O14");
   const derde = o14.vakjes.find((v) => v.klasse === "3e");
-  assert.equal(derde.soort, "aantallen");
+  assert.deepEqual(derde.eisen, ["aantallen"]);
 });
 
-test("grond een-hoger levert hier leeftijd op: een O18-speler kan nooit aan de O16-leeftijdsgrens voldoen", () => {
+test("grond een-hoger uit een oudere categorie draagt beide eisen: aantallen en leeftijd", () => {
   const rijen = overzicht({ categorie: "O16", klasse: "1e" });
   const o18 = rijen.find((r) => r.categorie === "O18");
   const eerste = o18.vakjes.find((v) => v.klasse === "1e");
   assert.equal(eerste.verdict, "toegestaan");
-  assert.equal(eerste.soort, "leeftijd");
+  assert.equal(eerste.basis, "vrij");
+  assert.deepEqual(eerste.eisen, ["aantallen", "leeftijd"]);
 });
 
-test("soort max2: de grond vijfde-klasse levert max2 op, niet aantallen", () => {
+test("eis max2: de grond vijfde-klasse levert max2 op, niet aantallen", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "6e" });
   const o14 = rijen.find((r) => r.categorie === "O14");
   const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
   assert.equal(vijfde.verdict, "toegestaan");
-  assert.equal(vijfde.soort, "max2");
+  assert.equal(vijfde.basis, "vrij");
+  assert.deepEqual(vijfde.eisen, ["max2"]);
 });
 
-test("soort leeftijd: O16 speelt vanaf de 5e klasse gelijk aan O14 4e klasse, dan telt alleen de leeftijd", () => {
+test("eis leeftijd: O16 speelt vanaf de 5e klasse gelijk aan O14 4e klasse, dan telt alleen de leeftijd", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o16 = rijen.find((r) => r.categorie === "O16");
   const vijfde = o16.vakjes.find((v) => v.klasse === "5e");
   assert.equal(vijfde.verdict, "toegestaan");
-  assert.equal(vijfde.soort, "leeftijd");
+  assert.equal(vijfde.basis, "vrij");
+  assert.deepEqual(vijfde.eisen, ["leeftijd"]);
 });
 
-test("soort vrij: gelijk niveau binnen dezelfde categorie mag zonder enige voorwaarde", () => {
+test("basis vrij zonder eisen: gelijk niveau binnen dezelfde categorie mag zonder enige voorwaarde", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o14 = rijen.find((r) => r.categorie === "O14");
   const vierde = o14.vakjes.find((v) => v.klasse === "4e");
   assert.equal(vierde.verdict, "toegestaan");
-  assert.equal(vierde.soort, "vrij");
+  assert.equal(vierde.basis, "vrij");
+  assert.deepEqual(vierde.eisen, []);
 });
 
 test("overzicht voor O14 4e klasse geeft het volledige raster zoals de opdrachtgever het wil zien", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   // kolommen: idc top subtop 1e 2e 3e 4e 5e 6e 7e 8e
   const verwacht = {
-    O11: [null, null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O12: [null, null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O16: [null, null, "buiten-scope", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
-    O18: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
+    O11: [null, null, null, "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O12: [null, null, null, "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O16: [null, null, "buiten-scope", "nee", "nee", "nee", "vrij:aantallen+leeftijd", "vrij:leeftijd", "vrij:leeftijd", "vrij:leeftijd", "vrij:leeftijd"],
+    O18: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd"],
   };
   for (const rij of rijen) {
-    const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));
-    assert.deepEqual(soorten, verwacht[rij.categorie], rij.categorie);
+    assert.deepEqual(rij.vakjes.map(vakjeCode), verwacht[rij.categorie], rij.categorie);
   }
 });
 
@@ -530,15 +555,14 @@ test("overzicht voor O14 5e klasse geeft max2 voor de vijfde-klasse-uitzondering
   const rijen = overzicht({ categorie: "O14", klasse: "5e" });
   // kolommen: idc top subtop 1e 2e 3e 4e 5e 6e 7e 8e
   const verwacht = {
-    O11: [null, null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O12: [null, null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "nee", "aantallen", "max2", "max2", "max2", "max2"],
-    O16: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
+    O11: [null, null, null, "nee", "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O12: [null, null, null, "nee", "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "nee", "vrij:aantallen", "vrij:max2", "vrij:max2", "vrij:max2", "vrij:max2"],
+    O16: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd"],
     O18: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "nee", "nee", "nee", "nee"],
   };
   for (const rij of rijen) {
-    const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));
-    assert.deepEqual(soorten, verwacht[rij.categorie], rij.categorie);
+    assert.deepEqual(rij.vakjes.map(vakjeCode), verwacht[rij.categorie], rij.categorie);
   }
 });
 
@@ -795,14 +819,17 @@ test("een speler van elf jaar naar O12 blijft gewoon toegestaan zonder de aantal
   assert.ok(!r.voorwaarden.some((v) => /aantallen/.test(v)));
 });
 
-// Fout 6: een onmogelijke leeftijdseis moet voorrang krijgen op de aantallen-eis in het raster.
+// Fout 6 was: een onmogelijke leeftijdseis moest voorrang krijgen op de aantallen-eis in het
+// raster. Ticket #2 liet zien dat die voorrang juist het probleem was: het vakje verzweeg dan de
+// aantallen-eis van artikel 5.3.5.2. Een vakje draagt nu beide eisen, dus er valt niets meer weg.
 
-test("een leeftijdseis die nooit haalbaar is krijgt voorrang op de aantallen-eis in het raster", () => {
+test("een onhaalbare leeftijdseis verdringt de aantallen-eis niet meer in het raster", () => {
   const rijen = overzicht({ categorie: "O11", klasse: "4e" });
   const o16 = rijen.find((r) => r.categorie === "O16");
   const vijfde = o16.vakjes.find((v) => v.klasse === "5e");
   assert.equal(vijfde.verdict, "toegestaan");
-  assert.equal(vijfde.soort, "leeftijd");
+  assert.equal(vijfde.basis, "vrij");
+  assert.deepEqual(vijfde.eisen, ["aantallen", "leeftijd"]);
 });
 
 // Ticket #8: artikel 5.3.4, wijziging van niveaubepaling. Een speler die binnen de vereniging
@@ -887,4 +914,141 @@ test("artikel 5.3.5.4: de voorwaardetekst leest 'meerdere teams in de', niet 'O1
   const lentecompetitie = check("O14", "super", "O14", "idc");
   assert.ok(lentecompetitie.voorwaarden.some((v) => /meerdere teams in de Super O14 of de IDC-O14 heeft/.test(v)));
   assert.ok(!lentecompetitie.voorwaarden.some((v) => /O14-teams op de/.test(v)));
+});
+
+// Tickets #1 en #2: het raster verzweeg voorwaarden. Ticket #1: drie vakjes kregen het label
+// "leeftijd" terwijl hun enige voorwaarde uit artikel 5.3.5.4 kwam, een teamlijstregel die niets
+// met leeftijd te maken heeft. Ticket #2: 121 vakjes toonden alleen de leeftijdseis en verzwegen
+// de aantallen-eis van artikel 5.3.5.2, omdat de leeftijdstoets boven de aantallentoets stond.
+// Deze regressietest loopt over elk doelteam en elk bronteam en legt beide fouten vast.
+
+test("regressie: geen enkel vakje verzwijgt een eis, over alle doel- en broncombinaties heen", () => {
+  let metAantallen = 0;
+  let metLeeftijd = 0;
+  let metEersteTeam = 0;
+  for (const doelCategorie of CATEGORIEEN) {
+    for (const doelKlasse of KLASSEN[doelCategorie]) {
+      const doel = { categorie: doelCategorie, klasse: doelKlasse.id };
+      for (const rij of overzicht(doel)) {
+        for (const vakje of rij.vakjes) {
+          if (!vakje.bestaat) continue;
+          const waar = `${rij.categorie} ${vakje.klasse} naar ${doelCategorie} ${doelKlasse.id}`;
+          const uitkomst = assess({ categorie: rij.categorie, klasse: vakje.klasse }, doel, null);
+
+          if (uitkomst.grond === "een-hoger") {
+            assert.ok(vakje.eisen.includes("aantallen"), `${waar}: aantallen-eis ontbreekt`);
+            metAantallen += 1;
+          }
+          if (vakje.eisen.includes("leeftijd")) {
+            assert.ok(
+              uitkomst.voorwaarden.some((v) => /leeftijdsgrenzen van/.test(v)),
+              `${waar}: eis leeftijd zonder leeftijdsvoorwaarde`,
+            );
+            metLeeftijd += 1;
+          }
+          if (vakje.eisen.includes("eerste-team")) {
+            assert.ok(uitkomst.artikelen.includes("5.3.5.4"), `${waar}: eis eerste-team zonder artikel 5.3.5.4`);
+            metEersteTeam += 1;
+          }
+          if (uitkomst.artikelen.includes("5.3.5.4") && vakje.basis === "vrij") {
+            assert.ok(vakje.eisen.includes("eerste-team"), `${waar}: eis eerste-team ontbreekt`);
+          }
+        }
+      }
+    }
+  }
+  // De tellers voorkomen dat deze test stilletjes niets meer toetst als het raster ooit leegloopt.
+  assert.ok(metAantallen > 0, "geen enkel vakje met grond een-hoger gevonden");
+  assert.ok(metLeeftijd > 0, "geen enkel vakje met de eis leeftijd gevonden");
+  assert.ok(metEersteTeam > 0, "geen enkel vakje met de eis eerste-team gevonden");
+});
+
+// Kanttekeningen (artikelen 5.3.4, 5.3.6, 5.3.6.1 en 5.1.1) zijn geen voorwaarden en mogen dus
+// nooit een eis in het raster opleveren. Een vakje op gelijk of lager niveau binnen dezelfde
+// categorie draagt die kanttekeningen wel, maar hoort gewoon leeg te blijven.
+
+test("kanttekeningen leveren geen eis op in het raster", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
+  const uitkomst = assess({ categorie: "O14", klasse: "5e" }, { categorie: "O14", klasse: "4e" }, null);
+  assert.ok(uitkomst.kanttekeningen.length > 0, "dit vakje hoort kanttekeningen te hebben");
+  assert.deepEqual(vijfde.eisen, []);
+});
+
+// Ticket #2: een vakje waar zowel de leeftijdsgrens als de volledige aantallen-eis van artikel
+// 5.3.5.2 geldt, toonde alleen de leeftijd. Een coach die de geboortedatum controleerde dacht
+// dan dat het mocht.
+
+test("vakjeVanUitkomst: doel O11 1e klasse met bron O14 1e klasse draagt aantallen en leeftijd", () => {
+  const vakje = vakjeVoor("O14", "1e", "O11", "1e");
+  assert.equal(vakje.basis, "vrij");
+  assert.deepEqual(vakje.eisen, ["aantallen", "leeftijd"]);
+});
+
+// Ticket #1: de enige voorwaarde komt hier uit artikel 5.3.5.4, een teamlijstregel die niets met
+// leeftijd te maken heeft. Het vakje kreeg toch het label "leeftijd".
+
+test("vakjeVanUitkomst: doel O14 Topklasse met bron O14 Topklasse draagt alleen eerste-team", () => {
+  const vakje = vakjeVoor("O14", "top", "O14", "top");
+  assert.equal(vakje.basis, "vrij");
+  assert.deepEqual(vakje.eisen, ["eerste-team"]);
+  assert.ok(!vakje.eisen.includes("leeftijd"));
+});
+
+test("vakjeVanUitkomst: doel O14 Subtopklasse met bron O14 Topklasse draagt aantallen en eerste-team", () => {
+  const vakje = vakjeVoor("O14", "top", "O14", "subtop");
+  assert.equal(vakje.basis, "vrij");
+  assert.deepEqual(vakje.eisen, ["aantallen", "eerste-team"]);
+});
+
+// De tweede niveaugroep van artikel 5.3.5.4 (lentecompetitie: Super O14 en IDC-O14) haalt het
+// raster niet: Super O14 valt altijd onder categorie I en IDC-O14 tot de winterstop, dus assess()
+// komt daar niet verder dan buiten-scope. De afleiding van eerste-team kijkt naar het artikel en
+// niet naar een vaste lijst klassen, dus zij werkt zodra die klassen wel binnen scope komen.
+
+test("vakjeVanUitkomst: de lentecompetitiegroep van artikel 5.3.5.4 valt buiten scope", () => {
+  const vakje = vakjeVoor("O14", "super", "O14", "idc");
+  assert.equal(vakje.basis, "buiten-scope");
+  assert.deepEqual(vakje.eisen, []);
+  const klasse = beoordeelKlasse({ categorie: "O14", klasse: "super" }, { categorie: "O14", klasse: "idc" });
+  assert.ok(klasse.artikelen.includes("5.3.5.4"), "de klassentoets kent de niveaugroep wel");
+});
+
+test("vakjeVanUitkomst: een gewoon gelijk-of-lager geval krijgt basis vrij zonder eisen", () => {
+  const vakje = vakjeVoor("O14", "5e", "O14", "4e");
+  assert.equal(vakje.basis, "vrij");
+  assert.deepEqual(vakje.eisen, []);
+});
+
+test("vakjeVanUitkomst: doel O14 5e klasse met bron O14 6e klasse draagt max2", () => {
+  const vakje = vakjeVoor("O14", "6e", "O14", "5e");
+  assert.equal(vakje.basis, "vrij");
+  assert.deepEqual(vakje.eisen, ["max2"]);
+});
+
+test("vakjeVanUitkomst: basis nee en buiten-scope dragen nooit eisen", () => {
+  const nee = vakjeVoor("O14", "1e", "O14", "4e");
+  assert.equal(nee.basis, "nee");
+  assert.deepEqual(nee.eisen, []);
+
+  const buitenScope = vakjeVoor("O16", "subtop", "O14", "4e");
+  assert.equal(buitenScope.basis, "buiten-scope");
+  assert.deepEqual(buitenScope.eisen, []);
+});
+
+test("vakjeVanUitkomst: de eisen staan altijd in de vaste volgorde aantallen, leeftijd, eerste-team, max2", () => {
+  const volgorde = ["aantallen", "leeftijd", "eerste-team", "max2"];
+  for (const doelCategorie of CATEGORIEEN) {
+    for (const doelKlasse of KLASSEN[doelCategorie]) {
+      for (const bronCategorie of CATEGORIEEN) {
+        for (const bronKlasse of KLASSEN[bronCategorie]) {
+          const vakje = vakjeVoor(bronCategorie, bronKlasse.id, doelCategorie, doelKlasse.id);
+          const posities = vakje.eisen.map((eis) => volgorde.indexOf(eis));
+          assert.deepEqual(posities, [...posities].sort((a, b) => a - b));
+          assert.ok(!posities.includes(-1), `onbekende eis in ${JSON.stringify(vakje.eisen)}`);
+        }
+      }
+    }
+  }
 });

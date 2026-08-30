@@ -20,14 +20,22 @@ verschijnt een raster met per leeftijdscategorie en klasse wat daar mag invallen
 een vakje toont het volledige oordeel, met een optioneel veld voor de geboortedatum van de
 speler en de letterlijke artikelteksten waarop het oordeel is gebaseerd.
 
-Het raster kent zes soorten vakjes:
+Een vakje heeft een grondslag en daarbinnen nul of meer eisen. De grondslag:
 
-- **ja**: mag altijd
-- **mits**: mag alleen bij aantoonbaar te weinig spelers
-- **max 2**: mag altijd, maar hooguit twee invallers zonder toestemming
-- **lft**: mag, mits de speler de juiste leeftijd heeft
+- **ja** (groen): mag, zonder voorwaarden
 - **nee**: mag niet
 - **?**: geen uitspraak (categorie I)
+
+Geldt er wel een voorwaarde, dan is het vakje geel en staan de korte labels van de eisen erin,
+aan elkaar met een `+` als er meerdere gelden (bijvoorbeeld `mits+lft`):
+
+- **mits**: mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)
+- **lft**: mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)
+- **team**: mag niet voor spelers uit het eerste team, zonder toestemming van de
+  competitieleiding (artikel 5.3.5.4)
+
+De uitzondering van artikel 5.3.5.3 (maximaal twee invallers zonder toestemming) krijgt geen
+label maar een driehoekje rechtsboven in het vakje.
 
 ## Draaien
 
@@ -37,7 +45,7 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 ## Tests
 
-Er zijn 73 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`artikeltekst.js`)
+Er zijn 123 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`artikeltekst.js`)
 en de artikeltekst-extractie (`articles.js`):
 
     npm test

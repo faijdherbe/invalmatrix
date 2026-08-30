@@ -65,44 +65,73 @@ function kolomLabel(kolom) {
 }
 
 // Een plek voor beide weergaven om uit te putten: het korte tekstje in een rastervakje en de
-// omschrijving die zowel de legenda onder het raster als de groepskopjes in de mobiele
-// weergave gebruiken. Volgorde: eerst wat mag, dan wat onder voorwaarden mag, dan wat niet mag,
-// dan waar geen uitspraak over is. Dat is ook de volgorde waarin groepen in de mobiele weergave
-// verschijnen, want de gebruiker zoekt wie er wel mag invallen.
+// omschrijving die zowel de legenda onder het raster als de groepskopjes in de mobiele weergave
+// gebruiken. Een vakje bestaat uit een basis (mag, mag niet, geen uitspraak) en een lijst eisen,
+// zie vakjeVanUitkomst() in rules.js.
 //
-// max2 (de uitzondering van 5.3.5.3) toont zich hier niet als eigen soort: die wordt visueel bij
-// vrij getrokken, met een driehoekje rechtsboven in het vakje als verwijzing naar de kanttekening
-// in het detailscherm. Zie weergaveSoort().
-const SOORT_VOLGORDE = ["vrij", "aantallen", "max2", "leeftijd", "nee", "buiten-scope"];
+// Volgorde van de basissen: eerst wat mag, dan wat niet mag, dan waar geen uitspraak over is. Dat
+// is ook de volgorde waarin de groepen in de mobiele weergave verschijnen, want de gebruiker
+// zoekt wie er wel mag invallen. De groep "mag" bevat ook de voorwaardelijke gevallen, dus de kop
+// is "mag" en niet "mag altijd": welke voorwaarden er gelden staat per klasse achter het label.
+const BASIS_VOLGORDE = ["vrij", "nee", "buiten-scope"];
 
-const SOORTEN = {
-  vrij: { kort: "ja", omschrijving: "mag altijd" },
-  aantallen: { kort: "mits", omschrijving: "mag alleen bij aantoonbaar te weinig spelers" },
-  leeftijd: { kort: "lft", omschrijving: "mag, mits de speler de juiste leeftijd heeft" },
-  nee: { kort: "nee", omschrijving: "mag niet" },
-  "buiten-scope": { kort: "?", omschrijving: "geen uitspraak" },
+const BASIS = {
+  vrij: { kort: "ja", omschrijving: "mag altijd", groepskop: "mag" },
+  nee: { kort: "nee", omschrijving: "mag niet", groepskop: "mag niet" },
+  "buiten-scope": { kort: "?", omschrijving: "geen uitspraak", groepskop: "geen uitspraak" },
 };
 
-// De soort waarmee een vakje/klasse-knop visueel wordt behandeld (kleur, groepering). max2 deelt
-// de groene "mag altijd"-weergave van vrij; de onderliggende soort (voor assess()/detailscherm)
-// verandert niet.
-function weergaveSoort(soort) {
-  return soort === "max2" ? "vrij" : soort;
+// De eisen met een eigen kort label in het vakje, in de volgorde waarin rules.js ze teruggeeft.
+// De eis max2 (artikel 5.3.5.3) staat hier niet in: die krijgt geen tekst maar het driehoekje
+// rechtsboven in het vakje, zie hoek-driehoek in style.css en SR_ONLY_KANTTEKENING hieronder.
+const EIS_VOLGORDE = ["aantallen", "leeftijd", "eerste-team"];
+
+const EISEN = {
+  aantallen: { kort: "mits", omschrijving: "mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)" },
+  leeftijd: { kort: "lft", omschrijving: "mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)" },
+  "eerste-team": { kort: "team", omschrijving: "mag niet voor spelers uit het eerste team, zonder toestemming van de competitieleiding (artikel 5.3.5.4)" },
+};
+
+// Uitleg bij de gecombineerde labels, voor onder de legenda.
+const COMBINATIE_UITLEG = "Staan er twee labels met een + ertussen, dan gelden beide voorwaarden.";
+
+// De eisen die een zichtbaar label krijgen, in de vaste volgorde van rules.js. max2 valt hier af.
+function zichtbareEisen(eisen) {
+  return eisen.filter((eis) => EISEN[eis]);
 }
 
-// Dezelfde volgorde als SOORT_VOLGORDE, maar dan van weergavesoorten: max2 valt samen met vrij en
-// levert dus geen aparte, tweede "vrij"-groep op.
-const WEERGAVE_VOLGORDE = [...new Set(SOORT_VOLGORDE.map(weergaveSoort))];
+// De korte labels van een vakje aan elkaar met een plus, bijvoorbeeld "mits+lft". Leeg als er
+// geen zichtbare eis is; dan toont het vakje de tekst van zijn basis.
+function eisenLabel(eisen) {
+  return zichtbareEisen(eisen).map((eis) => EISEN[eis].kort).join("+");
+}
+
+// De kleur van een vakje of klasse-knop: groen als er niets te regelen valt (geen eis, of alleen
+// max2), geel zodra er een voorwaarde geldt. De kleur zegt of er voorwaarden zijn, de tekst zegt
+// welke. Bij basis nee en buiten-scope is de basis zelf de kleur.
+function vakjeKleur(vakje) {
+  if (vakje.basis !== "vrij") return vakje.basis;
+  return zichtbareEisen(vakje.eisen).length > 0 ? "voorwaarde" : "vrij";
+}
 
 // Tekst die niet in beeld staat maar wel wordt voorgelezen: de driehoekjesmarkering zelf is puur
 // visueel (kleur), dus dit is voor schermlezers en voor wie kleur niet ziet de manier om alsnog
 // te weten dat er een kanttekening bij dit vakje hoort.
 const SR_ONLY_KANTTEKENING = '<span class="sr-only"> (met een kanttekening)</span>';
 
+// De volledige omschrijving van elke eis, ook voor schermlezers. Het title-attribuut van de knop
+// blijft het team benoemen, dus deze uitleg gaat via dezelfde sr-only-aanpak als hierboven.
+function srOnlyEisenHtml(eisen) {
+  const zichtbaar = zichtbareEisen(eisen);
+  if (zichtbaar.length === 0) return "";
+  const teksten = zichtbaar.map((eis) => EISEN[eis].omschrijving).join("; ");
+  return `<span class="sr-only"> (${escape(teksten)})</span>`;
+}
+
 // Klein voorbeeld van de driehoekjesmarkering zelf, voor in de uitlegregel. aria-hidden omdat de
 // bijbehorende tekst ("mag, met een kanttekening...") al vertelt wat het betekent.
 function kanttekeningVoorbeeldHtml() {
-  return `<span class="kanttekening-voorbeeld hoek-driehoek" aria-hidden="true">${escape(SOORTEN.vrij.kort)}</span>`;
+  return `<span class="kanttekening-voorbeeld hoek-driehoek" aria-hidden="true">${escape(BASIS.vrij.kort)}</span>`;
 }
 
 // Verwijst naar de driehoekjesmarkering bij de max2-uitzondering (artikel 5.3.5.3): het mag, maar
@@ -111,10 +140,27 @@ function kanttekeningUitlegHtml() {
   return `${kanttekeningVoorbeeldHtml()} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
 }
 
+// Een regel in de legenda: een gekleurde badge met het korte label, gevolgd door de omschrijving.
+function legendaRegelHtml(kleur, kort, omschrijving) {
+  return `<span class="legenda-badge ${escape(kleur)}">${escape(kort)}</span> ${escape(omschrijving)}`;
+}
+
+// De uitleg onder de mobiele weergave. Daar staan geen regels voor ja, nee en ?, want die groepen
+// hebben er al een kop in woorden. De korte labels achter een klasse hebben wel uitleg nodig.
+function mobielUitlegHtml() {
+  return [
+    ...EIS_VOLGORDE.map((eis) => legendaRegelHtml("voorwaarde", EISEN[eis].kort, EISEN[eis].omschrijving)),
+    kanttekeningUitlegHtml(),
+    escape(COMBINATIE_UITLEG),
+  ].join("<br>");
+}
+
+// De inhoud van een rastervakje: de korte labels van de eisen, of de tekst van de basis als er
+// geen zichtbare eis is. Daarachter de uitleg voor schermlezers.
 function vakjeHtml(vakje) {
-  if (vakje.soort === "max2") return `${escape(SOORTEN.vrij.kort)}${SR_ONLY_KANTTEKENING}`;
-  const soort = SOORTEN[vakje.soort];
-  return soort ? escape(soort.kort) : "";
+  const tekst = eisenLabel(vakje.eisen) || BASIS[vakje.basis].kort;
+  const kanttekening = vakje.eisen.includes("max2") ? SR_ONLY_KANTTEKENING : "";
+  return `${escape(tekst)}${srOnlyEisenHtml(vakje.eisen)}${kanttekening}`;
 }
 
 // Nederlandse opsomming: "a, b en c". Bij een of geen item geen komma's of "en" nodig.
@@ -143,18 +189,24 @@ function rasterTabelHtml(rijen) {
         .map((vakje) => {
           if (!vakje.bestaat) return `<td class="vakje leeg"></td>`;
           const titel = `${rij.categorie} ${vakje.label}`;
-          const knopKlasse = vakje.soort === "max2" ? ' class="hoek-driehoek"' : "";
-          return `<td class="vakje ${escape(weergaveSoort(vakje.soort))}"><button type="button"${knopKlasse} data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
+          const knopKlasse = vakje.eisen.includes("max2") ? ' class="hoek-driehoek"' : "";
+          return `<td class="vakje ${escape(vakjeKleur(vakje))}"><button type="button"${knopKlasse} data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
         })
         .join("");
       return `<tr><th scope="row">${escape(rij.categorie)}</th>${cellen}</tr>`;
     })
     .join("");
 
-  const legenda = WEERGAVE_VOLGORDE
-    .map((soort) => `<span class="legenda-badge ${escape(soort)}">${escape(SOORTEN[soort].kort)}</span> ${escape(SOORTEN[soort].omschrijving)}`)
-    .concat(kanttekeningUitlegHtml())
-    .join("\n");
+  // Eerst wat altijd mag, dan de eisen die een vakje voorwaardelijk maken, dan wat niet mag en
+  // waar geen uitspraak over is, en tot slot de twee uitlegregels.
+  const legenda = [
+    legendaRegelHtml("vrij", BASIS.vrij.kort, BASIS.vrij.omschrijving),
+    ...EIS_VOLGORDE.map((eis) => legendaRegelHtml("voorwaarde", EISEN[eis].kort, EISEN[eis].omschrijving)),
+    legendaRegelHtml("nee", BASIS.nee.kort, BASIS.nee.omschrijving),
+    legendaRegelHtml("buiten-scope", BASIS["buiten-scope"].kort, BASIS["buiten-scope"].omschrijving),
+    kanttekeningUitlegHtml(),
+    escape(COMBINATIE_UITLEG),
+  ].join("\n");
 
   return `<div class="raster-schuif"><table>
 <thead><tr><th scope="col">Komt uit</th>${koppen}</tr></thead>
@@ -165,13 +217,14 @@ ${legenda}
 </p>`;
 }
 
-// Groepeert de vakjes van een rij per weergavesoort, in de volgorde van WEERGAVE_VOLGORDE, en
-// laat lege groepen en niet-bestaande klassen weg. Werkt op dezelfde rijen als de tabel, dus geen
-// tweede berekening. max2-klassen komen hier in de vrij-groep terecht (zie weergaveSoort()).
+// Groepeert de vakjes van een rij per basis, in de volgorde van BASIS_VOLGORDE, en laat lege
+// groepen en niet-bestaande klassen weg. Werkt op dezelfde rijen als de tabel, dus geen tweede
+// berekening. De groepering gaat bewust op basis en niet op de eisencombinatie: dat zou een
+// wildgroei aan groepjes opleveren. De eisen staan per klasse achter het label.
 function mobielGroepen(rij) {
   const bestaande = rij.vakjes.filter((vakje) => vakje.bestaat);
-  return WEERGAVE_VOLGORDE
-    .map((soort) => ({ soort, vakjes: bestaande.filter((vakje) => weergaveSoort(vakje.soort) === soort) }))
+  return BASIS_VOLGORDE
+    .map((basis) => ({ basis, vakjes: bestaande.filter((vakje) => vakje.basis === basis) }))
     .filter((groep) => groep.vakjes.length > 0);
 }
 
@@ -184,14 +237,20 @@ function mobielCategorieHtml(rij) {
       const knoppen = groep.vakjes
         .map((vakje) => {
           const titel = `${rij.categorie} ${vakje.label}`;
-          const kanttekening = vakje.soort === "max2";
-          const labelHtml = kanttekening ? `${escape(vakje.label)}${SR_ONLY_KANTTEKENING}` : escape(vakje.label);
-          const klasse = `mobiel-klasse ${escape(groep.soort)}${kanttekening ? " kanttekening" : ""}`;
+          const kanttekening = vakje.eisen.includes("max2");
+          const eisen = eisenLabel(vakje.eisen);
+          const labelHtml = [
+            escape(vakje.label),
+            eisen ? ` <span class="mobiel-eisen">${escape(eisen)}</span>` : "",
+            srOnlyEisenHtml(vakje.eisen),
+            kanttekening ? SR_ONLY_KANTTEKENING : "",
+          ].join("");
+          const klasse = `mobiel-klasse ${escape(vakjeKleur(vakje))}${kanttekening ? " kanttekening" : ""}`;
           return `<button type="button" class="${klasse}" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${labelHtml}</button>`;
         })
         .join("");
       return `<div class="mobiel-groep">
-<p class="mobiel-groep-kop ${escape(groep.soort)}">${escape(SOORTEN[groep.soort].omschrijving)}</p>
+<p class="mobiel-groep-kop ${escape(groep.basis)}">${escape(BASIS[groep.basis].groepskop)}</p>
 <div class="mobiel-klassen">${knoppen}</div>
 </div>`;
     })
@@ -213,7 +272,7 @@ function toonRaster() {
   const rijen = overzicht(doel);
   raster.innerHTML = rasterTabelHtml(rijen);
   mobielOverzicht.innerHTML =
-    rijen.map(mobielCategorieHtml).join("") + `<p class="mobiel-kanttekening-uitleg">${kanttekeningUitlegHtml()}</p>`;
+    rijen.map(mobielCategorieHtml).join("") + `<p class="mobiel-uitleg">${mobielUitlegHtml()}</p>`;
 
   rasterVoetnoot.textContent =
     `De klassen die onder categorie I vallen (${categorieILijst()}) staan niet in dit raster. Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
