@@ -97,10 +97,21 @@ Gevonden bij het bouwen van de webversie, nog niet voorgelegd:
    IDC-O14 na de winterstop mogelijk te streng.
 8. Artikel 5.3.5.3 legt bij de 5e klasse en lager een maximum van twee invallers op, terwijl die
    klassen volgens de tabel klassengrenzen op gelijk niveau staan en artikel 5.3.5.1 daar geen
-   maximum kent (zie ook punt 5 hierboven, specifiek voor de webversie). De tool volgt het
-   specifieke artikel en toont bij zulke combinaties dat er hooguit twee spelers mogen invallen.
-   Zegt de competitieleiding dat artikel 5.3.5.1 hier gewoon geldt, dan moet dat een
-   onvoorwaardelijk ja worden.
+   maximum kent (zie ook punt 5 hierboven, specifiek voor de webversie). De opdrachtgever heeft
+   een scherpere vraag gesteld: geldt dat maximum van twee altijd, of alleen als het team elf of
+   meer eigen spelers beschikbaar heeft? De tekst is er niet eenduidig over.
+   - Voor "alleen bij elf of meer" pleit dat 5.3.5.3 bijna een variant is op 5.3.5.2, dat
+     maximaal 11 beschikbare spelers eist en dan twee invallers toestaat. Artikel 5.3.5.3 laat
+     die aantallen-eis vallen met "ook bij meer dan 11 eigen spelers" en houdt de twee invallers
+     over; "hierbij" zou dan naar die uitzonderingssituatie verwijzen. Heeft het team te weinig
+     spelers, dan valt het terug op artikel 5.3.5.1, dat expliciet "ongeacht het aantal eigen
+     spelers" zegt en geen maximum noemt.
+   - Voor "altijd" pleit dat "hierbij" grammaticaal terugslaat op de hoofdzin ("mag er bij elkaar
+     worden ingevallen") en niet op de bijzin over de elf spelers.
+   De tool kent het aantal beschikbare spelers niet en kan dus niet kiezen. De webversie toont
+   daarom bij deze combinaties beide lezingen, vermeldt artikel 5.3.5.1 als mogelijk alternatief,
+   en raadt de gebruiker aan dit na te vragen bij de competitieleiding. Komt er een antwoord, dan
+   kan de voorwaarde in `rules.js` bij de grond `vijfde-klasse` weer eenduidig worden gemaakt.
 
 ## Stijlvoorkeuren van de opdrachtgever
 

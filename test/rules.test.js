@@ -122,6 +122,20 @@ test("artikel 5.3.5.3: onderling invallen vanaf de 5e klasse kent een maximum va
   assert.ok(r.artikelen.includes("5.3.5.3"));
 });
 
+test("artikel 5.3.5.3: de artikelenlijst bij de grond vijfde-klasse noemt zowel 5.3.5.3 als 5.3.5.1", () => {
+  const r = check("O14", "5e", "O14", "6e");
+  assert.equal(r.grond, "vijfde-klasse");
+  assert.ok(r.artikelen.includes("5.3.5.3"));
+  assert.ok(r.artikelen.includes("5.3.5.1"));
+});
+
+test("artikel 5.3.5.3: de voorwaarden benoemen de onduidelijkheid over het aantal beschikbare spelers", () => {
+  const r = check("O14", "5e", "O14", "6e");
+  assert.equal(r.grond, "vijfde-klasse");
+  assert.ok(r.voorwaarden.some((v) => /elf of meer eigen spelers/.test(v)));
+  assert.ok(r.voorwaarden.some((v) => /5\.3\.5\.1/.test(v)));
+});
+
 test("O11 gebruikt negen spelers in plaats van elf in de voorwaarde van 5.3.5.2", () => {
   const r = check("O11", "3e", "O11", "4e");
   assert.equal(r.grond, "een-hoger");

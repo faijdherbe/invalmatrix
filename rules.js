@@ -91,7 +91,10 @@ export function beoordeelKlasse(bron, doel) {
   const zelfdeCategorie = bron.categorie === doel.categorie;
   if (zelfdeCategorie && isVijfdeOfLager(bron.klasse) && isVijfdeOfLager(doel.klasse)) {
     voorwaarden.push("Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding.");
-    artikelen.push("5.3.5.3");
+    voorwaarden.push(
+      "Onduidelijk is of dit maximum altijd geldt, of alleen als het team elf of meer eigen spelers beschikbaar heeft. Heeft het team minder spelers beschikbaar, dan zou artikel 5.3.5.1 gelden, dat geen maximum kent. Vraag dit na bij de competitieleiding.",
+    );
+    artikelen.push("5.3.5.3", "5.3.5.1");
     redenering.push("Beide teams spelen in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
     return { toegestaan: true, grond: "vijfde-klasse", voorwaarden, redenering, artikelen };
   }
