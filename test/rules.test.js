@@ -239,7 +239,10 @@ test("O11 uses nine players instead of eleven in the condition of 5.3.5.2", () =
   assert.ok(r2.conditions.some((v) => /maximaal 9/.test(v)));
 });
 
-test("the twelve cases from build.py give the same outcome", () => {
+// Twelve combinations from articles 5.3.5.1 up to and including 5.3.5.3 and the class boundaries
+// table, kept together as regression cover: they touch every ground once and cross the age
+// category boundary in both directions.
+test("twelve combinations from the articles and the class boundaries table keep their outcome", () => {
   const cases = [
     ["O11", "1e", "O11", "1e", true, "equal-or-lower"],
     ["O14", "4e", "O14", "6e", true, "one-higher"],

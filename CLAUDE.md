@@ -13,7 +13,7 @@ alleen intern gebruikt worden (zoals de namen van gronden en eisen), commentaar 
 namen van tests.
 
 **Nederlands:** elke tekst die de gebruiker op de pagina te zien krijgt, de letterlijke
-artikelcitaten uit het Bondsreglement, `README.md`, `HANDOVER.md`, dit bestand, de tickets op
+artikelcitaten uit het Bondsreglement, `README.md`, dit bestand, de tickets op
 GitHub, en commitberichten.
 
 Waarom die splitsing: de code wordt in het Engels onderhouden, maar de doelgroep is Nederlands en
@@ -22,10 +22,12 @@ maken, want dan staat er niet meer wat er in het reglement staat.
 
 Verder in alle talen: geen em-dash, geen emoji.
 
+De toon van het Nederlands is casual en direct.
+
 ## Het reglement is de enige bron
 
 Voor elke beslissing over een invalregel geldt uitsluitend `bronnen/bondsreglement-2026.pdf`.
-Niet `HANDOVER.md`, niet `README.md`, en niet het commentaar dat al in de code staat. Die kunnen
+Niet `README.md`, en niet het commentaar dat al in de code staat. Die kunnen
 achterhaald zijn, en een fout die daaruit is overgenomen plant zich voort.
 
 De tabel klassengrenzen (`bronnen/tabel-klassengrenzen-veld-zaal-2026-2027.pdf`) mag alleen worden
