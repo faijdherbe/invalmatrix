@@ -1069,7 +1069,10 @@ git commit -m "feat: letterlijke artikelteksten uit het reglement met bewakende 
 - Consumes: `assess`, `KLASSEN`, `CATEGORIEEN`.
 - Produces: `data.js` exporteert `KOLOMMEN`, de klassen die in het raster een kolom krijgen, van hoog
   naar laag niveau. `rules.js` exporteert `overzicht(doel)` die een array van rijen teruggeeft, een
-  per leeftijdscategorie, elk met een array vakjes in de volgorde van `KOLOMMEN`.
+  per leeftijdscategorie, elk met een array vakjes in de volgorde van `KOLOMMEN`. Elk vakje dat
+  bestaat heeft een veld `soort` met een van de waarden `vrij`, `aantallen`, `leeftijd`, `nee` of
+  `buiten-scope`. Een vakje voor een klasse die de categorie niet heeft, heeft alleen
+  `bestaat: false`. `assess` geeft daarnaast het veld `grond` mee, dat `null` is bij buiten-scope.
 
 Achtergrond: de pagina toont na het kiezen van een doelteam een raster met daarin per
 leeftijdscategorie en klasse of daar iets vandaan mag komen. Deze taak levert de gegevens voor dat
@@ -1125,7 +1128,7 @@ test("overzicht laat zien dat een team op gelijk niveau vrij mag invallen", () =
   const o14 = rijen.find((r) => r.categorie === "O14");
   const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
   assert.equal(vijfde.verdict, "toegestaan");
-  assert.equal(vijfde.voorwaardelijk, false);
+  assert.equal(vijfde.soort, "vrij");
 });
 
 test("overzicht laat zien dat een klasse hoger onder voorwaarden mag", () => {
@@ -1133,7 +1136,7 @@ test("overzicht laat zien dat een klasse hoger onder voorwaarden mag", () => {
   const o14 = rijen.find((r) => r.categorie === "O14");
   const derde = o14.vakjes.find((v) => v.klasse === "3e");
   assert.equal(derde.verdict, "toegestaan");
-  assert.equal(derde.voorwaardelijk, true);
+  assert.equal(derde.soort, "aantallen");
 });
 
 test("overzicht laat zien dat twee klassen hoger niet mag", () => {
@@ -1206,7 +1209,7 @@ export function overzicht(doel) {
         label: klasse.label,
         bestaat: true,
         verdict: uitkomst.verdict,
-        voorwaardelijk: uitkomst.voorwaarden.length > 0,
+        soort: vakjeSoort(uitkomst),
       };
     }),
   }));
@@ -1374,18 +1377,17 @@ function kolomLabel(kolom) {
   return kolom;
 }
 
-function vakjeKlasse(vakje) {
-  if (!vakje.bestaat) return "leeg";
-  if (vakje.verdict === "buiten-scope") return "buiten-scope";
-  if (vakje.verdict === "niet-toegestaan") return "nee";
-  return vakje.voorwaardelijk ? "mits" : "ja";
-}
+// De vier soorten uit overzicht() vertaald naar wat het vakje toont.
+const VAKJE_TEKST = {
+  vrij: "ja",
+  aantallen: "mits",
+  leeftijd: "lft",
+  nee: "nee",
+  "buiten-scope": "?",
+};
 
 function vakjeTekst(vakje) {
-  if (!vakje.bestaat) return "";
-  if (vakje.verdict === "buiten-scope") return "?";
-  if (vakje.verdict === "niet-toegestaan") return "nee";
-  return vakje.voorwaardelijk ? "mits" : "ja";
+  return VAKJE_TEKST[vakje.soort] || "";
 }
 
 function toonRaster() {
@@ -1404,10 +1406,9 @@ function toonRaster() {
     .map((rij) => {
       const cellen = rij.vakjes
         .map((vakje) => {
-          const soort = vakjeKlasse(vakje);
           if (!vakje.bestaat) return `<td class="vakje leeg"></td>`;
           const titel = `${rij.categorie} ${vakje.label}`;
-          return `<td class="vakje ${soort}"><button type="button" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${escape(vakjeTekst(vakje))}</button></td>`;
+          return `<td class="vakje ${escape(vakje.soort)}"><button type="button" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${escape(vakjeTekst(vakje))}</button></td>`;
         })
         .join("");
       return `<tr><th scope="row">${escape(rij.categorie)}</th>${cellen}</tr>`;
@@ -1419,8 +1420,9 @@ function toonRaster() {
 <tbody>${lichaam}</tbody>
 </table></div>
 <p class="legenda">
-<span class="ja">ja</span> mag altijd
-<span class="mits">mits</span> mag onder voorwaarden
+<span class="vrij">ja</span> mag altijd
+<span class="aantallen">mits</span> mag alleen bij aantoonbaar te weinig spelers
+<span class="leeftijd">lft</span> mag, mits de speler de juiste leeftijd heeft
 <span class="nee">nee</span> mag niet
 <span class="buiten-scope">?</span> geen uitspraak
 </p>`;
@@ -1520,6 +1522,8 @@ geboortedatum.addEventListener("change", toonDetail);
   --groen-vlak: #e4f4e9;
   --geel: #8a6100;
   --geel-vlak: #fdf3d7;
+  --blauw: #1b5f8a;
+  --blauw-vlak: #e0eff7;
   --rood: #b3261e;
   --rood-vlak: #fbe9e7;
   --grijs: #5b5b5b;
@@ -1607,8 +1611,9 @@ thead th, tbody th {
   cursor: pointer;
 }
 
-.vakje.ja { background: var(--groen-vlak); color: var(--groen); }
-.vakje.mits { background: var(--geel-vlak); color: var(--geel); }
+.vakje.vrij { background: var(--groen-vlak); color: var(--groen); }
+.vakje.aantallen { background: var(--geel-vlak); color: var(--geel); }
+.vakje.leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
 .vakje.nee { background: var(--rood-vlak); color: var(--rood); }
 .vakje.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
 .vakje.leeg { background: repeating-linear-gradient(45deg, #fff, #fff 4px, #f4f4f4 4px, #f4f4f4 8px); }
@@ -1622,7 +1627,7 @@ thead th, tbody th {
 }
 
 .legenda span {
-  margin-left: 0.9rem;
+  margin-left: 0.8rem;
   margin-right: 0.15rem;
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
@@ -1630,8 +1635,9 @@ thead th, tbody th {
 }
 
 .legenda span:first-child { margin-left: 0; }
-.legenda .ja { background: var(--groen-vlak); color: var(--groen); }
-.legenda .mits { background: var(--geel-vlak); color: var(--geel); }
+.legenda .vrij { background: var(--groen-vlak); color: var(--groen); }
+.legenda .aantallen { background: var(--geel-vlak); color: var(--geel); }
+.legenda .leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
 .legenda .nee { background: var(--rood-vlak); color: var(--rood); }
 .legenda .buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
 
