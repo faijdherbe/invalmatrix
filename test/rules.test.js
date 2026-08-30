@@ -242,14 +242,24 @@ test("een speler die te oud is voor de doelcategorie mag daar niet uitkomen", ()
   assert.ok(r.artikelen.includes("3.1.3"));
 });
 
-test("een speler die te jong is voor de doelcategorie heeft dispensatie nodig", () => {
+test("een speler die te jong is voor haar eigen categorie is een dispensatiegeval, ook bij een gelijke of oudere bron", () => {
   const r = beoordeelLeeftijd(
-    { categorie: "O11", klasse: "1e" },
+    { categorie: "O14", klasse: "3e" },
     { categorie: "O14", klasse: "4e" },
     d("2016-05-01"),
   );
   assert.equal(r.blokkeert, true);
   assert.ok(r.meldingen.some((m) => /dispensatie/.test(m)));
+});
+
+test("een speler die te jong is voor de doelcategorie blokkeert niet meer als de bron uit een jongere categorie komt", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O11", klasse: "1e" },
+    { categorie: "O14", klasse: "4e" },
+    d("2016-05-01"),
+  );
+  assert.equal(r.blokkeert, false);
+  assert.ok(!r.meldingen.some((m) => /dispensatie/.test(m)));
 });
 
 test("artikel 5.2.4: een speler die een jaar te oud is mag uitsluitend voor het eigen team spelen", () => {
@@ -546,39 +556,40 @@ test("elke kolom bestaat bij minstens een leeftijdscategorie", () => {
   }
 });
 
-// Fout 1: de leeftijdstoets sprak de klassenlogica tegen bij lenen uit een jongere categorie.
+// Fout 1 (hersteld): het verdict "omstreden" vuurde altijd bij lenen uit een jongere categorie,
+// want een speler uit een jongere categorie is per definitie te jong voor de doelcategorie. Het
+// verdict is verwijderd; de kanttekening zit nu in beoordeelKlasse en verandert het oordeel niet.
 
-test("omstreden: artikel 5.3.5.1 en 3.1.3 spreken elkaar tegen bij een te jonge invaller uit een jongere categorie", () => {
-  const r = assess(
-    { categorie: "O14", klasse: "1e" },
-    { categorie: "O18", klasse: "3e" },
-    d("2013-05-01"),
-  );
-  assert.equal(r.verdict, "omstreden");
-  assert.ok(r.artikelen.includes("5.3.5.1"), "artikel 5.3.5.1 ontbreekt");
+test("O11 naar O14 levert toegestaan op, met en zonder geboortedatum, met dezelfde uitkomst", () => {
+  const zonder = assess({ categorie: "O11", klasse: "3e" }, { categorie: "O14", klasse: "4e" }, null);
+  const met = assess({ categorie: "O11", klasse: "3e" }, { categorie: "O14", klasse: "4e" }, d("2016-05-01"));
+  assert.equal(zonder.verdict, "toegestaan");
+  assert.equal(met.verdict, "toegestaan");
+  assert.equal(zonder.verdict, met.verdict);
+});
+
+test("kanttekening: bij een jongere bron staat de kanttekening er ook zonder geboortedatum, met artikel 3.1.3", () => {
+  const r = check("O14", "1e", "O18", "3e");
+  assert.equal(r.toegestaan, true);
+  assert.equal(r.kanttekeningen.length, 1);
+  assert.match(r.kanttekeningen[0], /jongere leeftijdscategorie/);
   assert.ok(r.artikelen.includes("3.1.3"), "artikel 3.1.3 ontbreekt");
+  assert.ok(r.artikelen.includes("5.3.5.1"), "artikel 5.3.5.1 ontbreekt");
+
+  const zonderGeboortedatum = assess({ categorie: "O14", klasse: "1e" }, { categorie: "O18", klasse: "3e" }, null);
+  assert.equal(zonderGeboortedatum.verdict, "toegestaan");
+  assert.equal(zonderGeboortedatum.kanttekeningen.length, 1);
+  assert.ok(zonderGeboortedatum.artikelen.includes("3.1.3"));
 });
 
-test("omstreden: hetzelfde geval zonder geboortedatum levert gewoon toegestaan op", () => {
-  const r = assess(
-    { categorie: "O14", klasse: "1e" },
-    { categorie: "O18", klasse: "3e" },
-    null,
-  );
-  assert.equal(r.verdict, "toegestaan");
+test("kanttekening: een gelijke categorie levert geen kanttekening over een jongere categorie op", () => {
+  const r = check("O16", "2e", "O16", "2e");
+  assert.deepEqual(r.kanttekeningen, []);
 });
 
-test("omstreden: overzicht roept assess altijd zonder geboortedatum aan en levert dus nooit omstreden", () => {
-  for (const doelCategorie of CATEGORIEEN) {
-    for (const doelKlasse of KLASSEN[doelCategorie]) {
-      const rijen = overzicht({ categorie: doelCategorie, klasse: doelKlasse.id });
-      for (const rij of rijen) {
-        for (const vakje of rij.vakjes) {
-          assert.notEqual(vakje.verdict, "omstreden", `${rij.categorie} naar ${doelCategorie} ${doelKlasse.id}`);
-        }
-      }
-    }
-  }
+test("kanttekening: een oudere bron levert geen kanttekening over een jongere categorie op", () => {
+  const r = check("O18", "3e", "O16", "2e");
+  assert.deepEqual(r.kanttekeningen, []);
 });
 
 test("de andere richting blijft geblokkeerd: te oud voor de doelcategorie met bron uit een oudere categorie", () => {
@@ -586,6 +597,25 @@ test("de andere richting blijft geblokkeerd: te oud voor de doelcategorie met br
     { categorie: "O18", klasse: "3e" },
     { categorie: "O16", klasse: "2e" },
     d("2005-05-01"),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+});
+
+test("te oud voor de doelcategorie blokkeert nog steeds, ook als de bron uit een jongere categorie komt", () => {
+  const r = assess(
+    { categorie: "O11", klasse: "3e" },
+    { categorie: "O14", klasse: "4e" },
+    d("2000-05-01"),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+  assert.ok(r.leeftijd.meldingen.some((m) => /te oud/.test(m)));
+});
+
+test("artikel 5.2.4 blokkeert nog steeds: O14 5e klasse naar O14 4e klasse met een 14-jarige blijft niet-toegestaan", () => {
+  const r = assess(
+    { categorie: "O14", klasse: "5e" },
+    { categorie: "O14", klasse: "4e" },
+    d("2012-05-01"),
   );
   assert.equal(r.verdict, "niet-toegestaan");
 });

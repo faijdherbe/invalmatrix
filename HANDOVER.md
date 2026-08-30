@@ -112,6 +112,14 @@ Gevonden bij het bouwen van de webversie, nog niet voorgelegd:
    daarom bij deze combinaties beide lezingen, vermeldt artikel 5.3.5.1 als mogelijk alternatief,
    en raadt de gebruiker aan dit na te vragen bij de competitieleiding. Komt er een antwoord, dan
    kan de voorwaarde in `rules.js` bij de grond `vijfde-klasse` weer eenduidig worden gemaakt.
+9. Artikel 5.3.5.1 staat lenen uit een jongere leeftijdscategorie toe en geeft er zelfs een
+   voorbeeld van (JO18-2 in de 3e klasse mag lenen uit JO14-2 in de 1e klasse), terwijl artikel
+   3.1.3 zegt dat spelers zonder dispensatie niet mogen uitkomen in een leeftijdscategorie waar ze
+   volgens de leeftijdsgrenzen niet in mogen, en de tabel klassengrenzen vermeldt dat de
+   leeftijdsgrenzen altijd bepalend blijven. Voor zo'n invaller is dat bijna altijd het geval: een
+   speler uit een jongere categorie is per definitie meestal te jong voor de doelcategorie. De tool
+   staat dit toe en toont een kanttekening die op deze tegenstrijdigheid wijst, zonder dat de
+   kanttekening het oordeel verandert.
 
 ## Stijlvoorkeuren van de opdrachtgever
 

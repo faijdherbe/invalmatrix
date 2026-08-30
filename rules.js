@@ -49,10 +49,21 @@ export function beoordeelKlasse(bron, doel) {
   const nDoel = niveau(doel.categorie, doel.klasse);
   const uitOudereCategorie =
     CATEGORIE_VOLGORDE.indexOf(bron.categorie) > CATEGORIE_VOLGORDE.indexOf(doel.categorie);
+  const uitJongereCategorie =
+    CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
 
   const voorwaarden = [];
   const redenering = [];
   const artikelen = [];
+  const kanttekeningen = [];
+
+  // Lenen uit een jongere leeftijdscategorie is precies waar artikel 5.3.5.1 een voorbeeld van
+  // geeft, en de meest voorkomende invalsituatie van allemaal. Maar artikel 3.1.3 en de tabel
+  // klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn, en bij twijfel beslist de
+  // competitieleiding. Dat is geen voorwaarde waaraan de gebruiker iets kan doen, maar een
+  // kanttekening bij de regel zelf: die geldt altijd als de bron jonger is, ongeacht geboortedatum,
+  // en verandert het oordeel niet.
+  const jongereCategorieKanttekening = `De speler komt uit een jongere leeftijdscategorie dan ${doel.categorie}. Artikel 5.3.5.1 staat dat toe en geeft er zelfs een voorbeeld van, maar artikel 3.1.3 en de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn. Bij twijfel beslist de competitieleiding.`;
 
   if (nBron === nDoel) {
     redenering.push(`${omschrijf(bron)} en ${omschrijf(doel)} staan volgens de tabel klassengrenzen op hetzelfde niveau.`);
@@ -96,13 +107,17 @@ export function beoordeelKlasse(bron, doel) {
     );
     artikelen.push("5.3.5.3", "5.3.5.1");
     redenering.push("Beide teams spelen in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
-    return { toegestaan: true, grond: "vijfde-klasse", voorwaarden, redenering, artikelen };
+    return { toegestaan: true, grond: "vijfde-klasse", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 
   if (nBron >= nDoel) {
     artikelen.push("5.3.5.1");
     redenering.push("Lenen uit een team op gelijk of lager niveau mag altijd, ongeacht het aantal eigen spelers.");
-    return { toegestaan: true, grond: "gelijk-of-lager", voorwaarden, redenering, artikelen };
+    if (uitJongereCategorie) {
+      kanttekeningen.push(jongereCategorieKanttekening);
+      artikelen.push("3.1.3");
+    }
+    return { toegestaan: true, grond: "gelijk-of-lager", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 
   if (nBron === nDoel - 1) {
@@ -113,12 +128,16 @@ export function beoordeelKlasse(bron, doel) {
     voorwaarden.push("Voor het inlenen van een doelverdediger geldt de eis over het aantal eigen spelers niet.");
     artikelen.push("5.3.5.2");
     redenering.push("Lenen uit een team dat precies een niveau hoger speelt mag alleen als aan alle voorwaarden van artikel 5.3.5.2 is voldaan.");
-    return { toegestaan: true, grond: "een-hoger", voorwaarden, redenering, artikelen };
+    if (uitJongereCategorie) {
+      kanttekeningen.push(jongereCategorieKanttekening);
+      artikelen.push("3.1.3");
+    }
+    return { toegestaan: true, grond: "een-hoger", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 
   artikelen.push("5.3.5.2");
   redenering.push("Meer dan een niveau verschil is niet toegestaan zonder dispensatie van de competitieleiding.");
-  return { toegestaan: false, grond: "te-hoog", voorwaarden: [], redenering, artikelen };
+  return { toegestaan: false, grond: "te-hoog", voorwaarden: [], redenering, artikelen, kanttekeningen: [] };
 }
 
 // Geeft een uitleg terug als het team buiten categorie II valt, anders null.
@@ -153,6 +172,13 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
 
   const datumTekst = peildatumNederlands(PEILDATUM);
   const grensDoel = LEEFTIJDSGRENZEN[doel.categorie];
+  // Een bron uit een jongere leeftijdscategorie is per definitie vaak te jong voor de
+  // doelcategorie: dat is nu juist de normale situatie bij lenen uit een jongere categorie
+  // (artikel 5.3.5.1), geen afwijking. Dit mag dus niet blokkeren. Te oud voor de doelcategorie
+  // en de uitzondering van artikel 5.2.4 blokkeren onverminderd, ook bij een jongere bron. En
+  // "te jong" bij een gelijke of oudere bron blijft gewoon een dispensatiegeval.
+  const bronUitJongereCategorie =
+    CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
   if (leeftijd > grensDoel.max) {
     blokkeert = true;
     meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
@@ -163,10 +189,12 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
       );
       artikelen.push("5.2.5");
     }
-  } else if (leeftijd < grensDoel.min) {
+  } else if (leeftijd < grensDoel.min && !bronUitJongereCategorie) {
     blokkeert = true;
     meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te jong voor ${doel.categorie}, waar de ondergrens ${grensDoel.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
     artikelen.push("3.1.1", "3.1.3");
+  } else if (leeftijd < grensDoel.min) {
+    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar. Dat is jonger dan de ondergrens van ${grensDoel.min} jaar voor ${doel.categorie}, maar de speler komt uit een jongere leeftijdscategorie, dus dat is hier de normale situatie en geen afwijking.`);
   } else {
     meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en past daarmee binnen ${doel.categorie}.`);
   }
@@ -205,6 +233,7 @@ export function assess(bron, doel, geboortedatum) {
       leeftijd: null,
       artikelen: [],
       grond: null,
+      kanttekeningen: [],
     };
   }
 
@@ -214,21 +243,8 @@ export function assess(bron, doel, geboortedatum) {
   // hij direct met een ongeldige datum wordt aangeroepen, zie de toelichting in het rapport.
   const leeftijd = heeftGeldigeGeboortedatum(geboortedatum) ? beoordeelLeeftijd(bron, doel, geboortedatum) : null;
 
-  // Omstreden: de bron komt uit een jongere leeftijdscategorie dan het doel, de klassenregels
-  // staan het toe, maar de speler is volgens de leeftijdsgrenzen te jong voor het doel. Artikel
-  // 5.3.5.1 geeft dit als voorbeeld van iets dat mag (de derde bullet noemt de leeftijdseis
-  // alleen bij lenen uit een oudere categorie, niet hierbij), terwijl artikel 3.1.3 en de
-  // voetnoot bij de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn. De
-  // tool doet hier geen uitspraak over, maar waarschuwt.
-  const bronUitJongereCategorie =
-    CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
-  const teJongVoorDoel = leeftijd !== null && leeftijd.leeftijd < LEEFTIJDSGRENZEN[doel.categorie].min;
-  const omstreden = klasse.toegestaan && bronUitJongereCategorie && teJongVoorDoel;
-
   let artikelen;
-  if (omstreden) {
-    artikelen = [...new Set([...klasse.artikelen, "5.3.5.1", "3.1.3", ...leeftijd.artikelen])].sort();
-  } else if (klasse.toegestaan) {
+  if (klasse.toegestaan) {
     artikelen = [...new Set([...klasse.artikelen, ...(leeftijd ? leeftijd.artikelen : [])])].sort();
   } else {
     artikelen = [...new Set(klasse.artikelen)].sort();
@@ -236,10 +252,7 @@ export function assess(bron, doel, geboortedatum) {
 
   let verdict;
   let samenvatting;
-  if (omstreden) {
-    verdict = "omstreden";
-    samenvatting = `Omstreden: het Bondsreglement spreekt zichzelf hier tegen. Artikel 5.3.5.1 geeft lenen uit een jongere leeftijdscategorie als voorbeeld van iets dat mag, maar artikel 3.1.3 en de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn, en de speler is met ${leeftijd.leeftijd} jaar volgens die grenzen te jong voor ${doel.categorie}. Deze tool doet hier geen uitspraak over. Leg dit voor aan de competitieleiding.`;
-  } else if (!klasse.toegestaan) {
+  if (!klasse.toegestaan) {
     verdict = "niet-toegestaan";
     samenvatting = `Nee. ${omschrijf(bron)} speelt te veel niveaus hoger dan ${omschrijf(doel)}. Dit mag alleen met dispensatie van de competitieleiding.`;
   } else if (leeftijd && leeftijd.blokkeert) {
@@ -261,6 +274,7 @@ export function assess(bron, doel, geboortedatum) {
     leeftijd,
     artikelen,
     grond: klasse.grond,
+    kanttekeningen: klasse.kanttekeningen,
   };
 }
 
@@ -283,9 +297,6 @@ const MAX2_GRONDEN = ["vijfde-klasse"];
 function soortVanVakje(uitkomst) {
   if (uitkomst.verdict === "buiten-scope") return "buiten-scope";
   if (uitkomst.verdict === "niet-toegestaan") return "nee";
-  // overzicht() roept assess() altijd zonder geboortedatum aan, dus dit gebeurt in de praktijk
-  // niet, maar de afhandeling staat er voor de volledigheid.
-  if (uitkomst.verdict === "omstreden") return "omstreden";
   if (uitkomst.voorwaarden.some((v) => /leeftijdsgrenzen van/.test(v))) return "leeftijd";
   if (AANTALLEN_GRONDEN.includes(uitkomst.grond)) return "aantallen";
   if (MAX2_GRONDEN.includes(uitkomst.grond)) return "max2";
