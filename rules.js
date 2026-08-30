@@ -31,8 +31,17 @@ export function niveau(categorie, klasseId) {
 
 const CATEGORIE_VOLGORDE = ["O11", "O12", "O14", "O16", "O18"];
 
+const LAGE_KLASSEN_VOLGORDE = ["5e", "6e", "7e", "8e"];
+
 function isVijfdeOfLager(klasseId) {
-  return ["5e", "6e", "7e", "8e"].includes(klasseId);
+  return LAGE_KLASSEN_VOLGORDE.includes(klasseId);
+}
+
+// Klassenummer binnen de lage klassen: de 5e klasse krijgt het laagste nummer, de 8e klasse het
+// hoogste. Een lager nummer betekent een hogere klasse, dus "bron speelt hoger dan doel" komt neer
+// op lageKlasseNummer(bron) < lageKlasseNummer(doel).
+function lageKlasseNummer(klasseId) {
+  return LAGE_KLASSEN_VOLGORDE.indexOf(klasseId);
 }
 
 function klasseLabel(categorie, klasseId) {
@@ -125,14 +134,27 @@ export function beoordeelKlasse(bron, doel) {
     }
   }
 
+  // Ticket #3: artikel 5.3.5.1 dekt al elke situatie waarin de bron in dezelfde klasse of een
+  // lagere klasse speelt dan de doel, zonder maximum. De uitzondering van artikel 5.3.5.3 (het
+  // maximum van twee) is dus alleen nog nodig voor de omgekeerde richting: de bron speelt in een
+  // hogere klasse dan de doel, allebei binnen de 5e klasse of lager en dezelfde leeftijdscategorie.
   const zelfdeCategorie = bron.categorie === doel.categorie;
-  if (zelfdeCategorie && isVijfdeOfLager(bron.klasse) && isVijfdeOfLager(doel.klasse)) {
+  const bronSpeeltHogerBinnenLageKlassen =
+    zelfdeCategorie &&
+    isVijfdeOfLager(bron.klasse) &&
+    isVijfdeOfLager(doel.klasse) &&
+    lageKlasseNummer(bron.klasse) < lageKlasseNummer(doel.klasse);
+  if (bronSpeeltHogerBinnenLageKlassen) {
     voorwaarden.push("Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding.");
+    // De open vraag van ticket #13 blijft staan: geldt dit maximum altijd, of alleen als het team
+    // elf of meer eigen spelers beschikbaar heeft. Artikel 5.3.5.1 kan hier niet de terugvaloptie
+    // zijn: de bron speelt juist in een hogere klasse dan de doel, dus dat artikel is hier per
+    // definitie niet van toepassing.
     voorwaarden.push(
-      "Onduidelijk is of dit maximum altijd geldt, of alleen als het team elf of meer eigen spelers beschikbaar heeft. Heeft het team minder spelers beschikbaar, dan zou artikel 5.3.5.1 gelden, dat geen maximum kent. Vraag dit na bij de competitieleiding.",
+      "Onduidelijk is of dit maximum altijd geldt, of alleen als het team elf of meer eigen spelers beschikbaar heeft. Vraag dit na bij de competitieleiding.",
     );
-    artikelen.push("5.3.5.3", "5.3.5.1");
-    redenering.push("Beide teams spelen in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
+    artikelen.push("5.3.5.3");
+    redenering.push("De bron speelt in een hogere klasse dan de doel, allebei in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
     kanttekeningen.push(wijzigingNiveaubepalingKanttekening, beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
     artikelen.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { toegestaan: true, grond: "vijfde-klasse", voorwaarden, redenering, artikelen, kanttekeningen };

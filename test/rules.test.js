@@ -139,18 +139,91 @@ test("artikel 5.3.5.3: onderling invallen vanaf de 5e klasse kent een maximum va
   assert.ok(r.artikelen.includes("5.3.5.3"));
 });
 
-test("artikel 5.3.5.3: de artikelenlijst bij de grond vijfde-klasse noemt zowel 5.3.5.3 als 5.3.5.1", () => {
+// Ticket #3: grond vijfde-klasse geldt alleen nog als de bron in een hogere klasse speelt dan de
+// doel. Bij grond vijfde-klasse is artikel 5.3.5.1 per definitie niet van toepassing (dat artikel
+// dekt juist de omgekeerde richting, bron gelijk aan of lager dan doel), dus die verwijzing hoort
+// niet meer in de artikelenlijst van deze grond. Was: deze test verwachtte 5.3.5.1 wel in de
+// lijst.
+test("artikel 5.3.5.3: de artikelenlijst bij de grond vijfde-klasse noemt 5.3.5.3, maar niet 5.3.5.1", () => {
   const r = check("O14", "5e", "O14", "6e");
   assert.equal(r.grond, "vijfde-klasse");
   assert.ok(r.artikelen.includes("5.3.5.3"));
-  assert.ok(r.artikelen.includes("5.3.5.1"));
+  assert.ok(!r.artikelen.includes("5.3.5.1"));
 });
 
+// Was: deze test verwachtte ook een verwijzing naar 5.3.5.1 in de voorwaardetekst, als mogelijke
+// terugvaloptie bij minder dan elf eigen spelers. Na ticket #3 is dat onjuist: bij grond
+// vijfde-klasse speelt de bron juist in een hogere klasse dan de doel, en dus geldt artikel
+// 5.3.5.1 daar per definitie niet. Die zin is uit de voorwaardetekst geschrapt; de open vraag over
+// het maximum (ticket #13) blijft gewoon staan.
 test("artikel 5.3.5.3: de voorwaarden benoemen de onduidelijkheid over het aantal beschikbare spelers", () => {
   const r = check("O14", "5e", "O14", "6e");
   assert.equal(r.grond, "vijfde-klasse");
   assert.ok(r.voorwaarden.some((v) => /elf of meer eigen spelers/.test(v)));
-  assert.ok(r.voorwaarden.some((v) => /5\.3\.5\.1/.test(v)));
+  assert.ok(r.voorwaarden.some((v) => /competitieleiding/.test(v)));
+  assert.ok(!r.voorwaarden.some((v) => /5\.3\.5\.1/.test(v)));
+});
+
+// Ticket #3: artikel 5.3.5.1 zegt dat een team altijd invallers mag lenen uit een team dat gelijk
+// of lager speelt. Binnen de 5e klasse en lager viel dat voorheen ten onrechte ook onder de
+// uitzondering van artikel 5.3.5.3, met het maximum van twee invallers. Grond vijfde-klasse geldt
+// nu alleen nog als de bron in een hogere klasse speelt dan de doel: dat is precies de richting
+// waarvoor artikel 5.3.5.1 niet als vangnet dient.
+test("ticket 3: doel 5e klasse met bron 5e klasse (gelijke klasse) valt onder 5.3.5.1, niet de uitzondering", () => {
+  const r = check("O14", "5e", "O14", "5e");
+  assert.equal(r.grond, "gelijk-of-lager");
+});
+
+test("ticket 3: doel 5e klasse met bron 6e klasse (bron lager) valt onder 5.3.5.1, niet de uitzondering", () => {
+  const r = check("O14", "6e", "O14", "5e");
+  assert.equal(r.grond, "gelijk-of-lager");
+});
+
+test("ticket 3: doel 6e klasse met bron 5e klasse (bron hoger) blijft de uitzondering van 5.3.5.3", () => {
+  const r = check("O14", "5e", "O14", "6e");
+  assert.equal(r.grond, "vijfde-klasse");
+});
+
+// Zestien geordende paren (4 klassen x 4 klassen) per leeftijdscategorie, vijf categorieen: 80
+// combinaties. Bij zes van de zestien paren per categorie speelt de bron in een striktere hogere
+// klasse dan de doel (klassenummer bron kleiner dan doel): dat zijn er 6 x 5 = 30. De overige 50
+// (bron gelijk of lager dan doel) vallen onder artikel 5.3.5.1 en krijgen grond gelijk-of-lager.
+test("de verdeling tussen vijfde-klasse en gelijk-of-lager binnen de lage klassen is 30 om 50", () => {
+  const lageKlassen = ["5e", "6e", "7e", "8e"];
+  let vijfdeKlasse = 0;
+  let gelijkOfLager = 0;
+  let overig = 0;
+  for (const categorie of CATEGORIEEN) {
+    for (const bronKlasse of lageKlassen) {
+      for (const doelKlasse of lageKlassen) {
+        const r = check(categorie, bronKlasse, categorie, doelKlasse);
+        if (r.grond === "vijfde-klasse") vijfdeKlasse += 1;
+        else if (r.grond === "gelijk-of-lager") gelijkOfLager += 1;
+        else overig += 1;
+      }
+    }
+  }
+  assert.equal(vijfdeKlasse, 30);
+  assert.equal(gelijkOfLager, 50);
+  assert.equal(overig, 0);
+});
+
+// De eis max2 (artikel 5.3.5.3) hoort alleen nog bij combinaties die grond vijfde-klasse
+// overhouden. De 50 combinaties die naar gelijk-of-lager verhuizen, verliezen die eis: artikel
+// 5.3.5.1 kent geen maximum.
+test("de max-twee-voorwaarde verdwijnt bij gelijk-of-lager en blijft bij vijfde-klasse", () => {
+  const lageKlassen = ["5e", "6e", "7e", "8e"];
+  for (const bronKlasse of lageKlassen) {
+    for (const doelKlasse of lageKlassen) {
+      const r = check("O14", bronKlasse, "O14", doelKlasse);
+      const heeftMax2 = r.voorwaarden.some((v) => /maximaal twee/.test(v));
+      if (r.grond === "vijfde-klasse") {
+        assert.ok(heeftMax2, `${bronKlasse} naar ${doelKlasse}: max2 hoort te blijven`);
+      } else {
+        assert.ok(!heeftMax2, `${bronKlasse} naar ${doelKlasse}: max2 hoort te verdwijnen`);
+      }
+    }
+  }
 });
 
 test("O11 gebruikt negen spelers in plaats van elf in de voorwaarde van 5.3.5.2", () => {
@@ -613,19 +686,37 @@ test("overzicht voor O14 4e klasse geeft het volledige raster zoals de opdrachtg
   }
 });
 
-test("overzicht voor O14 5e klasse geeft max2 voor de vijfde-klasse-uitzondering van 5.3.5.3", () => {
+// Ticket #3: de 5e klasse is de hoogste van de lage klassen, dus vanuit geen enkele lage klasse
+// kan een bron hoger spelen dan doel O14 5e. Alle vier combinaties (bron 5e, 6e, 7e of 8e) vallen
+// daarom onder artikel 5.3.5.1 (grond gelijk-of-lager) en dragen geen max2 meer. Was: deze test
+// heette "geeft max2 voor de vijfde-klasse-uitzondering" en verwachtte "vrij:max2" op die vier
+// plekken; dat klopte toen elke combinatie binnen de lage klassen grond vijfde-klasse kreeg,
+// ongeacht de richting.
+test("overzicht voor O14 5e klasse: bron uit de lage klassen mag altijd invallen, zonder max2", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "5e" });
   // kolommen: idc top subtop 1e 2e 3e 4e 5e 6e 7e 8e
   const verwacht = {
     O11: [null, null, null, "nee", "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
     O12: [null, null, null, "nee", "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "nee", "vrij:aantallen", "vrij:max2", "vrij:max2", "vrij:max2", "vrij:max2"],
+    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "nee", "vrij:aantallen", "vrij", "vrij", "vrij", "vrij"],
     O16: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd", "vrij:aantallen+leeftijd"],
     O18: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "nee", "nee", "nee", "nee"],
   };
   for (const rij of rijen) {
     assert.deepEqual(rij.vakjes.map(vakjeCode), verwacht[rij.categorie], rij.categorie);
   }
+});
+
+// Ticket #3: doel O14 8e klasse is de laagste lage klasse, dus daar blijft de uitzondering van
+// 5.3.5.3 (max2) juist wel gelden voor elke bron die in een hogere lage klasse speelt (5e, 6e of
+// 7e). Alleen bron 8e zelf (gelijke klasse) valt onder 5.3.5.1.
+test("overzicht voor O14 8e klasse houdt max2 voor bron uit een hogere lage klasse", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "8e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  assert.deepEqual(o14.vakjes.find((v) => v.klasse === "5e").eisen, ["max2"]);
+  assert.deepEqual(o14.vakjes.find((v) => v.klasse === "6e").eisen, ["max2"]);
+  assert.deepEqual(o14.vakjes.find((v) => v.klasse === "7e").eisen, ["max2"]);
+  assert.deepEqual(o14.vakjes.find((v) => v.klasse === "8e").eisen, []);
 });
 
 test("de idc-kolom bestaat alleen bij O14, de andere categorieen krijgen daar een leeg vakje", () => {
@@ -1160,10 +1251,20 @@ test("vakjeVanUitkomst: een gewoon gelijk-of-lager geval krijgt basis vrij zonde
   assert.deepEqual(vakje.eisen, []);
 });
 
-test("vakjeVanUitkomst: doel O14 5e klasse met bron O14 6e klasse draagt max2", () => {
-  const vakje = vakjeVoor("O14", "6e", "O14", "5e");
+// Ticket #3: was "doel O14 5e klasse met bron O14 6e klasse draagt max2". Die bron speelt lager
+// dan de doel, dus dat valt sinds ticket #3 onder artikel 5.3.5.1 (grond gelijk-of-lager) en
+// draagt geen max2 meer. Bron en doel zijn hier omgedraaid, zodat de bron weer hoger speelt dan de
+// doel en de test zijn oorspronkelijke doel (de eis max2 controleren) overeind blijft.
+test("vakjeVanUitkomst: doel O14 6e klasse met bron O14 5e klasse draagt max2", () => {
+  const vakje = vakjeVoor("O14", "5e", "O14", "6e");
   assert.equal(vakje.basis, "vrij");
   assert.deepEqual(vakje.eisen, ["max2"]);
+});
+
+test("vakjeVanUitkomst: doel O14 5e klasse met bron O14 6e klasse (bron lager) draagt geen max2", () => {
+  const vakje = vakjeVoor("O14", "6e", "O14", "5e");
+  assert.equal(vakje.basis, "vrij");
+  assert.deepEqual(vakje.eisen, []);
 });
 
 test("vakjeVanUitkomst: basis nee en buiten-scope dragen nooit eisen", () => {
