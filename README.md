@@ -51,8 +51,8 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 ## Tests
 
-Er zijn 154 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`article-text.js`),
-de artikeltekst-extractie (`articles.js`) en de tekst op de pagina zelf (`page-text.test.js`):
+Er zijn 158 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`article-text.js`),
+de artikeltekst-extractie (`articles.js`) en de tekst op de pagina zelf (`test/page-text.test.js`):
 
     npm test
 

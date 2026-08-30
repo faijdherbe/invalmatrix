@@ -59,15 +59,36 @@ function describe(team) {
 // every ground, also where the verdict is no (ticket #21). Returns null within the same age
 // category, which is why ground fifth-class never gets this line: that ground applies within one
 // age category by definition.
+//
+// The article's second bullet reads "per leeftijdscategorie een klasse bij komt"; the wording
+// used below is "per extra leeftijdscategorie". That reading is deliberate: the article's own
+// example only works on it (JO18-2 in the 3e klasse borrowing from JO14-2 in the 1e klasse, two
+// age categories and two classes apart, so the first category already accounts for the base "one
+// class higher" and only the second, "extra" category adds the second class).
 function ageCategoryReasoning(lender, borrower) {
   const lenderIndex = AGE_CATEGORY_ORDER.indexOf(lender.category);
   const borrowerIndex = AGE_CATEGORY_ORDER.indexOf(borrower.category);
   const steps = Math.abs(lenderIndex - borrowerIndex);
   if (steps === 0) return null;
+
+  // Ticket #11 is open: whether O11 and O12 count as one age category apart, as
+  // AGE_CATEGORY_ORDER does here, or as the same level. LEVELS in data.js gives O11 and O12 the
+  // identical ladder, so the class boundaries table applies no class shift between them. Printing
+  // a sentence here that invokes article 5.3.5.1's category-crossing count would commit this page
+  // to one side of that open question, and would contradict the table it stands right next to: a
+  // wrong sentence that reads like a settled rule is worse than an open question (CLAUDE.md). The
+  // conservative side is to say nothing. Determined generically from the data rather than
+  // hard-coded to O11/O12, by comparing the level of the same class ("1e") in both categories:
+  // zero means the table applies no shift. When this returns null for that reason, article
+  // 5.3.5.1 must not be added by the caller either; on ground equal-or-lower it is still added
+  // separately below, and that stays correct and unaffected.
+  const categoryLevelShift = level(lender.category, "1e") - level(borrower.category, "1e");
+  if (categoryLevelShift === 0) return null;
+
   if (lenderIndex > borrowerIndex) {
     // The third bullet names no increase per age category. Whether it applies in this direction
     // too is the open question of ticket #12, so no number is written out here.
-    return `Het uitlenende team speelt in een hogere leeftijdscategorie. Artikel 5.3.5.1 staat dat toe als dat team minimaal een klasse lager speelt dan het team waarin wordt ingevallen.`;
+    return "Het uitlenende team speelt in een hogere leeftijdscategorie. Artikel 5.3.5.1 staat dat toe als dat team minimaal een klasse lager speelt dan het team waarin wordt ingevallen.";
   }
   const opening = `${lender.category} en ${borrower.category} schelen ${steps} leeftijdscategorie${steps === 1 ? "" : "en"}.`;
   const rule = "Artikel 5.3.5.1 zegt dat een team uit een lagere leeftijdscategorie maximaal een klasse hoger mag spelen";

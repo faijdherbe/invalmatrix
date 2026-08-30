@@ -1371,11 +1371,58 @@ test("within the same age category no reasoning line about age categories appear
   assert.ok(!r.reasoning.some((v) => /leeftijdscategorie/.test(v)));
 });
 
+// Ticket #11 is open: whether O11 and O12 count as one age category apart or as the same level.
+// LEVELS in data.js gives them the identical ladder, so the class boundaries table applies no
+// class shift between them, while AGE_CATEGORY_ORDER counts them one step apart. Printing the
+// age category sentence there contradicts the verdict right next to it (see the older-lender and
+// younger-lender examples below), and commits the page to one side of ticket #11. The fix must
+// say nothing on these combinations, determined generically from the data rather than
+// hard-coded to O11/O12.
+test("no age category sentence on O12 1e to O11 1e, even though the verdict crosses the boundary", () => {
+  const r = check("O12", "1e", "O11", "1e");
+  assert.equal(r.ground, "equal-or-lower");
+  assert.ok(
+    !r.reasoning.some((v) => /Het uitlenende team speelt in een hogere leeftijdscategorie/.test(v)),
+    JSON.stringify(r.reasoning),
+  );
+});
+
+test("no age category sentence on O11 1e to O12 2e, even though the verdict crosses the boundary", () => {
+  const r = check("O11", "1e", "O12", "2e");
+  assert.equal(r.ground, "one-higher");
+  assert.ok(
+    !r.reasoning.some((v) => /een team uit een lagere leeftijdscategorie maximaal een klasse hoger/.test(v)),
+    JSON.stringify(r.reasoning),
+  );
+});
+
+test("a real age category boundary such as O14 1e to O18 3e still gets its sentence", () => {
+  const r = check("O14", "1e", "O18", "3e");
+  assert.ok(
+    r.reasoning.some((v) => /een team uit een lagere leeftijdscategorie maximaal een klasse hoger/.test(v)),
+    "the O11/O12 fix must not suppress a real boundary such as O14 to O18",
+  );
+});
+
+test("ground equal-or-lower between O11 and O12 still names article 5.3.5.1", () => {
+  const r = check("O11", "1e", "O12", "1e");
+  assert.equal(r.ground, "equal-or-lower");
+  assert.ok(r.articles.includes("5.3.5.1"));
+});
+
 test("every article appears at most once in the list of assessLevel", () => {
-  for (const category of AGE_CATEGORIES) {
-    for (const classId of CLASSES[category].map((k) => k.id)) {
-      const r = check(category, classId, "O14", "3e");
-      assert.equal(new Set(r.articles).size, r.articles.length, `${category} ${classId}`);
+  for (const lenderCategory of AGE_CATEGORIES) {
+    for (const lenderClass of CLASSES[lenderCategory].map((k) => k.id)) {
+      for (const borrowerCategory of AGE_CATEGORIES) {
+        for (const borrowerClass of CLASSES[borrowerCategory].map((k) => k.id)) {
+          const r = check(lenderCategory, lenderClass, borrowerCategory, borrowerClass);
+          assert.equal(
+            new Set(r.articles).size,
+            r.articles.length,
+            `${lenderCategory} ${lenderClass} to ${borrowerCategory} ${borrowerClass}`,
+          );
+        }
+      }
     }
   }
 });
