@@ -70,8 +70,8 @@ function kolomLabel(kolom) {
 // verschijnen, want de gebruiker zoekt wie er wel mag invallen.
 //
 // max2 (de uitzondering van 5.3.5.3) toont zich hier niet als eigen soort: die wordt visueel bij
-// vrij getrokken, met een asterisk als verwijzing naar de kanttekening in het detailscherm. Zie
-// weergaveSoort().
+// vrij getrokken, met een driehoekje rechtsboven in het vakje als verwijzing naar de kanttekening
+// in het detailscherm. Zie weergaveSoort().
 const SOORT_VOLGORDE = ["vrij", "aantallen", "max2", "leeftijd", "nee", "buiten-scope"];
 
 const SOORTEN = {
@@ -93,16 +93,25 @@ function weergaveSoort(soort) {
 // levert dus geen aparte, tweede "vrij"-groep op.
 const WEERGAVE_VOLGORDE = [...new Set(SOORT_VOLGORDE.map(weergaveSoort))];
 
-const ASTERISK_HTML = '<span class="asterisk">*</span>';
+// Tekst die niet in beeld staat maar wel wordt voorgelezen: de driehoekjesmarkering zelf is puur
+// visueel (kleur), dus dit is voor schermlezers en voor wie kleur niet ziet de manier om alsnog
+// te weten dat er een kanttekening bij dit vakje hoort.
+const SR_ONLY_KANTTEKENING = '<span class="sr-only"> (met een kanttekening)</span>';
 
-// De asterisk zelf verwijst naar de kanttekening bij de max2-uitzondering (artikel 5.3.5.3): het
-// mag, maar er is een kanttekening die pas in het detailscherm staat.
-function asteriskUitlegHtml() {
-  return `${ASTERISK_HTML} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
+// Klein voorbeeld van de driehoekjesmarkering zelf, voor in de uitlegregel. aria-hidden omdat de
+// bijbehorende tekst ("mag, met een kanttekening...") al vertelt wat het betekent.
+function kanttekeningVoorbeeldHtml() {
+  return `<span class="kanttekening-voorbeeld hoek-driehoek" aria-hidden="true">${escape(SOORTEN.vrij.kort)}</span>`;
+}
+
+// Verwijst naar de driehoekjesmarkering bij de max2-uitzondering (artikel 5.3.5.3): het mag, maar
+// er is een kanttekening die pas in het detailscherm staat.
+function kanttekeningUitlegHtml() {
+  return `${kanttekeningVoorbeeldHtml()} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
 }
 
 function vakjeHtml(vakje) {
-  if (vakje.soort === "max2") return `${escape(SOORTEN.vrij.kort)}${ASTERISK_HTML}`;
+  if (vakje.soort === "max2") return `${escape(SOORTEN.vrij.kort)}${SR_ONLY_KANTTEKENING}`;
   const soort = SOORTEN[vakje.soort];
   return soort ? escape(soort.kort) : "";
 }
@@ -133,7 +142,8 @@ function rasterTabelHtml(rijen) {
         .map((vakje) => {
           if (!vakje.bestaat) return `<td class="vakje leeg"></td>`;
           const titel = `${rij.categorie} ${vakje.label}`;
-          return `<td class="vakje ${escape(weergaveSoort(vakje.soort))}"><button type="button" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
+          const knopKlasse = vakje.soort === "max2" ? ' class="hoek-driehoek"' : "";
+          return `<td class="vakje ${escape(weergaveSoort(vakje.soort))}"><button type="button"${knopKlasse} data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
         })
         .join("");
       return `<tr><th scope="row">${escape(rij.categorie)}</th>${cellen}</tr>`;
@@ -142,7 +152,7 @@ function rasterTabelHtml(rijen) {
 
   const legenda = WEERGAVE_VOLGORDE
     .map((soort) => `<span class="legenda-badge ${escape(soort)}">${escape(SOORTEN[soort].kort)}</span> ${escape(SOORTEN[soort].omschrijving)}`)
-    .concat(asteriskUitlegHtml())
+    .concat(kanttekeningUitlegHtml())
     .join("\n");
 
   return `<div class="raster-schuif"><table>
@@ -173,8 +183,10 @@ function mobielCategorieHtml(rij) {
       const knoppen = groep.vakjes
         .map((vakje) => {
           const titel = `${rij.categorie} ${vakje.label}`;
-          const labelHtml = vakje.soort === "max2" ? `${escape(vakje.label)}${ASTERISK_HTML}` : escape(vakje.label);
-          return `<button type="button" class="mobiel-klasse ${escape(groep.soort)}" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${labelHtml}</button>`;
+          const kanttekening = vakje.soort === "max2";
+          const labelHtml = kanttekening ? `${escape(vakje.label)}${SR_ONLY_KANTTEKENING}` : escape(vakje.label);
+          const klasse = `mobiel-klasse ${escape(groep.soort)}${kanttekening ? " kanttekening" : ""}`;
+          return `<button type="button" class="${klasse}" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${labelHtml}</button>`;
         })
         .join("");
       return `<div class="mobiel-groep">
@@ -200,7 +212,7 @@ function toonRaster() {
   const rijen = overzicht(doel);
   raster.innerHTML = rasterTabelHtml(rijen);
   mobielOverzicht.innerHTML =
-    rijen.map(mobielCategorieHtml).join("") + `<p class="mobiel-asterisk-uitleg">${asteriskUitlegHtml()}</p>`;
+    rijen.map(mobielCategorieHtml).join("") + `<p class="mobiel-kanttekening-uitleg">${kanttekeningUitlegHtml()}</p>`;
 
   rasterVoetnoot.textContent =
     `De klassen die onder categorie I vallen (${categorieILijst()}) staan niet in dit raster. Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;

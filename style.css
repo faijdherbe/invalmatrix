@@ -112,11 +112,53 @@ thead th, tbody th {
 
 .vakje.gekozen { outline: 3px solid #1a1a1a; outline-offset: -3px; }
 
-/* De asterisk achter "ja" (max2, artikel 5.3.5.3) verwijst naar een kanttekening in het
-   detailscherm. Iets lichter en kleiner dan de tekst ervoor, zodat hij als voetnoot leest. */
-.asterisk {
-  font-size: 0.75em;
-  opacity: 0.65;
+/* Tekst die niet in beeld staat maar wel wordt voorgelezen door een schermlezer. Standaardtruc:
+   het element krimpt naar 1px en wordt buiten het zichtbare gebied geknipt, zonder display:none
+   (dat zou de tekst ook voor schermlezers laten verdwijnen). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Klein driehoekje rechtsboven in het vakje (max2, artikel 5.3.5.3): een CSS-only markering met
+   de klassieke border-truc, geen afbeelding of teken. Kleur uit hetzelfde geel/oranje palet als
+   de aantallen-eis (var(--geel)), zodat hij duidelijk afsteekt tegen het groene vlak maar wel bij
+   de rest van de kleuren past. De markering is puur visueel; zie SR_ONLY_KANTTEKENING in app.js
+   voor de tekstuele tegenhanger. */
+.hoek-driehoek {
+  position: relative;
+}
+
+.hoek-driehoek::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 0.6rem solid var(--geel);
+  border-left: 0.6rem solid transparent;
+}
+
+/* Klein voorbeeld van het driehoekje zelf, gebruikt in de uitlegregel bij de legenda en onder de
+   mobiele weergave. */
+.kanttekening-voorbeeld {
+  display: inline-block;
+  min-width: 1.7rem;
+  margin-right: 0.3rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  background: var(--groen-vlak);
+  color: var(--groen);
+  font-weight: 600;
+  vertical-align: middle;
 }
 
 .legenda {
@@ -182,7 +224,14 @@ thead th, tbody th {
 
 .mobiel-klasse.gekozen { outline: 3px solid #1a1a1a; outline-offset: -1px; }
 
-.mobiel-asterisk-uitleg {
+/* Zelfde kanttekening als het driehoekje in het raster (max2, artikel 5.3.5.3), maar dan als
+   ring rondom de pil: een hoekje in de rand van een volledig ronde pil zou los van de vorm lijken
+   te zweven, een rand errondom leest in deze lijstvorm duidelijker. Zelfde geel/oranje kleur. */
+.mobiel-klasse.kanttekening {
+  box-shadow: inset 0 0 0 2px var(--geel);
+}
+
+.mobiel-kanttekening-uitleg {
   margin: 0.75rem 0 0;
   color: var(--grijs);
   font-size: 0.8rem;
