@@ -70,11 +70,14 @@ export function beoordeelKlasse(bron, doel) {
   // geen uitspraak kan doen: hij kent de wedstrijddag, de speelronde, de vereniging en de
   // gespeelde wedstrijden niet. Ze veranderen het oordeel niet, net als de kanttekening hierboven.
 
-  // Artikel 5.3.4: wie binnen de vereniging evenveel of vaker uitkomt voor het hoger spelende
-  // team dan voor het eigen team, krijgt dat hogere niveau als niveaubepaling en mag daarna niet
-  // meer voor lager spelende teams uitkomen. Dit hoort alleen bij grond gelijk-of-lager, want
-  // alleen dan speelt de bron op of onder het niveau van het doelteam.
-  const wijzigingNiveaubepalingKanttekening = "Komt de speler binnen de vereniging evenveel of vaker uit voor het hoger spelende team dan voor het team waar zij gewoonlijk voor uitkomt, dan wordt dat hogere niveau de niveaubepaling en mag de speler daarna niet meer voor lager spelende teams uitkomen (artikel 5.3.4). Deze tool kent de speelgeschiedenis van de speler niet en kan dit niet beoordelen.";
+  // Artikel 5.3.4 heeft twee helften. De eerste: wie binnen de vereniging evenveel of vaker
+  // uitkomt voor een hoger spelend team dan voor het eigen team, krijgt dat hogere niveau als
+  // niveaubepaling. Dat raakt grond gelijk-of-lager, want daar valt de speler omhoog in. De
+  // tweede, de slotzin van het artikel: de speler mag daarna niet meer voor lager spelende teams
+  // uitkomen. Dat raakt juist de gronden een-hoger en vijfde-klasse, want daar valt de speler
+  // omlaag in en kan een eerder gewijzigde niveaubepaling die invalbeurt alsnog verbieden. Dit
+  // geldt dus, net als de twee kanttekeningen hierna, bij elk toegestaan oordeel.
+  const wijzigingNiveaubepalingKanttekening = "Komt de speler binnen de vereniging evenveel of vaker uit voor een hoger spelend team dan voor het team waar zij gewoonlijk voor uitkomt, dan wordt dat hogere niveau de niveaubepaling en mag de speler daarna niet meer voor lager spelende teams uitkomen, dus ook niet voor het team waarin hier wordt ingevallen (artikel 5.3.4). Deze tool kent de speelgeschiedenis van de speler niet en kan dit niet beoordelen.";
 
   // Artikel 5.3.6 en 5.3.6.1: in een beslissingswedstrijd mag alleen invallen wie al een
   // vastgestelde niveaubepaling heeft. Dit geldt ongeacht de grond waarop is ingevallen, dus bij
@@ -130,8 +133,8 @@ export function beoordeelKlasse(bron, doel) {
     );
     artikelen.push("5.3.5.3", "5.3.5.1");
     redenering.push("Beide teams spelen in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
-    kanttekeningen.push(beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
-    artikelen.push("5.3.6", "5.3.6.1", "5.1.1");
+    kanttekeningen.push(wijzigingNiveaubepalingKanttekening, beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
+    artikelen.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { toegestaan: true, grond: "vijfde-klasse", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 
@@ -159,8 +162,8 @@ export function beoordeelKlasse(bron, doel) {
       kanttekeningen.push(jongereCategorieKanttekening);
       artikelen.push("3.1.3");
     }
-    kanttekeningen.push(beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
-    artikelen.push("5.3.6", "5.3.6.1", "5.1.1");
+    kanttekeningen.push(wijzigingNiveaubepalingKanttekening, beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
+    artikelen.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { toegestaan: true, grond: "een-hoger", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 

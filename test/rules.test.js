@@ -835,13 +835,28 @@ test("een onhaalbare leeftijdseis verdringt de aantallen-eis niet meer in het ra
 // Ticket #8: artikel 5.3.4, wijziging van niveaubepaling. Een speler die binnen de vereniging
 // evenveel of vaker uitkomt voor het hoger spelende team dan voor het eigen team krijgt dat
 // hogere niveau als niveaubepaling. De tool kent de speelgeschiedenis niet en kan dit niet
-// beoordelen, dus dit hoort bij grond gelijk-of-lager als kanttekening, niet als voorwaarde.
+// beoordelen, dus dit hoort als kanttekening bij het oordeel, niet als voorwaarde.
+//
+// Bevinding audit-eindfix #3: het artikel heeft twee helften. De eerste helft (de niveaubepaling
+// wijzigt naar het hogere niveau) raakt grond gelijk-of-lager, want daar valt de speler omhoog
+// in. De tweede helft, de slotzin "de speler mag vervolgens niet meer voor lager spelende teams
+// uitkomen", raakt juist de gronden een-hoger en vijfde-klasse, want daar valt de speler omlaag
+// in en kan een eerder gewijzigde niveaubepaling die invalbeurt alsnog verbieden. Was: de
+// kanttekening zat alleen bij grond gelijk-of-lager. Net als de kanttekeningen bij de artikelen
+// 5.3.6 en 5.1.1 hieronder hoort deze bij elk toegestaan oordeel, dus bij alle drie de gronden.
 
-test("kanttekening: artikel 5.3.4 verschijnt bij grond gelijk-of-lager", () => {
-  const r = check("O16", "3e", "O16", "2e");
-  assert.equal(r.grond, "gelijk-of-lager");
-  assert.ok(r.kanttekeningen.some((k) => /5\.3\.4/.test(k)));
-  assert.ok(r.artikelen.includes("5.3.4"));
+test("kanttekening: artikel 5.3.4 verschijnt bij grond gelijk-of-lager, een-hoger en vijfde-klasse", () => {
+  const gevallen = [
+    ["O16", "3e", "O16", "2e", "gelijk-of-lager"],
+    ["O18", "1e", "O16", "1e", "een-hoger"],
+    ["O14", "5e", "O14", "6e", "vijfde-klasse"],
+  ];
+  for (const [bc, bk, dc, dk, grond] of gevallen) {
+    const r = check(bc, bk, dc, dk);
+    assert.equal(r.grond, grond);
+    assert.ok(r.kanttekeningen.some((k) => /5\.3\.4/.test(k)), `${grond}: kanttekening ontbreekt`);
+    assert.ok(r.artikelen.includes("5.3.4"), `${grond}: artikel 5.3.4 ontbreekt`);
+  }
 });
 
 test("kanttekening: artikel 5.3.4 ontbreekt bij grond te-hoog", () => {
@@ -849,6 +864,15 @@ test("kanttekening: artikel 5.3.4 ontbreekt bij grond te-hoog", () => {
   assert.equal(r.grond, "te-hoog");
   assert.ok(!r.kanttekeningen.some((k) => /5\.3\.4/.test(k)));
   assert.ok(!r.artikelen.includes("5.3.4"));
+});
+
+test("kanttekening: artikel 5.3.4 noemt zowel de wijziging van de niveaubepaling als het verbod om nog voor lager spelende teams uit te komen", () => {
+  const r = check("O18", "1e", "O16", "1e");
+  assert.equal(r.grond, "een-hoger");
+  const tekst = r.kanttekeningen.find((k) => /5\.3\.4/.test(k));
+  assert.ok(tekst, "kanttekening ontbreekt");
+  assert.match(tekst, /niveaubepaling/);
+  assert.match(tekst, /niet meer.*lager spelende teams uitkomen/);
 });
 
 // Ticket #9: artikel 5.3.6 en 5.3.6.1, beslissingswedstrijden. Tijdens een beslissingswedstrijd
