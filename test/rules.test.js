@@ -1298,3 +1298,68 @@ test("cellFromOutcome: the requirements are always in the fixed order player-cou
     }
   }
 });
+
+test("article 5.3.5.1 is named when the verdict is no across an age category boundary", () => {
+  // Ticket #21: article 5.3.5.2 says "at most one class higher" but does not say how to count a
+  // class across an age category boundary. That counting rule lives in article 5.3.5.1, so it
+  // belongs in the list here too.
+  const r = check("O14", "top", "O11", "1e");
+  assert.equal(r.ground, "too-high");
+  assert.ok(r.articles.includes("5.3.5.1"));
+});
+
+test("article 5.3.5.1 is named on ground one-higher across an age category boundary", () => {
+  const r = check("O18", "2e", "O16", "2e");
+  assert.equal(r.ground, "one-higher");
+  assert.ok(r.articles.includes("5.3.5.1"));
+});
+
+test("the reasoning counts the age categories when the lender is younger", () => {
+  // Article 5.3.5.1, second bullet: a team from a lower age category may play at most one class
+  // higher, and per extra age category one class is added. O14 and O18 are two steps apart.
+  const r = check("O14", "1e", "O18", "3e");
+  const line = r.reasoning.find((v) => /leeftijdscategorie/.test(v));
+  assert.ok(line, "no reasoning line about age categories");
+  assert.ok(/2 leeftijdscategorieen/.test(line), line);
+  assert.ok(/per extra leeftijdscategorie een klasse bij komt/.test(line), line);
+});
+
+test("one step apart does not claim an extra class", () => {
+  const r = check("O12", "1e", "O14", "2e");
+  const line = r.reasoning.find((v) => /leeftijdscategorie/.test(v));
+  assert.ok(line, "no reasoning line about age categories");
+  assert.ok(/1 leeftijdscategorie\b/.test(line), line);
+  assert.ok(!/bij komt/.test(line), line);
+});
+
+test("the reasoning counts nothing when the lender is older", () => {
+  // The third bullet of article 5.3.5.1 names no increase per age category. Whether it applies in
+  // that direction too is the open question of ticket #12, so no number is written out here.
+  const r = check("O18", "3e", "O16", "3e");
+  const line = r.reasoning.find((v) => /Het uitlenende team speelt in een hogere/.test(v));
+  assert.ok(line, "no reasoning line about the older lender");
+  assert.ok(!/leeftijdscategorieen\./.test(line), line);
+  assert.ok(!/bij komt/.test(line), line);
+});
+
+test("ground fifth-class keeps its articles unchanged", () => {
+  // Ticket #3 deliberately removed 5.3.5.1 here, and this ground only applies within the same age
+  // category, so there is no boundary to cross.
+  const r = check("O14", "5e", "O14", "6e");
+  assert.equal(r.ground, "fifth-class");
+  assert.ok(!r.articles.includes("5.3.5.1"));
+});
+
+test("within the same age category no reasoning line about age categories appears", () => {
+  const r = check("O14", "2e", "O14", "3e");
+  assert.ok(!r.reasoning.some((v) => /leeftijdscategorie/.test(v)));
+});
+
+test("every article appears at most once in the list of assessLevel", () => {
+  for (const category of AGE_CATEGORIES) {
+    for (const classId of CLASSES[category].map((k) => k.id)) {
+      const r = check(category, classId, "O14", "3e");
+      assert.equal(new Set(r.articles).size, r.articles.length, `${category} ${classId}`);
+    }
+  }
+});

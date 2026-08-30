@@ -53,6 +53,28 @@ function describe(team) {
   return `${team.category} ${classLabel(team.category, team.classId)}`;
 }
 
+// Article 5.3.5.1 defines what counts as an equal or lower playing team across an age category
+// boundary, and that definition is what decides the verdict as soon as lender and borrower sit in
+// different age categories. So the article and its counting rule belong in the explanation on
+// every ground, also where the verdict is no (ticket #21). Returns null within the same age
+// category, which is why ground fifth-class never gets this line: that ground applies within one
+// age category by definition.
+function ageCategoryReasoning(lender, borrower) {
+  const lenderIndex = AGE_CATEGORY_ORDER.indexOf(lender.category);
+  const borrowerIndex = AGE_CATEGORY_ORDER.indexOf(borrower.category);
+  const steps = Math.abs(lenderIndex - borrowerIndex);
+  if (steps === 0) return null;
+  if (lenderIndex > borrowerIndex) {
+    // The third bullet names no increase per age category. Whether it applies in this direction
+    // too is the open question of ticket #12, so no number is written out here.
+    return `Het uitlenende team speelt in een hogere leeftijdscategorie. Artikel 5.3.5.1 staat dat toe als dat team minimaal een klasse lager speelt dan het team waarin wordt ingevallen.`;
+  }
+  const opening = `${lender.category} en ${borrower.category} schelen ${steps} leeftijdscategorie${steps === 1 ? "" : "en"}.`;
+  const rule = "Artikel 5.3.5.1 zegt dat een team uit een lagere leeftijdscategorie maximaal een klasse hoger mag spelen";
+  if (steps === 1) return `${opening} ${rule}.`;
+  return `${opening} ${rule}, en dat er per extra leeftijdscategorie een klasse bij komt.`;
+}
+
 // Assesses the class rules only. The age check lives in assessAge.
 export function assessLevel(lender, borrower) {
   const lenderLevel = level(lender.category, lender.classId);
@@ -66,6 +88,15 @@ export function assessLevel(lender, borrower) {
   const reasoning = [];
   const articles = [];
   const caveats = [];
+
+  // Articles are collected in several places and may overlap, for example 5.3.5.1 from the age
+  // category explanation below and from ground equal-or-lower. The list is what the page renders,
+  // so every number appears in it at most once.
+  function addArticles(...numbers) {
+    for (const number of numbers) {
+      if (!articles.includes(number)) articles.push(number);
+    }
+  }
 
   // Borrowing from a younger age category is exactly what article 5.3.5.1 gives an example of, and
   // the most common substitution situation of all. But article 3.1.3 and the class boundaries
@@ -107,11 +138,21 @@ export function assessLevel(lender, borrower) {
     reasoning.push(`${describe(lender)} speelt volgens de tabel klassengrenzen ${borrowerLevel - lenderLevel} niveau${borrowerLevel - lenderLevel === 1 ? "" : "s"} hoger dan ${describe(borrower)}.`);
   }
 
+  // Explains, in the terms of article 5.3.5.1, how a class is counted across an age category
+  // boundary. The line comes right after the level line from the class boundaries table, so the
+  // article stands next to the table instead of replacing it. Within the same age category this
+  // yields null and nothing changes, which also covers ground fifth-class.
+  const ageCategoryLine = ageCategoryReasoning(lender, borrower);
+  if (ageCategoryLine) {
+    reasoning.push(ageCategoryLine);
+    addArticles("5.3.5.1");
+  }
+
   // Add the age information for every case except when the level difference is too large.
   // lenderLevel - borrowerLevel > -2 means the difference is 0 or -1 (equal or one higher).
   if (fromOlderCategory && lenderLevel - borrowerLevel > -2) {
     conditions.push(`De speler moet voldoen aan de leeftijdsgrenzen van ${borrower.category}, de categorie waarin zij invalt.`);
-    articles.push("3.1.1", "3.1.3");
+    addArticles("3.1.1", "3.1.3");
     reasoning.push(`De speler komt uit een oudere leeftijdscategorie, dus de leeftijdsgrens van ${borrower.category} is bepalend.`);
   }
 
@@ -130,7 +171,7 @@ export function assessLevel(lender, borrower) {
       conditions.push(
         `In de ${group.period} geldt: als de vereniging meerdere teams in de ${classNames.join(" of de ")} heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.`,
       );
-      articles.push("5.3.5.4");
+      addArticles("5.3.5.4");
       reasoning.push(`Beide teams spelen O14 in dezelfde niveaugroep van artikel 5.3.5.4 (${group.period}: ${classNames.join(" en ")}).`);
     }
   }
@@ -155,22 +196,22 @@ export function assessLevel(lender, borrower) {
     conditions.push(
       "Onduidelijk is of dit maximum altijd geldt, of alleen als het team elf of meer eigen spelers beschikbaar heeft. Vraag dit na bij de competitieleiding.",
     );
-    articles.push("5.3.5.3");
+    addArticles("5.3.5.3");
     reasoning.push("De bron speelt in een hogere klasse dan de doel, allebei in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
     caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
-    articles.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
+    addArticles("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { allowed: true, ground: "fifth-class", conditions, reasoning, articles, caveats };
   }
 
   if (lenderLevel >= borrowerLevel) {
-    articles.push("5.3.5.1");
+    addArticles("5.3.5.1");
     reasoning.push("Lenen uit een team op gelijk of lager niveau mag altijd, ongeacht het aantal eigen spelers.");
     if (fromYoungerCategory) {
       caveats.push(youngerCategoryCaveat);
-      articles.push("3.1.3");
+      addArticles("3.1.3");
     }
     caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
-    articles.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
+    addArticles("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { allowed: true, ground: "equal-or-lower", conditions, reasoning, articles, caveats };
   }
 
@@ -180,18 +221,18 @@ export function assessLevel(lender, borrower) {
     conditions.push("Er zijn aantoonbaar geen invallers beschikbaar uit een gelijk of lager spelend niveau.");
     conditions.push("Er mogen maximaal twee spelers invallen, inclusief een vaste doelverdediger.");
     conditions.push("Voor het inlenen van een doelverdediger geldt de eis over het aantal eigen spelers niet.");
-    articles.push("5.3.5.2");
+    addArticles("5.3.5.2");
     reasoning.push("Lenen uit een team dat precies een niveau hoger speelt mag alleen als aan alle voorwaarden van artikel 5.3.5.2 is voldaan.");
     if (fromYoungerCategory) {
       caveats.push(youngerCategoryCaveat);
-      articles.push("3.1.3");
+      addArticles("3.1.3");
     }
     caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
-    articles.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
+    addArticles("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { allowed: true, ground: "one-higher", conditions, reasoning, articles, caveats };
   }
 
-  articles.push("5.3.5.2");
+  addArticles("5.3.5.2");
   reasoning.push("Meer dan een niveau verschil is niet toegestaan zonder dispensatie van de competitieleiding.");
   return { allowed: false, ground: "too-high", conditions: [], reasoning, articles, caveats: [] };
 }
