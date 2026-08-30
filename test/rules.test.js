@@ -1,7 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { KLASSEN } from "../data.js";
-import { niveau, beoordeelKlasse, categorieIMelding } from "../rules.js";
+import {
+  niveau,
+  beoordeelKlasse,
+  categorieIMelding,
+  leeftijdOpPeildatum,
+  beoordeelLeeftijd,
+} from "../rules.js";
+
+const d = (s) => new Date(`${s}T00:00:00Z`);
 
 function check(bronCat, bronKlasse, doelCat, doelKlasse) {
   return beoordeelKlasse(
@@ -188,4 +196,70 @@ test("de categorie I-meldingen noemen zowel hoofdstuk 2 als hoofdstuk 4", () => 
   const periode = categorieIMelding({ categorie: "O18", klasse: "subtop" });
   assert.match(periode, /hoofdstuk 2/);
   assert.match(periode, /hoofdstuk 4/);
+});
+
+test("leeftijd wordt berekend op 1 oktober 2026", () => {
+  assert.equal(leeftijdOpPeildatum(d("2016-10-01")), 10);
+  assert.equal(leeftijdOpPeildatum(d("2016-10-02")), 9);
+  assert.equal(leeftijdOpPeildatum(d("2015-10-02")), 10);
+});
+
+test("een speler met de juiste leeftijd voor de doelcategorie levert geen blokkade", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O14", klasse: "4e" },
+    { categorie: "O14", klasse: "5e" },
+    d("2013-05-01"),
+  );
+  assert.equal(r.leeftijd, 13);
+  assert.equal(r.blokkeert, false);
+});
+
+test("een speler die te oud is voor de doelcategorie mag daar niet uitkomen", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O14", klasse: "4e" },
+    { categorie: "O11", klasse: "4e" },
+    d("2013-05-01"),
+  );
+  assert.equal(r.blokkeert, true);
+  assert.ok(r.meldingen.some((m) => /te oud voor O11/.test(m)));
+  assert.ok(r.artikelen.includes("3.1.3"));
+});
+
+test("een speler die te jong is voor de doelcategorie heeft dispensatie nodig", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O11", klasse: "1e" },
+    { categorie: "O14", klasse: "4e" },
+    d("2016-05-01"),
+  );
+  assert.equal(r.blokkeert, true);
+  assert.ok(r.meldingen.some((m) => /dispensatie/.test(m)));
+});
+
+test("artikel 5.2.4: een speler die een jaar te oud is mag uitsluitend voor het eigen team spelen", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O14", klasse: "3e" },
+    { categorie: "O14", klasse: "4e" },
+    d("2012-05-01"),
+  );
+  assert.equal(r.blokkeert, true);
+  assert.ok(r.meldingen.some((m) => /uitsluitend/.test(m)));
+  assert.ok(r.artikelen.includes("5.2.4"));
+});
+
+test("artikel 5.2.4 geldt niet voor de 1e klasse", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O14", klasse: "1e" },
+    { categorie: "O14", klasse: "2e" },
+    d("2012-05-01"),
+  );
+  assert.ok(!r.meldingen.some((m) => /uitsluitend/.test(m)));
+});
+
+test("een geboortedatum van precies 1 oktober levert een waarschuwing over het randgeval", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O14", klasse: "4e" },
+    { categorie: "O14", klasse: "5e" },
+    d("2013-10-01"),
+  );
+  assert.ok(r.meldingen.some((m) => /randgeval/.test(m)));
 });

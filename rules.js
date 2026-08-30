@@ -1,4 +1,12 @@
-import { NIVEAU, KLASSEN, CATEGORIE_I, CATEGORIE_I_PERIODE } from "./data.js";
+import {
+  NIVEAU,
+  KLASSEN,
+  CATEGORIE_I,
+  CATEGORIE_I_PERIODE,
+  LEEFTIJDSGRENZEN,
+  OUDERE_SPELER_UITZONDERING,
+  PEILDATUM,
+} from "./data.js";
 
 // Absoluut niveau volgens de tabel klassengrenzen. Lager getal is hoger niveau.
 export function niveau(categorie, klasseId) {
@@ -90,4 +98,49 @@ export function categorieIMelding(team) {
     return `${omschrijf(team)} valt ${periode[team.klasse]} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. Deze tool weet niet in welke periode de wedstrijd valt en doet hier geen uitspraak over.`;
   }
   return null;
+}
+
+export function leeftijdOpPeildatum(geboortedatum) {
+  let leeftijd = PEILDATUM.getUTCFullYear() - geboortedatum.getUTCFullYear();
+  const maandVerschil = PEILDATUM.getUTCMonth() - geboortedatum.getUTCMonth();
+  const dagVerschil = PEILDATUM.getUTCDate() - geboortedatum.getUTCDate();
+  if (maandVerschil < 0 || (maandVerschil === 0 && dagVerschil < 0)) leeftijd -= 1;
+  return leeftijd;
+}
+
+export function beoordeelLeeftijd(bron, doel, geboortedatum) {
+  const leeftijd = leeftijdOpPeildatum(geboortedatum);
+  const meldingen = [];
+  const artikelen = [];
+  let blokkeert = false;
+
+  const grensDoel = LEEFTIJDSGRENZEN[doel.categorie];
+  if (leeftijd > grensDoel.max) {
+    blokkeert = true;
+    meldingen.push(`Op 1 oktober 2026 is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
+    artikelen.push("3.1.1", "3.1.3");
+  } else if (leeftijd < grensDoel.min) {
+    blokkeert = true;
+    meldingen.push(`Op 1 oktober 2026 is de speler ${leeftijd} jaar en daarmee te jong voor ${doel.categorie}, waar de ondergrens ${grensDoel.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
+    artikelen.push("3.1.1", "3.1.3");
+  } else {
+    meldingen.push(`Op 1 oktober 2026 is de speler ${leeftijd} jaar en past daarmee binnen ${doel.categorie}.`);
+  }
+
+  const grensBron = LEEFTIJDSGRENZEN[bron.categorie];
+  const valtOnderUitzondering =
+    OUDERE_SPELER_UITZONDERING.categorieen.includes(bron.categorie) &&
+    OUDERE_SPELER_UITZONDERING.klassen.includes(bron.klasse) &&
+    leeftijd === grensBron.max + 1;
+  if (valtOnderUitzondering) {
+    blokkeert = true;
+    meldingen.push(`De speler is een jaar ouder dan de grens van ${bron.categorie}. Zij kan op de teamlijst staan als een van de twee spelers die volgens artikel 5.2.4 maximaal een jaar ouder mogen zijn, maar die spelers mogen uitsluitend uitkomen voor het team waarop zij op de teamlijst staan en dus nooit invallen.`);
+    artikelen.push("5.2.4");
+  }
+
+  if (geboortedatum.getUTCMonth() === 9 && geboortedatum.getUTCDate() === 1) {
+    meldingen.push("Deze geboortedatum valt precies op 1 oktober. Het reglement gebruikt 'voor 1 oktober' en 'op 1 oktober' door elkaar, dus dit is een randgeval. Leg dit voor aan de competitieleiding.");
+  }
+
+  return { leeftijd, blokkeert, meldingen, artikelen };
 }

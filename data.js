@@ -84,3 +84,18 @@ export const CATEGORIE_I_PERIODE = {
   O16: { subtop: "tot de winterstop" },
   O18: { subtop: "tot en met de herfstvakantie" },
 };
+
+// Leeftijd op de peildatum, artikel 3.1.1 van het Bondsreglement 2026.
+export const LEEFTIJDSGRENZEN = {
+  O11: { min: 10, max: 10 },
+  O12: { min: 11, max: 11 },
+  O14: { min: 12, max: 13 },
+  O16: { min: 14, max: 15 },
+  O18: { min: 16, max: 17 },
+};
+
+// Artikel 5.2.4 geldt voor deze categorieen, in de 2e klasse en lager.
+export const OUDERE_SPELER_UITZONDERING = {
+  categorieen: ["O12", "O14", "O16", "O18"],
+  klassen: ["2e", "3e", "4e", "5e", "6e", "7e", "8e"],
+};
