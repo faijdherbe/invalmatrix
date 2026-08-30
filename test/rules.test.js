@@ -602,25 +602,31 @@ test("O11 naar O14 levert toegestaan op, met en zonder geboortedatum, met dezelf
 test("kanttekening: bij een jongere bron staat de kanttekening er ook zonder geboortedatum, met artikel 3.1.3", () => {
   const r = check("O14", "1e", "O18", "3e");
   assert.equal(r.toegestaan, true);
-  assert.equal(r.kanttekeningen.length, 1);
-  assert.match(r.kanttekeningen[0], /jongere leeftijdscategorie/);
+  // Was: kanttekeningen.length === 1. Sinds taak 5 krijgt elk oordeel met grond gelijk-of-lager
+  // ook de kanttekeningen over de artikelen 5.3.4, 5.3.6/5.3.6.1 en 5.1.1, dus de lengte is niet
+  // meer 1. De kern van deze test blijft staan: de jongere-categorie-kanttekening is aanwezig.
+  assert.ok(r.kanttekeningen.some((k) => /jongere leeftijdscategorie/.test(k)));
   assert.ok(r.artikelen.includes("3.1.3"), "artikel 3.1.3 ontbreekt");
   assert.ok(r.artikelen.includes("5.3.5.1"), "artikel 5.3.5.1 ontbreekt");
 
   const zonderGeboortedatum = assess({ categorie: "O14", klasse: "1e" }, { categorie: "O18", klasse: "3e" }, null);
   assert.equal(zonderGeboortedatum.verdict, "toegestaan");
-  assert.equal(zonderGeboortedatum.kanttekeningen.length, 1);
+  assert.ok(zonderGeboortedatum.kanttekeningen.some((k) => /jongere leeftijdscategorie/.test(k)));
   assert.ok(zonderGeboortedatum.artikelen.includes("3.1.3"));
 });
 
 test("kanttekening: een gelijke categorie levert geen kanttekening over een jongere categorie op", () => {
   const r = check("O16", "2e", "O16", "2e");
-  assert.deepEqual(r.kanttekeningen, []);
+  // Was: kanttekeningen deepEqual []. Sinds taak 5 krijgt grond gelijk-of-lager altijd de
+  // kanttekeningen over 5.3.4, 5.3.6/5.3.6.1 en 5.1.1, dus de lijst is niet meer leeg. Waar het
+  // hier om gaat, blijft gelden: geen kanttekening over een jongere leeftijdscategorie.
+  assert.ok(!r.kanttekeningen.some((k) => /jongere leeftijdscategorie/.test(k)));
 });
 
 test("kanttekening: een oudere bron levert geen kanttekening over een jongere categorie op", () => {
   const r = check("O18", "3e", "O16", "2e");
-  assert.deepEqual(r.kanttekeningen, []);
+  // Was: kanttekeningen deepEqual []. Zie vorige test voor de reden dat de lijst niet meer leeg is.
+  assert.ok(!r.kanttekeningen.some((k) => /jongere leeftijdscategorie/.test(k)));
 });
 
 test("de andere richting blijft geblokkeerd: te oud voor de doelcategorie met bron uit een oudere categorie", () => {
@@ -797,4 +803,88 @@ test("een leeftijdseis die nooit haalbaar is krijgt voorrang op de aantallen-eis
   const vijfde = o16.vakjes.find((v) => v.klasse === "5e");
   assert.equal(vijfde.verdict, "toegestaan");
   assert.equal(vijfde.soort, "leeftijd");
+});
+
+// Ticket #8: artikel 5.3.4, wijziging van niveaubepaling. Een speler die binnen de vereniging
+// evenveel of vaker uitkomt voor het hoger spelende team dan voor het eigen team krijgt dat
+// hogere niveau als niveaubepaling. De tool kent de speelgeschiedenis niet en kan dit niet
+// beoordelen, dus dit hoort bij grond gelijk-of-lager als kanttekening, niet als voorwaarde.
+
+test("kanttekening: artikel 5.3.4 verschijnt bij grond gelijk-of-lager", () => {
+  const r = check("O16", "3e", "O16", "2e");
+  assert.equal(r.grond, "gelijk-of-lager");
+  assert.ok(r.kanttekeningen.some((k) => /5\.3\.4/.test(k)));
+  assert.ok(r.artikelen.includes("5.3.4"));
+});
+
+test("kanttekening: artikel 5.3.4 ontbreekt bij grond te-hoog", () => {
+  const r = check("O18", "2e", "O16", "3e");
+  assert.equal(r.grond, "te-hoog");
+  assert.ok(!r.kanttekeningen.some((k) => /5\.3\.4/.test(k)));
+  assert.ok(!r.artikelen.includes("5.3.4"));
+});
+
+// Ticket #9: artikel 5.3.6 en 5.3.6.1, beslissingswedstrijden. Tijdens een beslissingswedstrijd
+// mag alleen invallen wie al een vastgestelde niveaubepaling heeft. De tool kent de speelronde
+// niet, dus dit is een kanttekening bij elk toegestaan oordeel, ongeacht de grond.
+
+test("kanttekening: artikel 5.3.6 en 5.3.6.1 verschijnen bij grond gelijk-of-lager, een-hoger en vijfde-klasse", () => {
+  const gevallen = [
+    ["O16", "3e", "O16", "2e", "gelijk-of-lager"],
+    ["O18", "1e", "O16", "1e", "een-hoger"],
+    ["O14", "5e", "O14", "6e", "vijfde-klasse"],
+  ];
+  for (const [bc, bk, dc, dk, grond] of gevallen) {
+    const r = check(bc, bk, dc, dk);
+    assert.equal(r.grond, grond);
+    assert.ok(r.kanttekeningen.some((k) => /5\.3\.6/.test(k)), `${grond}: kanttekening ontbreekt`);
+    assert.ok(r.artikelen.includes("5.3.6"), `${grond}: artikel 5.3.6 ontbreekt`);
+    assert.ok(r.artikelen.includes("5.3.6.1"), `${grond}: artikel 5.3.6.1 ontbreekt`);
+  }
+});
+
+test("kanttekening: artikel 5.3.6 en 5.3.6.1 ontbreken bij grond te-hoog", () => {
+  const r = check("O18", "2e", "O16", "3e");
+  assert.equal(r.grond, "te-hoog");
+  assert.ok(!r.kanttekeningen.some((k) => /5\.3\.6/.test(k)));
+  assert.ok(!r.artikelen.includes("5.3.6"));
+  assert.ok(!r.artikelen.includes("5.3.6.1"));
+});
+
+// Ticket #10: artikel 5.1.1, uitkomen voor verschillende verenigingen. De tool kent de
+// poule-indeling en de speelgeschiedenis van de speler niet, dus dit is een kanttekening bij
+// elk toegestaan oordeel, ongeacht de grond.
+
+test("kanttekening: artikel 5.1.1 verschijnt bij grond gelijk-of-lager, een-hoger en vijfde-klasse", () => {
+  const gevallen = [
+    ["O16", "3e", "O16", "2e", "gelijk-of-lager"],
+    ["O18", "1e", "O16", "1e", "een-hoger"],
+    ["O14", "5e", "O14", "6e", "vijfde-klasse"],
+  ];
+  for (const [bc, bk, dc, dk, grond] of gevallen) {
+    const r = check(bc, bk, dc, dk);
+    assert.equal(r.grond, grond);
+    assert.ok(r.kanttekeningen.some((k) => /5\.1\.1/.test(k)), `${grond}: kanttekening ontbreekt`);
+    assert.ok(r.artikelen.includes("5.1.1"), `${grond}: artikel 5.1.1 ontbreekt`);
+  }
+});
+
+test("kanttekening: artikel 5.1.1 ontbreekt bij grond te-hoog", () => {
+  const r = check("O18", "2e", "O16", "3e");
+  assert.equal(r.grond, "te-hoog");
+  assert.ok(!r.kanttekeningen.some((k) => /5\.1\.1/.test(k)));
+  assert.ok(!r.artikelen.includes("5.1.1"));
+});
+
+// Reviewopmerking: de voorwaardetekst van artikel 5.3.5.4 las stroef ("meerdere O14-teams op de
+// ..."). Herformuleerd naar "meerdere teams in de ...".
+
+test("artikel 5.3.5.4: de voorwaardetekst leest 'meerdere teams in de', niet 'O14-teams op de'", () => {
+  const voorcompetitie = check("O14", "top", "O14", "subtop");
+  assert.ok(voorcompetitie.voorwaarden.some((v) => /meerdere teams in de Topklasse of de Subtopklasse heeft/.test(v)));
+  assert.ok(!voorcompetitie.voorwaarden.some((v) => /O14-teams op de/.test(v)));
+
+  const lentecompetitie = check("O14", "super", "O14", "idc");
+  assert.ok(lentecompetitie.voorwaarden.some((v) => /meerdere teams in de Super O14 of de IDC-O14 heeft/.test(v)));
+  assert.ok(!lentecompetitie.voorwaarden.some((v) => /O14-teams op de/.test(v)));
 });

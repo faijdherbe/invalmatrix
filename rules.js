@@ -66,6 +66,26 @@ export function beoordeelKlasse(bron, doel) {
   // en verandert het oordeel niet.
   const jongereCategorieKanttekening = `De speler komt uit een jongere leeftijdscategorie dan ${doel.categorie}. Artikel 5.3.5.1 staat dat toe en geeft er zelfs een voorbeeld van, maar artikel 3.1.3 en de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn. Bij twijfel beslist de competitieleiding.`;
 
+  // Drie kanttekeningen bij artikelen die het oordeel kunnen omdraaien, maar waarover deze tool
+  // geen uitspraak kan doen: hij kent de wedstrijddag, de speelronde, de vereniging en de
+  // gespeelde wedstrijden niet. Ze veranderen het oordeel niet, net als de kanttekening hierboven.
+
+  // Artikel 5.3.4: wie binnen de vereniging evenveel of vaker uitkomt voor het hoger spelende
+  // team dan voor het eigen team, krijgt dat hogere niveau als niveaubepaling en mag daarna niet
+  // meer voor lager spelende teams uitkomen. Dit hoort alleen bij grond gelijk-of-lager, want
+  // alleen dan speelt de bron op of onder het niveau van het doelteam.
+  const wijzigingNiveaubepalingKanttekening = "Komt de speler binnen de vereniging evenveel of vaker uit voor het hoger spelende team dan voor het team waar zij gewoonlijk voor uitkomt, dan wordt dat hogere niveau de niveaubepaling en mag de speler daarna niet meer voor lager spelende teams uitkomen (artikel 5.3.4). Deze tool kent de speelgeschiedenis van de speler niet en kan dit niet beoordelen.";
+
+  // Artikel 5.3.6 en 5.3.6.1: in een beslissingswedstrijd mag alleen invallen wie al een
+  // vastgestelde niveaubepaling heeft. Dit geldt ongeacht de grond waarop is ingevallen, dus bij
+  // elk toegestaan oordeel.
+  const beslissingswedstrijdKanttekening = "In een beslissingswedstrijd (de laatste een tot drie speelronden van de competitie, een kampioenschap, of een wedstrijd die de competitieleiding als zodanig heeft aangewezen) mag alleen invallen wie al een vastgestelde niveaubepaling heeft (artikel 5.3.6 en 5.3.6.1). Deze tool kent de speelronde niet en kan dit niet beoordelen.";
+
+  // Artikel 5.1.1: een invaller van een andere vereniging mag niet in teams van verschillende
+  // verenigingen in dezelfde poule uitkomen en mag dit seizoen voor maximaal drie verenigingen
+  // uitkomen. Dit geldt ongeacht de grond waarop is ingevallen, dus bij elk toegestaan oordeel.
+  const verschillendeVerenigingenKanttekening = "Komt de invaller van een andere vereniging, controleer dan dat de twee teams niet in dezelfde poule spelen en dat de speler dit seizoen nog niet voor drie verschillende verenigingen is uitgekomen (artikel 5.1.1). Deze tool kent de poule-indeling en de speelgeschiedenis van de speler niet.";
+
   if (nBron === nDoel) {
     redenering.push(`${omschrijf(bron)} en ${omschrijf(doel)} staan volgens de tabel klassengrenzen op hetzelfde niveau.`);
   } else if (nBron > nDoel) {
@@ -95,7 +115,7 @@ export function beoordeelKlasse(bron, doel) {
     if (groep) {
       const klasseNamen = groep.klassen.map((k) => klasseLabel("O14", k));
       voorwaarden.push(
-        `In de ${groep.periode} geldt: als de vereniging meerdere O14-teams op de ${klasseNamen.join(" of de ")} heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.`,
+        `In de ${groep.periode} geldt: als de vereniging meerdere teams in de ${klasseNamen.join(" of de ")} heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.`,
       );
       artikelen.push("5.3.5.4");
       redenering.push(`Beide teams spelen O14 in dezelfde niveaugroep van artikel 5.3.5.4 (${groep.periode}: ${klasseNamen.join(" en ")}).`);
@@ -110,6 +130,8 @@ export function beoordeelKlasse(bron, doel) {
     );
     artikelen.push("5.3.5.3", "5.3.5.1");
     redenering.push("Beide teams spelen in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
+    kanttekeningen.push(beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
+    artikelen.push("5.3.6", "5.3.6.1", "5.1.1");
     return { toegestaan: true, grond: "vijfde-klasse", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 
@@ -120,6 +142,8 @@ export function beoordeelKlasse(bron, doel) {
       kanttekeningen.push(jongereCategorieKanttekening);
       artikelen.push("3.1.3");
     }
+    kanttekeningen.push(wijzigingNiveaubepalingKanttekening, beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
+    artikelen.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { toegestaan: true, grond: "gelijk-of-lager", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 
@@ -135,6 +159,8 @@ export function beoordeelKlasse(bron, doel) {
       kanttekeningen.push(jongereCategorieKanttekening);
       artikelen.push("3.1.3");
     }
+    kanttekeningen.push(beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
+    artikelen.push("5.3.6", "5.3.6.1", "5.1.1");
     return { toegestaan: true, grond: "een-hoger", voorwaarden, redenering, artikelen, kanttekeningen };
   }
 
