@@ -10,6 +10,10 @@ export const ARTIKELEN = {
     "titel": "Dispensaties",
     "tekst": "Voor deelname aan door de KNHB georganiseerde wedstrijden worden de spelers door de\nvereniging op basis van de genoemde leeftijdsgrenzen voor junioren en senioren ingedeeld in\nteams. Het is zonder dispensatie niet toegestaan dat spelers uitkomen in een leeftijdscategorie\nwaar ze volgens de leeftijdsgrenzen niet in mogen uitkomen.\n\nWanneer een vereniging hier een uitzondering op wil maken dient vooraf dispensatie te worden\naangevraagd bij de competitieleiding. Het verlenen van dispensatie voor een speler is een\nuitzondering en gebeurt alleen in uitzonderlijke gevallen. Een nadere uitwerking van het\ndispensatiebeleid is op deze pagina te vinden. De competitieleiding beoordeelt vooraf of dispensatie\nwordt verleend en in welke (leeftijds-)categorie de speler en/of het team zal worden ingedeeld.\n\nVoor sommige leeftijdscategorieën zijn er enkele uitzonderingen, waarbij er geen dispensatie hoeft\nte worden gevraagd, indien een speler niet de juiste leeftijd heeft. Deze uitzonderingen zijn\nopgenomen in artikel 5.2 en 6.2.2 van dit reglement."
   },
+  "5.1.1": {
+    "titel": "Uitkomen voor verschillende verenigingen",
+    "tekst": "Een speler mag gedurende een veldhockey competitieseizoen voor maximaal drie verschillende\nverenigingen uitkomen. Een speler mag niet in teams van verschillende verenigingen in dezelfde\npoule uitkomen.\n\nEen speler mag gedurende een zaalhockey competitieseizoen voor maximaal twee verschillende\nverenigingen uitkomen. Een speler mag niet in teams van verschillende verenigingen in dezelfde\npoule uitkomen."
+  },
   "5.2.4": {
     "titel": "O12 tot en met O18",
     "tekst": "Voor de competitie voor de O12, O14, O16 en O18 teams geldt dat de spelers op 1 oktober van het\nlopende seizoen moeten voldoen aan de leeftijdsgrenzen van die categorie. Voor de 2e klasse, 3e\nklasse en lager geldt daarnaast dat gedurende een competitieseizoen er echter per team op 1\noktober van het lopende seizoen 2 spelers op de teamlijst mogen staan die maximaal 1 jaar ouder\nzijn. Deze spelers mogen enkel uitkomen voor dit team waarbij ze op de teamlijst staan.\nHeeft een vereniging een team waarbij er meer dan 2 spelers niet aan deze uitzondering voldoen,\ndan dient de vereniging voor alle spelers die niet aan de leeftijdsgrens voldoen, dispensatie aan te\nvragen."
@@ -53,5 +57,13 @@ export const ARTIKELEN = {
   "5.3.5.4": {
     "titel": "Aanvullende regels O14-jeugd",
     "tekst": "Voor veldhockey geldt: Voor de O14-jeugd geldt dat wanneer een vereniging met meerdere\njeugdteams uitkomt op één van onderstaande niveaus, de spelers van het eerste team zonder\ntoestemming van de competitieleiding niet speelgerechtigd zijn voor de andere teams die op één\nvan deze niveaus uitkomen. Tijdens herindelingsmomenten mag de teamlijst wel worden\naangepast en mogen dus spelers tussen teams worden geschoven.\n\nDe niveaus zijn als volgt:\n\n•   Voorcompetitie: Topklasse en Subtopklasse;\n•   Lentecompetitie: Super O14 en IDC-O14."
+  },
+  "5.3.6": {
+    "titel": "Beslissingswedstrijden",
+    "tekst": "De volgende wedstrijden zijn beslissingswedstrijden:\n\n•   Wedstrijden tijdens een door de KNHB georganiseerd districts- en/ of Nederlands\n    Kampioenschap;\n•   Wedstrijden als zodanig vooraf aangemerkt door de competitieleiding;\n•   De laatste competitierondes van een competitie. Afhankelijk van de lengte van de competitie is\n    bepaald hoeveel wedstrijden er als beslissingswedstrijden worden aangewezen, zie hiervoor\n    artikel 5.3.6.1.\n•   De laatste drie wedstrijden van het opleidingsteam.\n\nIn een beslissingswedstrijd mogen spelers uitkomen die:\n\n•   Clubgebonden spelers die op de teamlijst staan en volgens de niveaubepalingsregels mogen\n    uitkomen voor het betreffende team;\n•   Clubgebonden spelers die niet op de teamlijst staan, maar volgens de niveaubepalingsregels\n    mogen uitkomen op het niveau;\n•   Niet clubgebonden spelers, die volgens de niveaubepaling mogen uitkomen op het niveau.\n\nSpelers die op een spelerslijst of teamopgave staan en waarvan de speelgerechtigdheid beperkt is,\nmogen alleen tijdens een beslissingswedstrijd uitkomen als de niveaubepaling is vastgesteld op het\nniveau van het team waarvoor het in de beslissingswedstrijd wil uitkomen.\nTijdens beslissingswedstrijden mogen dus alleen spelers uitkomen die ook daadwerkelijk een\nniveaubepaling hebben verkregen. Zie hiervoor artikel 5.3.1. De competitieleiding kan hiervoor in\nbijzondere situaties dispensatie verlenen."
+  },
+  "5.3.6.1": {
+    "titel": "Aantal beslissingswedstrijden laatste competitierondes",
+    "tekst": "•   Bij een competitie van tot en met 9 wedstrijden is de laatste wedstrijd een\n    beslissingswedstrijd.\n•   Bij een competitie van 10 wedstrijden of meer zijn de laatste drie wedstrijden\n    beslissingswedstrijden."
   }
 };

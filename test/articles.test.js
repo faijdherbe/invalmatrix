@@ -19,8 +19,29 @@ test("elke artikeltekst is nog woordelijk gelijk aan het Bondsreglement", () => 
 });
 
 test("de artikelen die de regellogica noemt zijn allemaal opgenomen", () => {
-  for (const nummer of ["3.1.1", "3.1.3", "5.2.4", "5.3.5.1", "5.3.5.2", "5.3.5.3"]) {
+  for (const nummer of [
+    "3.1.1",
+    "3.1.3",
+    "5.1.1",
+    "5.2.4",
+    "5.3.4",
+    "5.3.5.1",
+    "5.3.5.2",
+    "5.3.5.3",
+    "5.3.6",
+    "5.3.6.1",
+  ]) {
     assert.ok(ARTIKELEN[nummer], `artikel ${nummer} wordt genoemd maar is niet opgenomen`);
+  }
+});
+
+// Ticket #8, #9 en #10: deze drie artikelen kunnen het antwoord omdraaien maar ontbraken nog
+// helemaal in de extractie. Expliciete test naast de generieke GEWENST-tests hierboven, zodat
+// duidelijk is welke drie artikelen deze taak toevoegt.
+test("artikel 5.3.6, 5.3.6.1 en 5.1.1 zitten in ARTIKELEN met een niet-lege tekst", () => {
+  for (const nummer of ["5.3.6", "5.3.6.1", "5.1.1"]) {
+    assert.ok(ARTIKELEN[nummer], `artikel ${nummer} ontbreekt`);
+    assert.ok(ARTIKELEN[nummer].tekst.length > 0, `artikel ${nummer} is leeg`);
   }
 });
 

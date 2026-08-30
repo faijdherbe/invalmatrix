@@ -9,6 +9,7 @@ export const PDF = "bronnen/bondsreglement-2026.pdf";
 export const GEWENST = [
   "3.1.1",
   "3.1.3",
+  "5.1.1",
   "5.2.4",
   "5.2.5",
   "5.3.1",
@@ -20,6 +21,8 @@ export const GEWENST = [
   "5.3.5.2",
   "5.3.5.3",
   "5.3.5.4",
+  "5.3.6",
+  "5.3.6.1",
 ];
 
 // Titels die in de PDF over meerdere regels lopen en dus niet volledig uit de kopregel komen.
