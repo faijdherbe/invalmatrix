@@ -83,11 +83,11 @@ export function beoordeelKlasse(bron, doel) {
 export function categorieIMelding(team) {
   const vast = CATEGORIE_I[team.categorie];
   if (vast && vast.includes(team.klasse)) {
-    return `${omschrijf(team)} valt onder categorie I, hoofdstuk 4 van het Bondsreglement. Deze tool dekt alleen categorie II en doet hier geen uitspraak over.`;
+    return `${omschrijf(team)} valt volgens hoofdstuk 2 van het Bondsreglement onder categorie I. Daarvoor gelden de speelgerechtigdheidsregels van hoofdstuk 4, die deze tool niet dekt.`;
   }
   const periode = CATEGORIE_I_PERIODE[team.categorie];
   if (periode && periode[team.klasse]) {
-    return `${omschrijf(team)} valt ${periode[team.klasse]} onder categorie I, hoofdstuk 4 van het Bondsreglement, en daarna onder categorie II. Deze tool weet niet in welke periode de wedstrijd valt en doet hier geen uitspraak over.`;
+    return `${omschrijf(team)} valt ${periode[team.klasse]} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. Deze tool weet niet in welke periode de wedstrijd valt en doet hier geen uitspraak over.`;
   }
   return null;
 }

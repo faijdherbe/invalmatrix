@@ -165,3 +165,27 @@ test("gewone klassen krijgen geen melding", () => {
   assert.equal(categorieIMelding({ categorie: "O18", klasse: "1e" }), null);
   assert.equal(categorieIMelding({ categorie: "O11", klasse: "1e" }), null);
 });
+
+test("O14 Topklasse valt onder categorie II en krijgt geen melding, Super O14 / IDC-O14 wel", () => {
+  assert.equal(categorieIMelding({ categorie: "O14", klasse: "top" }), null);
+  assert.ok(categorieIMelding({ categorie: "O14", klasse: "super" }));
+});
+
+test("O14 Topklasse en Super O14 / IDC-O14 staan op hetzelfde niveau", () => {
+  assert.equal(niveau("O14", "top"), niveau("O14", "super"));
+});
+
+test("een O14-team in de Topklasse krijgt gewoon een oordeel van beoordeelKlasse", () => {
+  const r = check("O14", "top", "O14", "subtop");
+  assert.equal(r.toegestaan, true);
+  assert.equal(r.grond, "een-hoger");
+});
+
+test("de categorie I-meldingen noemen zowel hoofdstuk 2 als hoofdstuk 4", () => {
+  const vast = categorieIMelding({ categorie: "O18", klasse: "super" });
+  assert.match(vast, /hoofdstuk 2/);
+  assert.match(vast, /hoofdstuk 4/);
+  const periode = categorieIMelding({ categorie: "O18", klasse: "subtop" });
+  assert.match(periode, /hoofdstuk 2/);
+  assert.match(periode, /hoofdstuk 4/);
+});

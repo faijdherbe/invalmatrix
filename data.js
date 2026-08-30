@@ -26,7 +26,8 @@ export const KLASSEN = {
   O11: [...GEWONE_KLASSEN, ...LAGE_KLASSEN],
   O12: [...GEWONE_KLASSEN, ...LAGE_KLASSEN],
   O14: [
-    { id: "super", label: "Super O14 / IDC-O14 / Topklasse" },
+    { id: "super", label: "Super O14 / IDC-O14" },
+    { id: "top", label: "Topklasse" },
     { id: "subtop", label: "Subtopklasse" },
     ...GEWONE_KLASSEN,
     ...LAGE_KLASSEN,
@@ -64,12 +65,13 @@ function ladder(start) {
 export const NIVEAU = {
   O11: ladder(7),
   O12: ladder(7),
-  O14: { super: 4, subtop: 5, ...ladder(6) },
+  O14: { super: 4, top: 4, subtop: 5, ...ladder(6) },
   O16: { landelijk: 2, super: 3, subtop: 4, ...ladder(5) },
   O18: { landelijk: 1, super: 2, subtop: 3, ...ladder(4) },
 };
 
-// Klassen die volledig onder categorie I vallen, hoofdstuk 4 van het reglement.
+// Klassen die volgens de indeling van hoofdstuk 2 onder categorie I vallen.
+// Voor categorie I gelden de speelgerechtigdheidsregels van hoofdstuk 4.
 // Deze tool dekt alleen categorie II en doet hier geen uitspraak over.
 export const CATEGORIE_I = {
   O14: ["super"],
