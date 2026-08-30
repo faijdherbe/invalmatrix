@@ -171,6 +171,7 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
   const leeftijd = leeftijdOpPeildatum(geboortedatum);
   const meldingen = [];
   const artikelen = [];
+  const voorwaarden = [];
   let blokkeert = false;
 
   const datumTekst = peildatumNederlands(PEILDATUM);
@@ -182,15 +183,27 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
   // "te jong" bij een gelijke of oudere bron blijft gewoon een dispensatiegeval.
   const bronUitJongereCategorie =
     CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
+  // Artikel 5.2.5 maakt de O11-categorie een uitzondering op "te oud": een O12-jarige (een jaar
+  // boven de bovengrens van O11) mag daar worden ingedeeld als de vereniging op basis van
+  // aantallen problemen heeft om tot volledige teams te komen in de O11- en O12-categorie. Dat is
+  // uitdrukkelijk geen dispensatiegeval (artikel 3.1.3), dus dit mag niet blokkeren en de eerste
+  // melding mag niet beweren dat dispensatie nodig is.
+  const isAantallenuitzonderingO11 =
+    doel.categorie === "O11" && leeftijd === grensDoel.max + 1;
   if (leeftijd > grensDoel.max) {
-    blokkeert = true;
-    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
     artikelen.push("3.1.1", "3.1.3");
-    if (doel.categorie === "O11" && leeftijd === grensDoel.max + 1) {
+    if (isAantallenuitzonderingO11) {
+      meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar, een jaar boven de bovengrens van ${grensDoel.max} jaar voor ${doel.categorie}.`);
       meldingen.push(
         "Artikel 5.2.5 maakt hierop een uitzondering: verenigingen die op basis van aantallen problemen hebben om tot volledige teams te komen in de O11- en O12-categorie, mogen O12-jarigen indelen in de O11-categorie. Een individueel dispensatieverzoek is daarvoor niet nodig, mits de vereniging deze aantallenproblemen heeft.",
       );
       artikelen.push("5.2.5");
+      voorwaarden.push(
+        "De vereniging moet op basis van de ingeschreven aantallen problemen hebben om tot volledige teams te komen in de O11- en O12-categorie (artikel 5.2.5).",
+      );
+    } else {
+      blokkeert = true;
+      meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
     }
   } else if (leeftijd < grensDoel.min && !bronUitJongereCategorie) {
     blokkeert = true;
@@ -217,7 +230,7 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
     meldingen.push(`Deze geboortedatum valt precies op ${datumTekst}. Het reglement gebruikt 'voor ${datumTekst}' en 'op ${datumTekst}' door elkaar, dus dit is een randgeval. Leg dit voor aan de competitieleiding.`);
   }
 
-  return { leeftijd, blokkeert, meldingen, artikelen };
+  return { leeftijd, blokkeert, meldingen, artikelen, voorwaarden };
 }
 
 function heeftGeldigeGeboortedatum(geboortedatum) {
@@ -246,11 +259,17 @@ export function assess(bron, doel, geboortedatum) {
   // hij direct met een ongeldige datum wordt aangeroepen, zie de toelichting in het rapport.
   const leeftijd = heeftGeldigeGeboortedatum(geboortedatum) ? beoordeelLeeftijd(bron, doel, geboortedatum) : null;
 
+  // Voorwaarden en artikelen uit beoordeelLeeftijd horen er alleen bij als de klasse het al
+  // toestaat. Blokkeert de klasse zelf (grond te-hoog), dan is de leeftijd niet meer relevant en
+  // mag die informatie niet alsnog binnensluipen.
   let artikelen;
+  let voorwaarden;
   if (klasse.toegestaan) {
     artikelen = [...new Set([...klasse.artikelen, ...(leeftijd ? leeftijd.artikelen : [])])].sort();
+    voorwaarden = [...klasse.voorwaarden, ...(leeftijd ? leeftijd.voorwaarden : [])];
   } else {
     artikelen = [...new Set(klasse.artikelen)].sort();
+    voorwaarden = [];
   }
 
   let verdict;
@@ -272,7 +291,7 @@ export function assess(bron, doel, geboortedatum) {
   return {
     verdict,
     samenvatting,
-    voorwaarden: klasse.toegestaan ? klasse.voorwaarden : [],
+    voorwaarden,
     redenering: klasse.redenering,
     leeftijd,
     artikelen,

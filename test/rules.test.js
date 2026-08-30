@@ -731,6 +731,64 @@ test("artikel 5.2.5: een O12-jarige in O11 wijst op de uitzondering voor aantall
   assert.ok(r.artikelen.includes("5.2.5"));
 });
 
+// Ticket #4: artikel 5.2.5 mag geen "nee" opleveren voor een O12-jarige die op basis van
+// aantallenproblemen in de O11-categorie wordt ingedeeld. beoordeelLeeftijd blokkeerde deze
+// speler eerder onterecht, terwijl de eerste melding tegelijk beweerde dat dispensatie nodig was,
+// wat artikel 5.2.5 juist uitsluit.
+
+test("artikel 5.2.5: een O12-jarige in O11 3e klasse levert toegestaan op met de aantallenvoorwaarde", () => {
+  const r = assess(
+    { categorie: "O12", klasse: "3e" },
+    { categorie: "O11", klasse: "3e" },
+    d("2015-05-01"),
+  );
+  assert.equal(r.verdict, "toegestaan");
+  assert.ok(r.voorwaarden.some((v) => /O11/.test(v) && /O12/.test(v) && /aantallen/.test(v)));
+  assert.ok(r.artikelen.includes("5.2.5"));
+});
+
+test("beoordeelLeeftijd blokkeert niet meer voor de O12-jarige in O11, en de eerste melding beweert geen dispensatie meer", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O12", klasse: "3e" },
+    { categorie: "O11", klasse: "3e" },
+    d("2015-05-01"),
+  );
+  assert.equal(r.blokkeert, false);
+  assert.ok(
+    !r.meldingen.some((m) => /mag alleen met dispensatie/.test(m)),
+    "geen enkele melding mag nog beweren dat dispensatie nodig is, dat spreekt artikel 5.2.5 tegen",
+  );
+  assert.ok(r.voorwaarden.some((v) => /aantallen/.test(v)));
+});
+
+test("een speler van twaalf jaar naar O11 blijft niet-toegestaan", () => {
+  const r = assess(
+    { categorie: "O12", klasse: "3e" },
+    { categorie: "O11", klasse: "3e" },
+    d("2014-05-01"),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+});
+
+test("een speler van veertien jaar naar O12 blijft niet-toegestaan", () => {
+  const r = assess(
+    { categorie: "O12", klasse: "3e" },
+    { categorie: "O12", klasse: "3e" },
+    d("2012-05-01"),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+});
+
+test("een speler van elf jaar naar O12 blijft gewoon toegestaan zonder de aantallenvoorwaarde", () => {
+  const r = assess(
+    { categorie: "O12", klasse: "3e" },
+    { categorie: "O12", klasse: "3e" },
+    d("2015-05-01"),
+  );
+  assert.equal(r.verdict, "toegestaan");
+  assert.ok(!r.voorwaarden.some((v) => /aantallen/.test(v)));
+});
+
 // Fout 6: een onmogelijke leeftijdseis moet voorrang krijgen op de aantallen-eis in het raster.
 
 test("een leeftijdseis die nooit haalbaar is krijgt voorrang op de aantallen-eis in het raster", () => {
