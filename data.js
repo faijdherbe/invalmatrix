@@ -85,7 +85,7 @@ export const CATEGORIE_I_PERIODE = {
   O18: { subtop: "tot en met de herfstvakantie" },
 };
 
-// Leeftijd op de peildatum, artikel 3.1.1 van het Bondsreglement 2026.
+// Leeftijd op de peildatum, artikelen 3.1.1, 5.2.4 en 5.2.5 van het Bondsreglement 2026.
 export const LEEFTIJDSGRENZEN = {
   O11: { min: 10, max: 10 },
   O12: { min: 11, max: 11 },

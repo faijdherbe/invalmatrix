@@ -8,6 +8,15 @@ import {
   PEILDATUM,
 } from "./data.js";
 
+const MAANDNAMEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+
+export function peildatumNederlands(peildatum) {
+  const dag = peildatum.getUTCDate();
+  const maand = MAANDNAMEN[peildatum.getUTCMonth()];
+  const jaar = peildatum.getUTCFullYear();
+  return `${dag} ${maand} ${jaar}`;
+}
+
 // Absoluut niveau volgens de tabel klassengrenzen. Lager getal is hoger niveau.
 export function niveau(categorie, klasseId) {
   const kolom = NIVEAU[categorie];
@@ -114,17 +123,18 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
   const artikelen = [];
   let blokkeert = false;
 
+  const datumTekst = peildatumNederlands(PEILDATUM);
   const grensDoel = LEEFTIJDSGRENZEN[doel.categorie];
   if (leeftijd > grensDoel.max) {
     blokkeert = true;
-    meldingen.push(`Op 1 oktober 2026 is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
+    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
     artikelen.push("3.1.1", "3.1.3");
   } else if (leeftijd < grensDoel.min) {
     blokkeert = true;
-    meldingen.push(`Op 1 oktober 2026 is de speler ${leeftijd} jaar en daarmee te jong voor ${doel.categorie}, waar de ondergrens ${grensDoel.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
+    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te jong voor ${doel.categorie}, waar de ondergrens ${grensDoel.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
     artikelen.push("3.1.1", "3.1.3");
   } else {
-    meldingen.push(`Op 1 oktober 2026 is de speler ${leeftijd} jaar en past daarmee binnen ${doel.categorie}.`);
+    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en past daarmee binnen ${doel.categorie}.`);
   }
 
   const grensBron = LEEFTIJDSGRENZEN[bron.categorie];
@@ -138,8 +148,8 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
     artikelen.push("5.2.4");
   }
 
-  if (geboortedatum.getUTCMonth() === 9 && geboortedatum.getUTCDate() === 1) {
-    meldingen.push("Deze geboortedatum valt precies op 1 oktober. Het reglement gebruikt 'voor 1 oktober' en 'op 1 oktober' door elkaar, dus dit is een randgeval. Leg dit voor aan de competitieleiding.");
+  if (geboortedatum.getUTCMonth() === PEILDATUM.getUTCMonth() && geboortedatum.getUTCDate() === PEILDATUM.getUTCDate()) {
+    meldingen.push(`Deze geboortedatum valt precies op ${datumTekst}. Het reglement gebruikt 'voor ${datumTekst}' en 'op ${datumTekst}' door elkaar, dus dit is een randgeval. Leg dit voor aan de competitieleiding.`);
   }
 
   return { leeftijd, blokkeert, meldingen, artikelen };

@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { KLASSEN } from "../data.js";
+import { KLASSEN, PEILDATUM } from "../data.js";
 import {
   niveau,
   beoordeelKlasse,
   categorieIMelding,
   leeftijdOpPeildatum,
   beoordeelLeeftijd,
+  peildatumNederlands,
 } from "../rules.js";
 
 const d = (s) => new Date(`${s}T00:00:00Z`);
@@ -262,4 +263,18 @@ test("een geboortedatum van precies 1 oktober levert een waarschuwing over het r
     d("2013-10-01"),
   );
   assert.ok(r.meldingen.some((m) => /randgeval/.test(m)));
+});
+
+test("peildatumNederlands levert de correcte Nederlandse datumtekst", () => {
+  assert.equal(peildatumNederlands(PEILDATUM), "1 oktober 2026");
+});
+
+test("meldingen van beoordeelLeeftijd bevatten de peildatum in Nederlands", () => {
+  const verwachteTekst = peildatumNederlands(PEILDATUM);
+  const r = beoordeelLeeftijd(
+    { categorie: "O14", klasse: "4e" },
+    { categorie: "O14", klasse: "5e" },
+    d("2013-05-01"),
+  );
+  assert.ok(r.meldingen.some((m) => m.includes(verwachteTekst)), `Geen melding met "${verwachteTekst}" gevonden`);
 });
