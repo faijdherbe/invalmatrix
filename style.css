@@ -1,0 +1,187 @@
+:root {
+  --groen: #1b7f3b;
+  --groen-vlak: #e4f4e9;
+  --geel: #8a6100;
+  --geel-vlak: #fdf3d7;
+  --blauw: #1b5f8a;
+  --blauw-vlak: #e0eff7;
+  --rood: #b3261e;
+  --rood-vlak: #fbe9e7;
+  --grijs: #5b5b5b;
+  --grijs-vlak: #eeeeee;
+  --rand: #cfcfcf;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  max-width: 52rem;
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+}
+
+h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
+
+.context {
+  margin: 0 0 1.5rem;
+  color: var(--grijs);
+  font-size: 0.9rem;
+}
+
+.stap { margin-bottom: 2rem; }
+
+.stap h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.keuzes {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+label {
+  display: block;
+  font-size: 0.9rem;
+}
+
+select, input {
+  display: block;
+  margin-top: 0.25rem;
+  padding: 0.45rem 0.5rem;
+  min-width: 12rem;
+  border: 1px solid var(--rand);
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+
+.raster-schuif { overflow-x: auto; }
+
+table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th, td {
+  border: 1px solid var(--rand);
+  text-align: center;
+}
+
+thead th, tbody th {
+  padding: 0.35rem 0.5rem;
+  background: var(--grijs-vlak);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vakje { padding: 0; }
+
+.vakje button {
+  display: block;
+  padding: 0.4rem 0.3rem;
+  width: 100%;
+  min-width: 3.1rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.vakje.vrij { background: var(--groen-vlak); color: var(--groen); }
+.vakje.aantallen { background: var(--geel-vlak); color: var(--geel); }
+.vakje.leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
+.vakje.nee { background: var(--rood-vlak); color: var(--rood); }
+.vakje.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
+.vakje.leeg { background: repeating-linear-gradient(45deg, #fff, #fff 4px, #f4f4f4 4px, #f4f4f4 8px); }
+
+.vakje.gekozen { outline: 3px solid #1a1a1a; outline-offset: -3px; }
+
+.legenda {
+  margin: 0.6rem 0 0;
+  color: var(--grijs);
+  font-size: 0.8rem;
+}
+
+.legenda span {
+  margin-left: 0.8rem;
+  margin-right: 0.15rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.legenda span:first-child { margin-left: 0; }
+.legenda .vrij { background: var(--groen-vlak); color: var(--groen); }
+.legenda .aantallen { background: var(--geel-vlak); color: var(--geel); }
+.legenda .leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
+.legenda .nee { background: var(--rood-vlak); color: var(--rood); }
+.legenda .buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
+
+.voetnoot, .buiten-scope-melding {
+  margin: 0.75rem 0 0;
+  color: var(--grijs);
+  font-size: 0.85rem;
+}
+
+.buiten-scope-melding {
+  padding: 0.9rem 1.1rem;
+  border-left: 5px solid var(--grijs);
+  border-radius: 4px;
+  background: var(--grijs-vlak);
+  color: #1a1a1a;
+  font-size: 1rem;
+}
+
+.geboorte { margin-bottom: 1rem; }
+
+#resultaat {
+  padding: 1rem 1.25rem;
+  border-left: 5px solid var(--grijs);
+  border-radius: 4px;
+  background: var(--grijs-vlak);
+}
+
+#resultaat.toegestaan { border-color: var(--groen); background: var(--groen-vlak); }
+#resultaat.niet-toegestaan { border-color: var(--rood); background: var(--rood-vlak); }
+
+.oordeel { margin: 0; font-size: 1.15rem; font-weight: 600; }
+
+#resultaat h3 {
+  margin: 1.25rem 0 0.4rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--grijs);
+}
+
+#resultaat ul { margin: 0; padding-left: 1.2rem; }
+#resultaat li { margin-bottom: 0.35rem; }
+
+details {
+  margin-bottom: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--rand);
+  border-radius: 4px;
+  background: #fff;
+}
+
+summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
+
+details pre {
+  margin: 0.7rem 0 0.2rem;
+  font: 0.85rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rand);
+  color: var(--grijs);
+  font-size: 0.85rem;
+}

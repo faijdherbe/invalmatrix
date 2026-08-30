@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invalmatrix</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Invalmatrix</h1>
+  <p class="context" id="context"></p>
+</header>
+
+<main>
+  <section class="stap">
+    <h2>Bij welk team moet er worden ingevallen?</h2>
+    <div class="keuzes">
+      <label>Leeftijdscategorie
+        <select id="doel-categorie"></select>
+      </label>
+      <label>Klasse
+        <select id="doel-klasse"></select>
+      </label>
+    </div>
+  </section>
+
+  <section class="stap">
+    <h2>Wie mag daar invallen?</h2>
+    <div id="raster" aria-live="polite"></div>
+    <p class="voetnoot" id="raster-voetnoot"></p>
+  </section>
+
+  <section class="stap" id="detail-blok" hidden>
+    <h2 id="detail-kop"></h2>
+    <label class="geboorte">Geboortedatum van de speler (optioneel)
+      <input type="date" id="geboortedatum">
+    </label>
+    <div id="resultaat" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer>
+  <p>Deze pagina beoordeelt alleen veldhockey in categorie II van het Bondsreglement, voor de
+  leeftijdscategorieen O11 tot en met O18. Zaalhockey, senioren, O25, 30+, 45+, reserveteams,
+  combiteams en categorie I vallen erbuiten. Bij twijfel beslist de competitieleiding.</p>
+  <p>Bronnen:
+    <a href="bronnen/bondsreglement-2026.pdf">KNHB Bondsreglement 2026</a> en
+    <a href="bronnen/tabel-klassengrenzen-veld-zaal-2026-2027.pdf">Tabel klassengrenzen 2026-2027</a>.
+  </p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
