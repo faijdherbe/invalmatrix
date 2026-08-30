@@ -196,13 +196,30 @@ test("gewone klassen krijgen geen melding", () => {
   assert.equal(categorieIMelding({ categorie: "O11", klasse: "1e" }), null);
 });
 
-test("O14 Topklasse valt onder categorie II en krijgt geen melding, Super O14 / IDC-O14 wel", () => {
+test("O14 Topklasse valt onder categorie II en krijgt geen melding, Super O14 wel", () => {
   assert.equal(categorieIMelding({ categorie: "O14", klasse: "top" }), null);
   assert.ok(categorieIMelding({ categorie: "O14", klasse: "super" }));
 });
 
-test("O14 Topklasse en Super O14 / IDC-O14 staan op hetzelfde niveau", () => {
+test("O14 Topklasse en Super O14 staan op hetzelfde niveau", () => {
   assert.equal(niveau("O14", "top"), niveau("O14", "super"));
+});
+
+test("IDC-O14 is een eigen klasse naast Super O14, op hetzelfde niveau als Super O14 en Topklasse", () => {
+  assert.equal(niveau("O14", "idc"), niveau("O14", "super"));
+  assert.equal(niveau("O14", "idc"), niveau("O14", "top"));
+});
+
+test("IDC-O14 valt tot de winterstop onder categorie I en daarna doet de tool geen uitspraak", () => {
+  const melding = categorieIMelding({ categorie: "O14", klasse: "idc" });
+  assert.match(melding, /tot de winterstop/);
+  assert.match(melding, /geen uitspraak/);
+});
+
+test("Super O14 blijft, los van IDC-O14, onvoorwaardelijk onder categorie I", () => {
+  const melding = categorieIMelding({ categorie: "O14", klasse: "super" });
+  assert.ok(melding);
+  assert.doesNotMatch(melding, /winterstop/);
 });
 
 test("een O14-team in de Topklasse krijgt gewoon een oordeel van beoordeelKlasse", () => {
@@ -495,13 +512,13 @@ test("soort vrij: gelijk niveau binnen dezelfde categorie mag zonder enige voorw
 
 test("overzicht voor O14 4e klasse geeft het volledige raster zoals de opdrachtgever het wil zien", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
-  // kolommen: top subtop 1e 2e 3e 4e 5e 6e 7e 8e
+  // kolommen: idc top subtop 1e 2e 3e 4e 5e 6e 7e 8e
   const verwacht = {
-    O11: [null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O12: [null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O14: ["nee", "nee", "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O16: [null, "buiten-scope", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
-    O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
+    O11: [null, null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O12: [null, null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O16: [null, null, "buiten-scope", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
+    O18: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
   };
   for (const rij of rijen) {
     const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));
@@ -511,17 +528,26 @@ test("overzicht voor O14 4e klasse geeft het volledige raster zoals de opdrachtg
 
 test("overzicht voor O14 5e klasse geeft max2 voor de vijfde-klasse-uitzondering van 5.3.5.3", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "5e" });
-  // kolommen: top subtop 1e 2e 3e 4e 5e 6e 7e 8e
+  // kolommen: idc top subtop 1e 2e 3e 4e 5e 6e 7e 8e
   const verwacht = {
-    O11: [null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O12: [null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O14: ["nee", "nee", "nee", "nee", "nee", "aantallen", "max2", "max2", "max2", "max2"],
-    O16: [null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
-    O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "nee", "nee", "nee", "nee"],
+    O11: [null, null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O12: [null, null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O14: ["buiten-scope", "nee", "nee", "nee", "nee", "nee", "aantallen", "max2", "max2", "max2", "max2"],
+    O16: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
+    O18: [null, null, "buiten-scope", "nee", "nee", "nee", "nee", "nee", "nee", "nee", "nee"],
   };
   for (const rij of rijen) {
     const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));
     assert.deepEqual(soorten, verwacht[rij.categorie], rij.categorie);
+  }
+});
+
+test("de idc-kolom bestaat alleen bij O14, de andere categorieen krijgen daar een leeg vakje", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  for (const rij of rijen) {
+    assert.equal(rij.vakjes.length, KOLOMMEN.length);
+    const idc = rij.vakjes.find((v) => v.klasse === "idc");
+    assert.equal(idc.bestaat, rij.categorie === "O14");
   }
 });
 

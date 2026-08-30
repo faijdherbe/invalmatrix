@@ -26,7 +26,8 @@ export const KLASSEN = {
   O11: [...GEWONE_KLASSEN, ...LAGE_KLASSEN],
   O12: [...GEWONE_KLASSEN, ...LAGE_KLASSEN],
   O14: [
-    { id: "super", label: "Super O14 / IDC-O14" },
+    { id: "super", label: "Super O14" },
+    { id: "idc", label: "IDC-O14" },
     { id: "top", label: "Topklasse" },
     { id: "subtop", label: "Subtopklasse" },
     ...GEWONE_KLASSEN,
@@ -51,7 +52,7 @@ export const KLASSEN = {
 // De klassen die een kolom krijgen in het overzichtsraster, van hoog naar laag niveau.
 // landelijk en super staan er niet in: die vallen altijd onder categorie I, dus daar zou elk
 // vakje hetzelfde nietszeggende antwoord geven. De pagina noemt ze in een voetnoot.
-export const KOLOMMEN = ["top", "subtop", "1e", "2e", "3e", "4e", "5e", "6e", "7e", "8e"];
+export const KOLOMMEN = ["idc", "top", "subtop", "1e", "2e", "3e", "4e", "5e", "6e", "7e", "8e"];
 
 // Rijnummer in de tabel klassengrenzen. De 5e klasse en alles daaronder deelt een rij.
 function ladder(start) {
@@ -70,7 +71,7 @@ function ladder(start) {
 export const NIVEAU = {
   O11: ladder(7),
   O12: ladder(7),
-  O14: { super: 4, top: 4, subtop: 5, ...ladder(6) },
+  O14: { super: 4, idc: 4, top: 4, subtop: 5, ...ladder(6) },
   O16: { landelijk: 2, super: 3, subtop: 4, ...ladder(5) },
   O18: { landelijk: 1, super: 2, subtop: 3, ...ladder(4) },
 };
@@ -86,6 +87,7 @@ export const CATEGORIE_I = {
 
 // Klassen die gedurende het seizoen van categorie wisselen.
 export const CATEGORIE_I_PERIODE = {
+  O14: { idc: "tot de winterstop" },
   O16: { subtop: "tot en met de winterstop" },
   O18: { subtop: "tot en met de herfstvakantie" },
 };
