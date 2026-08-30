@@ -3,8 +3,6 @@
   --groen-vlak: #e4f4e9;
   --geel: #8a6100;
   --geel-vlak: #fdf3d7;
-  --paars: #6b4c8a;
-  --paars-vlak: #efe7f5;
   --blauw: #1b5f8a;
   --blauw-vlak: #e0eff7;
   --rood: #b3261e;
@@ -107,7 +105,6 @@ thead th, tbody th {
 
 .vakje.vrij { background: var(--groen-vlak); color: var(--groen); }
 .vakje.aantallen { background: var(--geel-vlak); color: var(--geel); }
-.vakje.max2 { background: var(--paars-vlak); color: var(--paars); }
 .vakje.leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
 .vakje.nee { background: var(--rood-vlak); color: var(--rood); }
 .vakje.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
@@ -115,13 +112,20 @@ thead th, tbody th {
 
 .vakje.gekozen { outline: 3px solid #1a1a1a; outline-offset: -3px; }
 
+/* De asterisk achter "ja" (max2, artikel 5.3.5.3) verwijst naar een kanttekening in het
+   detailscherm. Iets lichter en kleiner dan de tekst ervoor, zodat hij als voetnoot leest. */
+.asterisk {
+  font-size: 0.75em;
+  opacity: 0.65;
+}
+
 .legenda {
   margin: 0.6rem 0 0;
   color: var(--grijs);
   font-size: 0.8rem;
 }
 
-.legenda span {
+.legenda-badge {
   margin-left: 0.8rem;
   margin-right: 0.15rem;
   padding: 0.1rem 0.35rem;
@@ -129,13 +133,12 @@ thead th, tbody th {
   font-weight: 600;
 }
 
-.legenda span:first-child { margin-left: 0; }
-.legenda .vrij { background: var(--groen-vlak); color: var(--groen); }
-.legenda .aantallen { background: var(--geel-vlak); color: var(--geel); }
-.legenda .max2 { background: var(--paars-vlak); color: var(--paars); }
-.legenda .leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
-.legenda .nee { background: var(--rood-vlak); color: var(--rood); }
-.legenda .buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
+.legenda-badge:first-child { margin-left: 0; }
+.legenda-badge.vrij { background: var(--groen-vlak); color: var(--groen); }
+.legenda-badge.aantallen { background: var(--geel-vlak); color: var(--geel); }
+.legenda-badge.leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
+.legenda-badge.nee { background: var(--rood-vlak); color: var(--rood); }
+.legenda-badge.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
 
 .mobiel-categorie { margin-bottom: 1.25rem; }
 .mobiel-categorie:last-child { margin-bottom: 0; }
@@ -173,12 +176,17 @@ thead th, tbody th {
 
 .mobiel-klasse.vrij { background: var(--groen-vlak); color: var(--groen); border-color: var(--groen-vlak); }
 .mobiel-klasse.aantallen { background: var(--geel-vlak); color: var(--geel); border-color: var(--geel-vlak); }
-.mobiel-klasse.max2 { background: var(--paars-vlak); color: var(--paars); border-color: var(--paars-vlak); }
 .mobiel-klasse.leeftijd { background: var(--blauw-vlak); color: var(--blauw); border-color: var(--blauw-vlak); }
 .mobiel-klasse.nee { background: var(--rood-vlak); color: var(--rood); border-color: var(--rood-vlak); }
 .mobiel-klasse.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); border-color: var(--grijs-vlak); }
 
 .mobiel-klasse.gekozen { outline: 3px solid #1a1a1a; outline-offset: -1px; }
+
+.mobiel-asterisk-uitleg {
+  margin: 0.75rem 0 0;
+  color: var(--grijs);
+  font-size: 0.8rem;
+}
 
 .voetnoot, .buiten-scope-melding {
   margin: 0.75rem 0 0;

@@ -68,20 +68,43 @@ function kolomLabel(kolom) {
 // weergave gebruiken. Volgorde: eerst wat mag, dan wat onder voorwaarden mag, dan wat niet mag,
 // dan waar geen uitspraak over is. Dat is ook de volgorde waarin groepen in de mobiele weergave
 // verschijnen, want de gebruiker zoekt wie er wel mag invallen.
+//
+// max2 (de uitzondering van 5.3.5.3) toont zich hier niet als eigen soort: die wordt visueel bij
+// vrij getrokken, met een asterisk als verwijzing naar de kanttekening in het detailscherm. Zie
+// weergaveSoort().
 const SOORT_VOLGORDE = ["vrij", "aantallen", "max2", "leeftijd", "nee", "buiten-scope"];
 
 const SOORTEN = {
   vrij: { kort: "ja", omschrijving: "mag altijd" },
   aantallen: { kort: "mits", omschrijving: "mag alleen bij aantoonbaar te weinig spelers" },
-  max2: { kort: "max 2", omschrijving: "mag altijd, hooguit twee invallers zonder toestemming" },
   leeftijd: { kort: "lft", omschrijving: "mag, mits de speler de juiste leeftijd heeft" },
   nee: { kort: "nee", omschrijving: "mag niet" },
   "buiten-scope": { kort: "?", omschrijving: "geen uitspraak" },
 };
 
-function vakjeTekst(vakje) {
+// De soort waarmee een vakje/klasse-knop visueel wordt behandeld (kleur, groepering). max2 deelt
+// de groene "mag altijd"-weergave van vrij; de onderliggende soort (voor assess()/detailscherm)
+// verandert niet.
+function weergaveSoort(soort) {
+  return soort === "max2" ? "vrij" : soort;
+}
+
+// Dezelfde volgorde als SOORT_VOLGORDE, maar dan van weergavesoorten: max2 valt samen met vrij en
+// levert dus geen aparte, tweede "vrij"-groep op.
+const WEERGAVE_VOLGORDE = [...new Set(SOORT_VOLGORDE.map(weergaveSoort))];
+
+const ASTERISK_HTML = '<span class="asterisk">*</span>';
+
+// De asterisk zelf verwijst naar de kanttekening bij de max2-uitzondering (artikel 5.3.5.3): het
+// mag, maar er is een kanttekening die pas in het detailscherm staat.
+function asteriskUitlegHtml() {
+  return `${ASTERISK_HTML} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
+}
+
+function vakjeHtml(vakje) {
+  if (vakje.soort === "max2") return `${escape(SOORTEN.vrij.kort)}${ASTERISK_HTML}`;
   const soort = SOORTEN[vakje.soort];
-  return soort ? soort.kort : "";
+  return soort ? escape(soort.kort) : "";
 }
 
 // Nederlandse opsomming: "a, b en c". Bij een of geen item geen komma's of "en" nodig.
@@ -110,15 +133,16 @@ function rasterTabelHtml(rijen) {
         .map((vakje) => {
           if (!vakje.bestaat) return `<td class="vakje leeg"></td>`;
           const titel = `${rij.categorie} ${vakje.label}`;
-          return `<td class="vakje ${escape(vakje.soort)}"><button type="button" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${escape(vakjeTekst(vakje))}</button></td>`;
+          return `<td class="vakje ${escape(weergaveSoort(vakje.soort))}"><button type="button" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
         })
         .join("");
       return `<tr><th scope="row">${escape(rij.categorie)}</th>${cellen}</tr>`;
     })
     .join("");
 
-  const legenda = SOORT_VOLGORDE
-    .map((soort) => `<span class="${escape(soort)}">${escape(SOORTEN[soort].kort)}</span> ${escape(SOORTEN[soort].omschrijving)}`)
+  const legenda = WEERGAVE_VOLGORDE
+    .map((soort) => `<span class="legenda-badge ${escape(soort)}">${escape(SOORTEN[soort].kort)}</span> ${escape(SOORTEN[soort].omschrijving)}`)
+    .concat(asteriskUitlegHtml())
     .join("\n");
 
   return `<div class="raster-schuif"><table>
@@ -130,13 +154,13 @@ ${legenda}
 </p>`;
 }
 
-// Groepeert de vakjes van een rij per soort, in de volgorde van SOORT_VOLGORDE, en laat lege
-// groepen en niet-bestaande klassen weg. Werkt op dezelfde rijen als de tabel, dus geen tweede
-// berekening.
+// Groepeert de vakjes van een rij per weergavesoort, in de volgorde van WEERGAVE_VOLGORDE, en
+// laat lege groepen en niet-bestaande klassen weg. Werkt op dezelfde rijen als de tabel, dus geen
+// tweede berekening. max2-klassen komen hier in de vrij-groep terecht (zie weergaveSoort()).
 function mobielGroepen(rij) {
   const bestaande = rij.vakjes.filter((vakje) => vakje.bestaat);
-  return SOORT_VOLGORDE
-    .map((soort) => ({ soort, vakjes: bestaande.filter((vakje) => vakje.soort === soort) }))
+  return WEERGAVE_VOLGORDE
+    .map((soort) => ({ soort, vakjes: bestaande.filter((vakje) => weergaveSoort(vakje.soort) === soort) }))
     .filter((groep) => groep.vakjes.length > 0);
 }
 
@@ -149,7 +173,8 @@ function mobielCategorieHtml(rij) {
       const knoppen = groep.vakjes
         .map((vakje) => {
           const titel = `${rij.categorie} ${vakje.label}`;
-          return `<button type="button" class="mobiel-klasse ${escape(vakje.soort)}" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${escape(vakje.label)}</button>`;
+          const labelHtml = vakje.soort === "max2" ? `${escape(vakje.label)}${ASTERISK_HTML}` : escape(vakje.label);
+          return `<button type="button" class="mobiel-klasse ${escape(groep.soort)}" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${labelHtml}</button>`;
         })
         .join("");
       return `<div class="mobiel-groep">
@@ -174,7 +199,8 @@ function toonRaster() {
 
   const rijen = overzicht(doel);
   raster.innerHTML = rasterTabelHtml(rijen);
-  mobielOverzicht.innerHTML = rijen.map(mobielCategorieHtml).join("");
+  mobielOverzicht.innerHTML =
+    rijen.map(mobielCategorieHtml).join("") + `<p class="mobiel-asterisk-uitleg">${asteriskUitlegHtml()}</p>`;
 
   rasterVoetnoot.textContent =
     `De klassen die onder categorie I vallen (${categorieILijst()}) staan niet in dit raster. Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
