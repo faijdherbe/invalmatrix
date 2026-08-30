@@ -976,6 +976,20 @@ test("kanttekeningen leveren geen eis op in het raster", () => {
   assert.deepEqual(vijfde.eisen, []);
 });
 
+// Reviewopmerking: de voorwaardetekst bij artikel 5.2.5 liet een nuance uit de brontekst weg. Het
+// artikel spreekt van problemen om tot volledige teams c.q. goede teamsamenstellingen te komen;
+// de tekst noemde alleen volledige teams.
+
+test("artikel 5.2.5: de voorwaardetekst noemt ook de goede teamsamenstellingen", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O12", klasse: "3e" },
+    { categorie: "O11", klasse: "3e" },
+    d("2015-05-01"),
+  );
+  assert.ok(r.voorwaarden.some((v) => /volledige teams of goede teamsamenstellingen/.test(v)));
+  assert.ok(r.meldingen.some((m) => /volledige teams of goede teamsamenstellingen/.test(m)));
+});
+
 // Ticket #2: een vakje waar zowel de leeftijdsgrens als de volledige aantallen-eis van artikel
 // 5.3.5.2 geldt, toonde alleen de leeftijd. Een coach die de geboortedatum controleerde dacht
 // dan dat het mocht.

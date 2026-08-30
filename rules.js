@@ -211,8 +211,8 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
     CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
   // Artikel 5.2.5 maakt de O11-categorie een uitzondering op "te oud": een O12-jarige (een jaar
   // boven de bovengrens van O11) mag daar worden ingedeeld als de vereniging op basis van
-  // aantallen problemen heeft om tot volledige teams te komen in de O11- en O12-categorie. Dat is
-  // uitdrukkelijk geen dispensatiegeval (artikel 3.1.3), dus dit mag
+  // aantallen problemen heeft om tot volledige teams of goede teamsamenstellingen te komen in de
+  // O11- en O12-categorie. Dat is uitdrukkelijk geen dispensatiegeval (artikel 3.1.3), dus dit mag
   // niet blokkeren en de eerste melding mag niet beweren dat dispensatie nodig is.
   const isAantallenuitzonderingO11 =
     doel.categorie === "O11" && leeftijd === grensDoel.max + 1;
@@ -221,11 +221,11 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
     if (isAantallenuitzonderingO11) {
       meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar, een jaar boven de bovengrens van ${grensDoel.max} jaar voor ${doel.categorie}.`);
       meldingen.push(
-        "Artikel 5.2.5 maakt hierop een uitzondering: verenigingen die op basis van aantallen problemen hebben om tot volledige teams te komen in de O11- en O12-categorie, mogen O12-jarigen indelen in de O11-categorie. Een individueel dispensatieverzoek is daarvoor niet nodig, mits de vereniging deze aantallenproblemen heeft.",
+        "Artikel 5.2.5 maakt hierop een uitzondering: verenigingen die op basis van aantallen problemen hebben om tot volledige teams of goede teamsamenstellingen te komen in de O11- en O12-categorie, mogen O12-jarigen indelen in de O11-categorie. Een individueel dispensatieverzoek is daarvoor niet nodig, mits de vereniging deze aantallenproblemen heeft.",
       );
       artikelen.push("5.2.5");
       voorwaarden.push(
-        "De vereniging moet op basis van de ingeschreven aantallen problemen hebben om tot volledige teams te komen in de O11- en O12-categorie (artikel 5.2.5).",
+        "De vereniging moet op basis van de ingeschreven aantallen problemen hebben om tot volledige teams of goede teamsamenstellingen te komen in de O11- en O12-categorie (artikel 5.2.5).",
       );
     } else {
       blokkeert = true;
