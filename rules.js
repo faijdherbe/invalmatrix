@@ -309,7 +309,7 @@ export function assess(bron, doel, geboortedatum) {
   } else if (leeftijd && leeftijd.blokkeert) {
     verdict = "niet-toegestaan";
     samenvatting = `Nee. De klassengrens staat het toe, maar de leeftijd van de speler niet.`;
-  } else if (klasse.voorwaarden.length > 0) {
+  } else if (voorwaarden.length > 0) {
     verdict = "toegestaan";
     samenvatting = `Ja, mits aan de voorwaarden hieronder is voldaan.`;
   } else {

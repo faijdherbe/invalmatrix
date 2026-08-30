@@ -401,6 +401,25 @@ test("assess geeft altijd een samenvatting in gewone taal", () => {
   }
 });
 
+// Regressie audit-eindfix bevinding 1: de samenvatting van assess() moet naar "de voorwaarden
+// hieronder" verwijzen zodra er een voorwaarde is, ook als die voorwaarde niet uit
+// beoordeelKlasse komt maar alleen uit beoordeelLeeftijd. O11 2e naar O11 1e klasse levert zelf
+// geen klassenvoorwaarde op (grond gelijk-of-lager), maar bij een geboortedatum die de speler
+// precies een jaar boven de bovengrens van O11 zet, voegt beoordeelLeeftijd de
+// aantallenproblemen-voorwaarde van artikel 5.2.5 toe. Wie na de eerste zin van de samenvatting
+// stopt met lezen, mag dan niet denken dat er niets meer te controleren valt.
+test("assess verwijst naar de voorwaarden hieronder als alleen beoordeelLeeftijd een voorwaarde oplevert", () => {
+  const r = assess(
+    { categorie: "O11", klasse: "2e" },
+    { categorie: "O11", klasse: "1e" },
+    new Date(Date.UTC(2015, 4, 1)),
+  );
+  assert.equal(r.verdict, "toegestaan");
+  assert.equal(r.grond, "gelijk-of-lager");
+  assert.ok(r.voorwaarden.length > 0, "verwacht een voorwaarde uit beoordeelLeeftijd (artikel 5.2.5)");
+  assert.match(r.samenvatting, /voorwaarden hieronder/);
+});
+
 test("afwijzing wegens te groot niveauverschil bevat geen redenering over leeftijd van oudere categorie", () => {
   const r = assess(
     { categorie: "O18", klasse: "1e" },
