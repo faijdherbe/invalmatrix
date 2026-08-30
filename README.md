@@ -51,8 +51,8 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 ## Tests
 
-Er zijn 134 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`article-text.js`)
-en de artikeltekst-extractie (`articles.js`):
+Er zijn 154 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`article-text.js`),
+de artikeltekst-extractie (`articles.js`) en de tekst op de pagina zelf (`page-text.test.js`):
 
     npm test
 
@@ -90,6 +90,6 @@ Alles wat per seizoen wijzigt staat in `data.js`: `SEASON`, `REFERENCE_DATE`, `L
   bewerken).
 - `article-text.js`: zet de letterlijke tekst uit `articles.js` om in weergeefbare blokken.
 - `tools/extract-articles.mjs`: genereert `articles.js` uit de bron-PDF.
-- `test/`: de 134 tests.
+- `test/`: de 154 tests.
 - `bronnen/`: de twee bron-PDF's van de KNHB.
 - `CLAUDE.md`: de werkafspraken, waaronder de taalregel hieronder.
