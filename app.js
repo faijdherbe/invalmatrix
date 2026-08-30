@@ -59,6 +59,7 @@ function huidigDoel() {
 }
 
 function kolomLabel(kolom) {
+  if (kolom === "idc") return "IDC-O14";
   if (kolom === "top") return "Top";
   if (kolom === "subtop") return "Subtop";
   return kolom;
