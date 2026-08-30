@@ -1,20 +1,20 @@
 :root {
-  --groen: #1b7f3b;
-  --groen-vlak: #e4f4e9;
-  --geel: #8a6100;
-  --geel-vlak: #fdf3d7;
-  --rood: #b3261e;
-  --rood-vlak: #fbe9e7;
-  --grijs: #5b5b5b;
-  --grijs-vlak: #eeeeee;
-  --rand: #cfcfcf;
+  --green: #1b7f3b;
+  --green-surface: #e4f4e9;
+  --yellow: #8a6100;
+  --yellow-surface: #fdf3d7;
+  --red: #b3261e;
+  --red-surface: #fbe9e7;
+  --grey: #5b5b5b;
+  --grey-surface: #eeeeee;
+  --border: #cfcfcf;
 }
 
 * { box-sizing: border-box; }
 
-/* Het hidden-attribuut werkt via een browserregel die makkelijk verliest van een eigen
-   display-regel. Zonder deze regel blijft bijvoorbeeld een label met display block gewoon
-   staan terwijl het verborgen zou moeten zijn. */
+/* The hidden attribute works through a browser rule that easily loses out to a display rule of
+   our own. Without this rule a label with display block, for example, simply stays in place
+   while it should be hidden. */
 [hidden] { display: none !important; }
 
 body {
@@ -29,18 +29,18 @@ h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
 
 .context {
   margin: 0 0 1.5rem;
-  color: var(--grijs);
+  color: var(--grey);
   font-size: 0.9rem;
 }
 
-.stap { margin-bottom: 2rem; }
+.step { margin-bottom: 2rem; }
 
-.stap h2 {
+.step h2 {
   margin: 0 0 0.75rem;
   font-size: 1.05rem;
 }
 
-.keuzes {
+.choices {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
@@ -56,24 +56,23 @@ select, input {
   margin-top: 0.25rem;
   padding: 0.45rem 0.5rem;
   min-width: 12rem;
-  border: 1px solid var(--rand);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font: inherit;
   background: #fff;
 }
 
-/* Op een smal scherm (telefoon) is het raster met tien kolommen te veel, ook met horizontaal
-   schuiven. Onder 640px (de gangbare grens tussen telefoon en tablet/desktop) toont de pagina
-   in plaats daarvan de gegroepeerde lijst hieronder; beide weergaven komen uit dezelfde
-   overzicht()-aanroep. */
-.mobiel-weergave { display: none; }
+/* On a narrow screen (phone) the grid with ten columns is too much, even with horizontal
+   scrolling. Under 640px (the common boundary between phone and tablet/desktop) the page shows
+   the grouped list below instead; both views come out of the same overview() call. */
+.mobile-view { display: none; }
 
 @media (max-width: 640px) {
-  .raster-weergave { display: none; }
-  .mobiel-weergave { display: block; }
+  .grid-view { display: none; }
+  .mobile-view { display: block; }
 }
 
-.raster-schuif { overflow-x: auto; }
+.grid-scroll { overflow-x: auto; }
 
 table {
   border-collapse: collapse;
@@ -81,20 +80,20 @@ table {
 }
 
 th, td {
-  border: 1px solid var(--rand);
+  border: 1px solid var(--border);
   text-align: center;
 }
 
 thead th, tbody th {
   padding: 0.35rem 0.5rem;
-  background: var(--grijs-vlak);
+  background: var(--grey-surface);
   font-weight: 600;
   white-space: nowrap;
 }
 
-.vakje { padding: 0; }
+.cell { padding: 0; }
 
-.vakje button {
+.cell button {
   display: block;
   padding: 0.4rem 0.3rem;
   width: 100%;
@@ -106,20 +105,20 @@ thead th, tbody th {
   cursor: pointer;
 }
 
-/* De kleur van een vakje zegt of er voorwaarden gelden, de tekst erin zegt welke. Groen is dus
-   "zonder meer", geel is "mag, maar er gelden een of meer eisen" (mits, lft, team of een
-   combinatie daarvan). Zie vakjeKleur() in app.js. */
-.vakje.vrij { background: var(--groen-vlak); color: var(--groen); }
-.vakje.voorwaarde { background: var(--geel-vlak); color: var(--geel); }
-.vakje.nee { background: var(--rood-vlak); color: var(--rood); }
-.vakje.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
-.vakje.leeg { background: repeating-linear-gradient(45deg, #fff, #fff 4px, #f4f4f4 4px, #f4f4f4 8px); }
+/* The color of a cell says whether conditions apply, the text in it says which. Green is
+   therefore "without further ado", yellow is "allowed, but one or more requirements apply"
+   (mits, lft, team or a combination of those). See cellColor() in app.js. */
+.cell.free { background: var(--green-surface); color: var(--green); }
+.cell.conditional { background: var(--yellow-surface); color: var(--yellow); }
+.cell.no { background: var(--red-surface); color: var(--red); }
+.cell.out-of-scope { background: var(--grey-surface); color: var(--grey); }
+.cell.empty { background: repeating-linear-gradient(45deg, #fff, #fff 4px, #f4f4f4 4px, #f4f4f4 8px); }
 
-.vakje.gekozen { outline: 3px solid #1a1a1a; outline-offset: -3px; }
+.cell.selected { outline: 3px solid #1a1a1a; outline-offset: -3px; }
 
-/* Tekst die niet in beeld staat maar wel wordt voorgelezen door een schermlezer. Standaardtruc:
-   het element krimpt naar 1px en wordt buiten het zichtbare gebied geknipt, zonder display:none
-   (dat zou de tekst ook voor schermlezers laten verdwijnen). */
+/* Text that is not on screen but is read aloud by a screen reader. The standard trick: the
+   element shrinks to 1px and is clipped outside the visible area, without display:none (that
+   would make the text disappear for screen readers too). */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -132,47 +131,47 @@ thead th, tbody th {
   border: 0;
 }
 
-/* Klein driehoekje rechtsboven in het vakje (max2, artikel 5.3.5.3): een CSS-only markering met
-   de klassieke border-truc, geen afbeelding of teken. Kleur uit hetzelfde geel/oranje palet als
-   de vakjes met een voorwaarde (var(--geel)), zodat hij duidelijk afsteekt tegen het groene vlak
-   maar wel bij de rest van de kleuren past. De markering is puur visueel; zie
-   SR_ONLY_KANTTEKENING in app.js voor de tekstuele tegenhanger. */
-.hoek-driehoek {
+/* Small triangle in the top right of the cell (max-two, article 5.3.5.3): a CSS-only marker with
+   the classic border trick, no image or character. Color from the same yellow/orange palette as
+   the cells with a condition (var(--yellow)), so that it stands out clearly against the green
+   surface but still fits the rest of the colors. The marker is purely visual; see SR_ONLY_CAVEAT
+   in app.js for the textual counterpart. */
+.corner-triangle {
   position: relative;
 }
 
-.hoek-driehoek::after {
+.corner-triangle::after {
   content: "";
   position: absolute;
   top: 0;
   right: 0;
   width: 0;
   height: 0;
-  border-top: 0.6rem solid var(--geel);
+  border-top: 0.6rem solid var(--yellow);
   border-left: 0.6rem solid transparent;
 }
 
-/* Klein voorbeeld van het driehoekje zelf, gebruikt in de uitlegregel bij de legenda en onder de
-   mobiele weergave. */
-.kanttekening-voorbeeld {
+/* Small example of the triangle itself, used in the explanation line of the legend and under the
+   mobile view. */
+.caveat-example {
   display: inline-block;
   min-width: 1.7rem;
   margin-right: 0.3rem;
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
-  background: var(--groen-vlak);
-  color: var(--groen);
+  background: var(--green-surface);
+  color: var(--green);
   font-weight: 600;
   vertical-align: middle;
 }
 
-.legenda {
+.legend {
   margin: 0.6rem 0 0;
-  color: var(--grijs);
+  color: var(--grey);
   font-size: 0.8rem;
 }
 
-.legenda-badge {
+.legend-badge {
   margin-left: 0.8rem;
   margin-right: 0.15rem;
   padding: 0.1rem 0.35rem;
@@ -180,39 +179,39 @@ thead th, tbody th {
   font-weight: 600;
 }
 
-.legenda-badge:first-child { margin-left: 0; }
-.legenda-badge.vrij { background: var(--groen-vlak); color: var(--groen); }
-.legenda-badge.voorwaarde { background: var(--geel-vlak); color: var(--geel); }
-.legenda-badge.nee { background: var(--rood-vlak); color: var(--rood); }
-.legenda-badge.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
+.legend-badge:first-child { margin-left: 0; }
+.legend-badge.free { background: var(--green-surface); color: var(--green); }
+.legend-badge.conditional { background: var(--yellow-surface); color: var(--yellow); }
+.legend-badge.no { background: var(--red-surface); color: var(--red); }
+.legend-badge.out-of-scope { background: var(--grey-surface); color: var(--grey); }
 
-.mobiel-categorie { margin-bottom: 1.25rem; }
-.mobiel-categorie:last-child { margin-bottom: 0; }
+.mobile-category { margin-bottom: 1.25rem; }
+.mobile-category:last-child { margin-bottom: 0; }
 
-.mobiel-categorie h3 {
+.mobile-category h3 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
 }
 
-.mobiel-groep { margin-bottom: 0.6rem; }
-.mobiel-groep:last-child { margin-bottom: 0; }
+.mobile-group { margin-bottom: 0.6rem; }
+.mobile-group:last-child { margin-bottom: 0; }
 
-.mobiel-groep-kop {
+.mobile-group-heading {
   margin: 0 0 0.3rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--grijs);
+  color: var(--grey);
 }
 
-.mobiel-klassen {
+.mobile-classes {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
 
-.mobiel-klasse {
+.mobile-class {
   padding: 0.35rem 0.65rem;
-  border: 1px solid var(--rand);
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: #fff;
   font: inherit;
@@ -220,132 +219,132 @@ thead th, tbody th {
   cursor: pointer;
 }
 
-.mobiel-klasse.vrij { background: var(--groen-vlak); color: var(--groen); border-color: var(--groen-vlak); }
-.mobiel-klasse.voorwaarde { background: var(--geel-vlak); color: var(--geel); border-color: var(--geel-vlak); }
-.mobiel-klasse.nee { background: var(--rood-vlak); color: var(--rood); border-color: var(--rood-vlak); }
-.mobiel-klasse.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); border-color: var(--grijs-vlak); }
+.mobile-class.free { background: var(--green-surface); color: var(--green); border-color: var(--green-surface); }
+.mobile-class.conditional { background: var(--yellow-surface); color: var(--yellow); border-color: var(--yellow-surface); }
+.mobile-class.no { background: var(--red-surface); color: var(--red); border-color: var(--red-surface); }
+.mobile-class.out-of-scope { background: var(--grey-surface); color: var(--grey); border-color: var(--grey-surface); }
 
-.mobiel-klasse.gekozen { outline: 3px solid #1a1a1a; outline-offset: -1px; }
+.mobile-class.selected { outline: 3px solid #1a1a1a; outline-offset: -1px; }
 
-/* De korte labels van de eisen achter het klasselabel in de mobiele weergave, bijvoorbeeld
-   "4e klasse mits+lft". Iets kleiner dan het label zelf, zodat de klasse leidend blijft. */
-.mobiel-eisen {
+/* The short labels of the requirements behind the class label in the mobile view, for example
+   "4e klasse mits+lft". A bit smaller than the label itself, so the class stays leading. */
+.mobile-requirements {
   font-size: 0.75rem;
   font-weight: 600;
 }
 
-/* Zelfde kanttekening als het driehoekje in het raster (max2, artikel 5.3.5.3), maar dan als
-   ring rondom de pil: een hoekje in de rand van een volledig ronde pil zou los van de vorm lijken
-   te zweven, een rand errondom leest in deze lijstvorm duidelijker. Zelfde geel/oranje kleur. */
-.mobiel-klasse.kanttekening {
-  box-shadow: inset 0 0 0 2px var(--geel);
+/* The same caveat as the triangle in the grid (max-two, article 5.3.5.3), but as a ring around
+   the pill: a corner in the border of a fully round pill would look like it floats loose from the
+   shape, a border around it reads more clearly in this list form. Same yellow/orange color. */
+.mobile-class.caveat {
+  box-shadow: inset 0 0 0 2px var(--yellow);
 }
 
-/* Uitleg onder de mobiele weergave: per eis een regel met het korte label, plus de uitleg bij het
-   driehoekje en bij de gecombineerde labels. De regels staan hier onder elkaar in plaats van
-   achter elkaar zoals in de legenda onder het raster, dus zonder de inspringing van de badge. */
-.mobiel-uitleg {
+/* Explanation under the mobile view: a line per requirement with the short label, plus the
+   explanation of the triangle and of the combined labels. The lines are stacked here instead of
+   running on like in the legend under the grid, so without the indentation of the badge. */
+.mobile-explanation {
   margin: 0.75rem 0 0;
-  color: var(--grijs);
+  color: var(--grey);
   font-size: 0.8rem;
 }
 
-.mobiel-uitleg .legenda-badge { margin-left: 0; }
+.mobile-explanation .legend-badge { margin-left: 0; }
 
-.voetnoot, .buiten-scope-melding {
+.footnote, .out-of-scope-notice {
   margin: 0.75rem 0 0;
-  color: var(--grijs);
+  color: var(--grey);
   font-size: 0.85rem;
 }
 
-.buiten-scope-melding {
+.out-of-scope-notice {
   padding: 0.9rem 1.1rem;
-  border-left: 5px solid var(--grijs);
+  border-left: 5px solid var(--grey);
   border-radius: 4px;
-  background: var(--grijs-vlak);
+  background: var(--grey-surface);
   color: #1a1a1a;
   font-size: 1rem;
 }
 
-.geboorte { margin-bottom: 1rem; }
+.birth-date { margin-bottom: 1rem; }
 
-#resultaat {
+#result {
   padding: 1rem 1.25rem;
-  border-left: 5px solid var(--grijs);
+  border-left: 5px solid var(--grey);
   border-radius: 4px;
-  background: var(--grijs-vlak);
+  background: var(--grey-surface);
 }
 
-#resultaat.toegestaan { border-color: var(--groen); background: var(--groen-vlak); }
-#resultaat.niet-toegestaan { border-color: var(--rood); background: var(--rood-vlak); }
+#result.allowed { border-color: var(--green); background: var(--green-surface); }
+#result.not-allowed { border-color: var(--red); background: var(--red-surface); }
 
-.oordeel { margin: 0; font-size: 1.15rem; font-weight: 600; }
+.verdict { margin: 0; font-size: 1.15rem; font-weight: 600; }
 
-/* Blok voor uitkomst.kanttekeningen: geen voorwaarde om aan te voldoen, maar een waarschuwing dat
-   de regel zelf omstreden is. Staat direct onder de samenvatting, boven de voorwaarden (zie
-   letOpBlokHtml in app.js). Zelfde geel/oranje palet als de vakjes met een voorwaarde en de
-   kanttekening-driehoekjes bij max2, maar dit is een ander blok voor een ander begrip: de
-   driehoekjes horen bij het overzichtsraster, dit blok bij het detailscherm. */
-.let-op {
+/* Block for outcome.caveats: not a condition to meet, but a warning that the rule itself is
+   contested. Sits directly under the summary, above the conditions (see cautionBlockHtml in
+   app.js). Same yellow/orange palette as the cells with a condition and the caveat triangles for
+   max-two, but this is a different block for a different concept: the triangles belong to the
+   overview grid, this block to the detail view. */
+.caution {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;
-  border-left: 5px solid var(--geel);
+  border-left: 5px solid var(--yellow);
   border-radius: 4px;
-  background: var(--geel-vlak);
+  background: var(--yellow-surface);
 }
 
-#resultaat .let-op h3 {
+#result .caution h3 {
   margin: 0 0 0.4rem;
-  color: var(--geel);
+  color: var(--yellow);
 }
 
-#resultaat h3 {
+#result h3 {
   margin: 1.25rem 0 0.4rem;
   font-size: 0.8rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--grijs);
+  color: var(--grey);
 }
 
-#resultaat ul { margin: 0; padding-left: 1.2rem; }
-#resultaat li { margin-bottom: 0.35rem; }
+#result ul { margin: 0; padding-left: 1.2rem; }
+#result li { margin-bottom: 0.35rem; }
 
 details {
   margin-bottom: 0.4rem;
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--rand);
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: #fff;
 }
 
 summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
 
-.artikel-tekst {
+.article-text {
   margin: 0.7rem 0 0.2rem;
   font-size: 0.9rem;
   line-height: 1.5;
   overflow-wrap: break-word;
 }
 
-.artikel-tekst p { margin: 0 0 0.7em; }
-.artikel-tekst p:last-child { margin-bottom: 0; }
+.article-text p { margin: 0 0 0.7em; }
+.article-text p:last-child { margin-bottom: 0; }
 
-.artikel-item {
+.article-item {
   position: relative;
   padding-left: 1.3em;
 }
 
-.artikel-item::before {
+.article-item::before {
   content: "•";
   position: absolute;
   left: 0.1em;
 }
 
-.artikel-item-2 {
+.article-item-2 {
   padding-left: 2.6em;
 }
 
-.artikel-item-2::before {
+.article-item-2::before {
   content: "o";
   left: 1.4em;
 }
@@ -353,27 +352,28 @@ summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
 footer {
   margin-top: 2.5rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--rand);
-  color: var(--grijs);
+  border-top: 1px solid var(--border);
+  color: var(--grey);
   font-size: 0.85rem;
 }
 
-/* De link naar de repo in de voettekst. Het merkicoon staat links van de tekst en zakt mee met
-   de regel, vandaar de flex met align-items center in plaats van een vertical-align. */
+/* The link to the repo in the footer. The brand icon sits left of the text and drops down with
+   the line, hence the flex with align-items center instead of a vertical-align. */
 .repo-link {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
 }
 
-.repo-icoon {
+.repo-icon {
   flex: none;
 }
 
-/* De disclaimer staat bovenaan de voettekst en moet opvallen zonder te schreeuwen: iets donkerder
-   dan de rest van de voettekst, met een lijntje ervoor zodat hij als los blok leest. */
+/* The disclaimer sits at the top of the footer and has to stand out without shouting: a bit
+   darker than the rest of the footer, with a rule in front of it so that it reads as a block of
+   its own. */
 .disclaimer {
-  border-left: 3px solid var(--rand);
+  border-left: 3px solid var(--border);
   padding-left: 0.9rem;
   color: #3a3a3a;
 }

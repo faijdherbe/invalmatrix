@@ -3,402 +3,401 @@ import { assess, overview, categoryINotice } from "./rules.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
 
-const doelCategorie = document.getElementById("doel-categorie");
-const doelKlasse = document.getElementById("doel-klasse");
-const raster = document.getElementById("raster");
-const mobielOverzicht = document.getElementById("mobiel-overzicht");
-const rasterVoetnoot = document.getElementById("raster-voetnoot");
-const detailBlok = document.getElementById("detail-blok");
-const detailKop = document.getElementById("detail-kop");
-const geboorteVeld = document.getElementById("geboorte-veld");
-const geboortedatum = document.getElementById("geboortedatum");
-const resultaat = document.getElementById("resultaat");
+const borrowerCategory = document.getElementById("borrower-category");
+const borrowerClass = document.getElementById("borrower-class");
+const grid = document.getElementById("grid");
+const mobileOverview = document.getElementById("mobile-overview");
+const gridFootnote = document.getElementById("grid-footnote");
+const detailBlock = document.getElementById("detail-block");
+const detailHeading = document.getElementById("detail-heading");
+const birthDateField = document.getElementById("birth-date-field");
+const birthDate = document.getElementById("birth-date");
+const result = document.getElementById("result");
 
-let gekozenBron = null;
+let selectedLender = null;
 
 document.getElementById("context").textContent = `Seizoen ${SEASON}, ${DISCIPLINE}, categorie II`;
 
-// Ook veilig binnen een attribuut (title, data-*): innerHTML escapet punthaken en de
-// ampersand al, maar niet het aanhalingsteken waarmee attributen hier altijd omsloten worden.
-function escape(tekst) {
+// Also safe inside an attribute (title, data-*): innerHTML already escapes angle brackets and
+// the ampersand, but not the quote character that always surrounds the attributes here.
+function escape(text) {
   const div = document.createElement("div");
-  div.textContent = tekst;
+  div.textContent = text;
   return div.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
-function label(categorie, klasseId) {
-  const gevonden = CLASSES[categorie].find((k) => k.id === klasseId);
-  return gevonden ? gevonden.label : klasseId;
+function label(category, classId) {
+  const found = CLASSES[category].find((c) => c.id === classId);
+  return found ? found.label : classId;
 }
 
-function vulCategorieen() {
-  for (const categorie of AGE_CATEGORIES) {
-    const optie = document.createElement("option");
-    optie.value = categorie;
-    optie.textContent = categorie;
-    doelCategorie.append(optie);
+function fillCategories() {
+  for (const category of AGE_CATEGORIES) {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    borrowerCategory.append(option);
   }
-  doelCategorie.value = "O14";
+  borrowerCategory.value = "O14";
 }
 
-function vulKlassen() {
-  const huidige = doelKlasse.value;
-  doelKlasse.innerHTML = "";
-  for (const klasse of CLASSES[doelCategorie.value]) {
-    const optie = document.createElement("option");
-    optie.value = klasse.id;
-    optie.textContent = klasse.label;
-    doelKlasse.append(optie);
+function fillClasses() {
+  const current = borrowerClass.value;
+  borrowerClass.innerHTML = "";
+  for (const classItem of CLASSES[borrowerCategory.value]) {
+    const option = document.createElement("option");
+    option.value = classItem.id;
+    option.textContent = classItem.label;
+    borrowerClass.append(option);
   }
-  const bestaat = CLASSES[doelCategorie.value].some((k) => k.id === huidige);
-  doelKlasse.value = bestaat ? huidige : "4e";
+  const exists = CLASSES[borrowerCategory.value].some((c) => c.id === current);
+  borrowerClass.value = exists ? current : "4e";
 }
 
-function huidigDoel() {
-  return { category: doelCategorie.value, classId: doelKlasse.value };
+function currentBorrower() {
+  return { category: borrowerCategory.value, classId: borrowerClass.value };
 }
 
-function kolomLabel(kolom) {
-  if (kolom === "idc") return "IDC-O14";
-  if (kolom === "top") return "Top";
-  if (kolom === "subtop") return "Subtop";
-  return kolom;
+function columnLabel(column) {
+  if (column === "idc") return "IDC-O14";
+  if (column === "top") return "Top";
+  if (column === "subtop") return "Subtop";
+  return column;
 }
 
-// Een plek voor beide weergaven om uit te putten: het korte tekstje in een rastervakje en de
-// omschrijving die zowel de legenda onder het raster als de groepskopjes in de mobiele weergave
-// gebruiken. Een vakje bestaat uit een basis (mag, mag niet, geen uitspraak) en een lijst eisen,
-// zie cellFromOutcome() in rules.js.
+// One place for both views to draw from: the short text in a grid cell and the description that
+// both the legend under the grid and the group headings in the mobile view use. A cell consists
+// of a status (allowed, not allowed, no verdict) and a list of requirements, see cellFromOutcome()
+// in rules.js.
 //
-// Volgorde van de basissen: eerst wat mag, dan wat niet mag, dan waar geen uitspraak over is. Dat
-// is ook de volgorde waarin de groepen in de mobiele weergave verschijnen, want de gebruiker
-// zoekt wie er wel mag invallen. De groep "mag" bevat ook de voorwaardelijke gevallen, dus de kop
-// is "mag" en niet "mag altijd": welke voorwaarden er gelden staat per klasse achter het label.
-const BASIS_VOLGORDE = ["free", "no", "out-of-scope"];
+// Order of the statuses: first what is allowed, then what is not, then what there is no verdict
+// about. That is also the order in which the groups appear in the mobile view, because the user
+// is looking for who is allowed to fill in. The group "mag" also holds the conditional cases, so
+// the heading is "mag" and not "mag altijd": which conditions apply is shown per class behind the
+// label.
+const STATUS_ORDER = ["free", "no", "out-of-scope"];
 
-const BASIS = {
-  free: { kort: "ja", omschrijving: "mag altijd", groepskop: "mag" },
-  no: { kort: "nee", omschrijving: "mag niet", groepskop: "mag niet" },
-  "out-of-scope": { kort: "?", omschrijving: "geen uitspraak", groepskop: "geen uitspraak" },
+const STATUSES = {
+  free: { short: "ja", description: "mag altijd", groupHeading: "mag" },
+  no: { short: "nee", description: "mag niet", groupHeading: "mag niet" },
+  "out-of-scope": { short: "?", description: "geen uitspraak", groupHeading: "geen uitspraak" },
 };
 
-// De eisen met een eigen kort label in het vakje, in de volgorde waarin rules.js ze teruggeeft.
-// De eis max2 (artikel 5.3.5.3) staat hier niet in: die krijgt geen tekst maar het driehoekje
-// rechtsboven in het vakje, zie hoek-driehoek in style.css en SR_ONLY_KANTTEKENING hieronder.
-const EIS_VOLGORDE = ["player-count", "age", "first-team"];
+// The requirements with a short label of their own in the cell, in the order in which rules.js
+// returns them. The requirement max-two (article 5.3.5.3) is not in here: it gets no text but the
+// triangle in the top right of the cell, see corner-triangle in style.css and SR_ONLY_CAVEAT below.
+const REQUIREMENT_ORDER = ["player-count", "age", "first-team"];
 
-const EISEN = {
-  "player-count": { kort: "mits", omschrijving: "mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)" },
-  age: { kort: "lft", omschrijving: "mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)" },
-  "first-team": { kort: "team", omschrijving: "mag niet voor spelers uit het eerste team, zonder toestemming van de competitieleiding (artikel 5.3.5.4)" },
+const REQUIREMENTS = {
+  "player-count": { short: "mits", description: "mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)" },
+  age: { short: "lft", description: "mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)" },
+  "first-team": { short: "team", description: "mag niet voor spelers uit het eerste team, zonder toestemming van de competitieleiding (artikel 5.3.5.4)" },
 };
 
-// Uitleg bij de gecombineerde labels, voor onder de legenda.
-const COMBINATIE_UITLEG = "Staan er twee labels met een + ertussen, dan gelden beide voorwaarden.";
+// Explanation of the combined labels, to go under the legend.
+const COMBINATION_EXPLANATION = "Staan er twee labels met een + ertussen, dan gelden beide voorwaarden.";
 
-// De eisen die een zichtbaar label krijgen, in de vaste volgorde van rules.js. max2 valt hier af.
-function zichtbareEisen(eisen) {
-  return eisen.filter((eis) => EISEN[eis]);
+// The requirements that get a visible label, in the fixed order of rules.js. max-two drops out here.
+function visibleRequirements(requirements) {
+  return requirements.filter((requirement) => REQUIREMENTS[requirement]);
 }
 
-// De korte labels van een vakje aan elkaar met een plus, bijvoorbeeld "mits+lft". Leeg als er
-// geen zichtbare eis is; dan toont het vakje de tekst van zijn basis.
-function eisenLabel(eisen) {
-  return zichtbareEisen(eisen).map((eis) => EISEN[eis].kort).join("+");
+// The short labels of a cell strung together with a plus, for example "mits+lft". Empty when there
+// is no visible requirement; the cell then shows the text of its status.
+function requirementsLabel(requirements) {
+  return visibleRequirements(requirements).map((requirement) => REQUIREMENTS[requirement].short).join("+");
 }
 
-// De kleur van een vakje of klasse-knop: groen als er niets te regelen valt (geen eis, of alleen
-// max2), geel zodra er een voorwaarde geldt. De kleur zegt of er voorwaarden zijn, de tekst zegt
-// welke. Bij basis nee en buiten-scope is de basis zelf de kleur.
-function vakjeKleur(vakje) {
-  if (vakje.status !== "free") return vakje.status;
-  return zichtbareEisen(vakje.requirements).length > 0 ? "voorwaarde" : "free";
+// The color of a cell or class button: green when there is nothing to arrange (no requirement, or
+// only max-two), yellow as soon as a condition applies. The color says whether there are
+// conditions, the text says which. For status no and out-of-scope the status itself is the color.
+function cellColor(cell) {
+  if (cell.status !== "free") return cell.status;
+  return visibleRequirements(cell.requirements).length > 0 ? "conditional" : "free";
 }
 
-// Tekst die niet in beeld staat maar wel wordt voorgelezen: de driehoekjesmarkering zelf is puur
-// visueel (kleur), dus dit is voor schermlezers en voor wie kleur niet ziet de manier om alsnog
-// te weten dat er een kanttekening bij dit vakje hoort.
-const SR_ONLY_KANTTEKENING = '<span class="sr-only"> (met een kanttekening)</span>';
+// Text that is not on screen but is read aloud: the triangle marker itself is purely visual
+// (color), so this is how screen reader users and people who do not see color can still know that
+// this cell carries a caveat.
+const SR_ONLY_CAVEAT = '<span class="sr-only"> (met een kanttekening)</span>';
 
-// De volledige omschrijving van elke eis, ook voor schermlezers. Het title-attribuut van de knop
-// blijft het team benoemen, dus deze uitleg gaat via dezelfde sr-only-aanpak als hierboven.
-function srOnlyEisenHtml(eisen) {
-  const zichtbaar = zichtbareEisen(eisen);
-  if (zichtbaar.length === 0) return "";
-  const teksten = zichtbaar.map((eis) => EISEN[eis].omschrijving).join("; ");
-  return `<span class="sr-only"> (${escape(teksten)})</span>`;
+// The full description of every requirement, for screen readers too. The title attribute of the
+// button keeps naming the team, so this explanation goes through the same sr-only approach as above.
+function srOnlyRequirementsHtml(requirements) {
+  const visible = visibleRequirements(requirements);
+  if (visible.length === 0) return "";
+  const texts = visible.map((requirement) => REQUIREMENTS[requirement].description).join("; ");
+  return `<span class="sr-only"> (${escape(texts)})</span>`;
 }
 
-// Klein voorbeeld van de driehoekjesmarkering zelf, voor in de uitlegregel. aria-hidden omdat de
-// bijbehorende tekst ("mag, met een kanttekening...") al vertelt wat het betekent.
-function kanttekeningVoorbeeldHtml() {
-  return `<span class="kanttekening-voorbeeld hoek-driehoek" aria-hidden="true">${escape(BASIS.free.kort)}</span>`;
+// A small example of the triangle marker itself, for the explanation line. aria-hidden because the
+// accompanying text ("mag, met een kanttekening...") already tells what it means.
+function caveatExampleHtml() {
+  return `<span class="caveat-example corner-triangle" aria-hidden="true">${escape(STATUSES.free.short)}</span>`;
 }
 
-// Verwijst naar de driehoekjesmarkering bij de max2-uitzondering (artikel 5.3.5.3): het mag, maar
-// er is een kanttekening die pas in het detailscherm staat.
-function kanttekeningUitlegHtml() {
-  return `${kanttekeningVoorbeeldHtml()} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
+// Refers to the triangle marker for the max-two exception (article 5.3.5.3): it is allowed, but
+// there is a caveat that only shows up in the detail view.
+function caveatExplanationHtml() {
+  return `${caveatExampleHtml()} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
 }
 
-// Een regel in de legenda: een gekleurde badge met het korte label, gevolgd door de omschrijving.
-function legendaRegelHtml(kleur, kort, omschrijving) {
-  return `<span class="legenda-badge ${escape(kleur)}">${escape(kort)}</span> ${escape(omschrijving)}`;
+// A line in the legend: a colored badge with the short label, followed by the description.
+function legendLineHtml(color, short, description) {
+  return `<span class="legend-badge ${escape(color)}">${escape(short)}</span> ${escape(description)}`;
 }
 
-// De uitleg onder de mobiele weergave. Daar staan geen regels voor ja, nee en ?, want die groepen
-// hebben er al een kop in woorden. De korte labels achter een klasse hebben wel uitleg nodig.
-function mobielUitlegHtml() {
+// The explanation under the mobile view. There are no lines for ja, nee and ? there, because those
+// groups already have a heading in words. The short labels behind a class do need an explanation.
+function mobileExplanationHtml() {
   return [
-    ...EIS_VOLGORDE.map((eis) => legendaRegelHtml("voorwaarde", EISEN[eis].kort, EISEN[eis].omschrijving)),
-    kanttekeningUitlegHtml(),
-    escape(COMBINATIE_UITLEG),
+    ...REQUIREMENT_ORDER.map((requirement) => legendLineHtml("conditional", REQUIREMENTS[requirement].short, REQUIREMENTS[requirement].description)),
+    caveatExplanationHtml(),
+    escape(COMBINATION_EXPLANATION),
   ].join("<br>");
 }
 
-// De inhoud van een rastervakje: de korte labels van de eisen, of de tekst van de basis als er
-// geen zichtbare eis is. Daarachter de uitleg voor schermlezers.
-function vakjeHtml(vakje) {
-  const tekst = eisenLabel(vakje.requirements) || BASIS[vakje.status].kort;
-  const kanttekening = vakje.requirements.includes("max-two") ? SR_ONLY_KANTTEKENING : "";
-  return `${escape(tekst)}${srOnlyEisenHtml(vakje.requirements)}${kanttekening}`;
+// The content of a grid cell: the short labels of the requirements, or the text of the status when
+// there is no visible requirement. Behind that the explanation for screen readers.
+function cellHtml(cell) {
+  const text = requirementsLabel(cell.requirements) || STATUSES[cell.status].short;
+  const caveat = cell.requirements.includes("max-two") ? SR_ONLY_CAVEAT : "";
+  return `${escape(text)}${srOnlyRequirementsHtml(cell.requirements)}${caveat}`;
 }
 
-// Nederlandse opsomming: "a, b en c". Bij een of geen item geen komma's of "en" nodig.
-function opsommingMetEn(items) {
+// Dutch enumeration: "a, b en c". With one item or none no commas or "en" are needed.
+function listWithAnd(items) {
   if (items.length <= 1) return items.join("");
   return `${items.slice(0, -1).join(", ")} en ${items[items.length - 1]}`;
 }
 
-// Somt op welke klassen onder categorie I vallen, voor de voetnoot onder het raster. Gegenereerd
-// uit CATEGORY_I en CLASSES, zodat de tekst automatisch meebeweegt als die gegevens wijzigen.
-function categorieILijst() {
-  return AGE_CATEGORIES.filter((categorie) => CATEGORY_I[categorie])
-    .map((categorie) => {
-      const labels = CATEGORY_I[categorie].map((klasseId) => label(categorie, klasseId));
-      return `${categorie}: ${opsommingMetEn(labels)}`;
+// Sums up which classes fall under category I, for the footnote under the grid. Generated from
+// CATEGORY_I and CLASSES, so the text follows along automatically when that data changes.
+function categoryIList() {
+  return AGE_CATEGORIES.filter((category) => CATEGORY_I[category])
+    .map((category) => {
+      const labels = CATEGORY_I[category].map((classId) => label(category, classId));
+      return `${category}: ${listWithAnd(labels)}`;
     })
     .join("; ");
 }
 
-// Bouwt de tabel voor brede schermen uit dezelfde rijen als de mobiele weergave.
-function rasterTabelHtml(rijen) {
-  const koppen = COLUMNS.map((kolom) => `<th scope="col">${escape(kolomLabel(kolom))}</th>`).join("");
-  const lichaam = rijen
-    .map((rij) => {
-      const cellen = rij.cells
-        .map((vakje) => {
-          if (!vakje.exists) return `<td class="vakje leeg"></td>`;
-          const titel = `${rij.category} ${vakje.label}`;
-          const knopKlasse = vakje.requirements.includes("max-two") ? ' class="hoek-driehoek"' : "";
-          return `<td class="vakje ${escape(vakjeKleur(vakje))}"><button type="button"${knopKlasse} data-categorie="${escape(rij.category)}" data-klasse="${escape(vakje.classId)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
+// Builds the table for wide screens from the same rows as the mobile view.
+function gridTableHtml(rows) {
+  const headings = COLUMNS.map((column) => `<th scope="col">${escape(columnLabel(column))}</th>`).join("");
+  const body = rows
+    .map((row) => {
+      const cells = row.cells
+        .map((cell) => {
+          if (!cell.exists) return `<td class="cell empty"></td>`;
+          const title = `${row.category} ${cell.label}`;
+          const buttonClass = cell.requirements.includes("max-two") ? ' class="corner-triangle"' : "";
+          return `<td class="cell ${escape(cellColor(cell))}"><button type="button"${buttonClass} data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${cellHtml(cell)}</button></td>`;
         })
         .join("");
-      return `<tr><th scope="row">${escape(rij.category)}</th>${cellen}</tr>`;
+      return `<tr><th scope="row">${escape(row.category)}</th>${cells}</tr>`;
     })
     .join("");
 
-  // Eerst wat altijd mag, dan de eisen die een vakje voorwaardelijk maken, dan wat niet mag en
-  // waar geen uitspraak over is, en tot slot de twee uitlegregels.
-  const legenda = [
-    legendaRegelHtml("vrij", BASIS.free.kort, BASIS.free.omschrijving),
-    ...EIS_VOLGORDE.map((eis) => legendaRegelHtml("voorwaarde", EISEN[eis].kort, EISEN[eis].omschrijving)),
-    legendaRegelHtml("nee", BASIS.no.kort, BASIS.no.omschrijving),
-    legendaRegelHtml("buiten-scope", BASIS["out-of-scope"].kort, BASIS["out-of-scope"].omschrijving),
-    kanttekeningUitlegHtml(),
-    escape(COMBINATIE_UITLEG),
+  // First what is always allowed, then the requirements that make a cell conditional, then what is
+  // not allowed and what there is no verdict about, and finally the two explanation lines.
+  const legend = [
+    legendLineHtml("free", STATUSES.free.short, STATUSES.free.description),
+    ...REQUIREMENT_ORDER.map((requirement) => legendLineHtml("conditional", REQUIREMENTS[requirement].short, REQUIREMENTS[requirement].description)),
+    legendLineHtml("no", STATUSES.no.short, STATUSES.no.description),
+    legendLineHtml("out-of-scope", STATUSES["out-of-scope"].short, STATUSES["out-of-scope"].description),
+    caveatExplanationHtml(),
+    escape(COMBINATION_EXPLANATION),
   ].join("\n");
 
-  return `<div class="raster-schuif"><table>
-<thead><tr><th scope="col">Komt uit</th>${koppen}</tr></thead>
-<tbody>${lichaam}</tbody>
+  return `<div class="grid-scroll"><table>
+<thead><tr><th scope="col">Komt uit</th>${headings}</tr></thead>
+<tbody>${body}</tbody>
 </table></div>
-<p class="legenda">
-${legenda}
+<p class="legend">
+${legend}
 </p>`;
 }
 
-// Groepeert de vakjes van een rij per basis, in de volgorde van BASIS_VOLGORDE, en laat lege
-// groepen en niet-bestaande klassen weg. Werkt op dezelfde rijen als de tabel, dus geen tweede
-// berekening. De groepering gaat bewust op basis en niet op de eisencombinatie: dat zou een
-// wildgroei aan groepjes opleveren. De eisen staan per klasse achter het label.
-function mobielGroepen(rij) {
-  const bestaande = rij.cells.filter((vakje) => vakje.exists);
-  return BASIS_VOLGORDE
-    .map((basis) => ({ basis, cells: bestaande.filter((vakje) => vakje.status === basis) }))
-    .filter((groep) => groep.cells.length > 0);
+// Groups the cells of a row by status, in the order of STATUS_ORDER, and leaves out empty groups
+// and classes that do not exist. Works on the same rows as the table, so no second calculation.
+// The grouping deliberately goes by status and not by the combination of requirements: that would
+// yield a proliferation of small groups. The requirements are shown per class behind the label.
+function mobileGroups(row) {
+  const existing = row.cells.filter((cell) => cell.exists);
+  return STATUS_ORDER
+    .map((status) => ({ status, cells: existing.filter((cell) => cell.status === status) }))
+    .filter((group) => group.cells.length > 0);
 }
 
-// Bouwt de mobiele weergave: per leeftijdscategorie een blok, daarbinnen de klassen gegroepeerd
-// op wat er mag. Een categorie zonder toegestane optie verdwijnt niet, die toont dan gewoon
-// alleen de groepen die er wel zijn.
-function mobielCategorieHtml(rij) {
-  const groepenHtml = mobielGroepen(rij)
-    .map((groep) => {
-      const knoppen = groep.cells
-        .map((vakje) => {
-          const titel = `${rij.category} ${vakje.label}`;
-          const kanttekening = vakje.requirements.includes("max-two");
-          const eisen = eisenLabel(vakje.requirements);
+// Builds the mobile view: a block per age category, and within it the classes grouped by what is
+// allowed. A category without an allowed option does not disappear, it then simply shows only the
+// groups that do exist.
+function mobileCategoryHtml(row) {
+  const groupsHtml = mobileGroups(row)
+    .map((group) => {
+      const buttons = group.cells
+        .map((cell) => {
+          const title = `${row.category} ${cell.label}`;
+          const caveat = cell.requirements.includes("max-two");
+          const requirements = requirementsLabel(cell.requirements);
           const labelHtml = [
-            escape(vakje.label),
-            eisen ? ` <span class="mobiel-eisen">${escape(eisen)}</span>` : "",
-            srOnlyEisenHtml(vakje.requirements),
-            kanttekening ? SR_ONLY_KANTTEKENING : "",
+            escape(cell.label),
+            requirements ? ` <span class="mobile-requirements">${escape(requirements)}</span>` : "",
+            srOnlyRequirementsHtml(cell.requirements),
+            caveat ? SR_ONLY_CAVEAT : "",
           ].join("");
-          const klasse = `mobiel-klasse ${escape(vakjeKleur(vakje))}${kanttekening ? " kanttekening" : ""}`;
-          return `<button type="button" class="${klasse}" data-categorie="${escape(rij.category)}" data-klasse="${escape(vakje.classId)}" title="${escape(titel)}">${labelHtml}</button>`;
+          const className = `mobile-class ${escape(cellColor(cell))}${caveat ? " caveat" : ""}`;
+          return `<button type="button" class="${className}" data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${labelHtml}</button>`;
         })
         .join("");
-      return `<div class="mobiel-groep">
-<p class="mobiel-groep-kop ${escape(groep.basis)}">${escape(BASIS[groep.basis].groepskop)}</p>
-<div class="mobiel-klassen">${knoppen}</div>
+      return `<div class="mobile-group">
+<p class="mobile-group-heading ${escape(group.status)}">${escape(STATUSES[group.status].groupHeading)}</p>
+<div class="mobile-classes">${buttons}</div>
 </div>`;
     })
     .join("");
-  return `<div class="mobiel-categorie"><h3>${escape(rij.category)}</h3>${groepenHtml}</div>`;
+  return `<div class="mobile-category"><h3>${escape(row.category)}</h3>${groupsHtml}</div>`;
 }
 
-function toonRaster() {
-  const doel = huidigDoel();
-  const melding = categoryINotice(doel);
-  if (melding) {
-    raster.innerHTML = `<p class="buiten-scope-melding">${escape(melding)}</p>`;
-    mobielOverzicht.innerHTML = "";
-    rasterVoetnoot.textContent = "";
-    verbergDetail();
+function showGrid() {
+  const borrower = currentBorrower();
+  const notice = categoryINotice(borrower);
+  if (notice) {
+    grid.innerHTML = `<p class="out-of-scope-notice">${escape(notice)}</p>`;
+    mobileOverview.innerHTML = "";
+    gridFootnote.textContent = "";
+    hideDetail();
     return;
   }
 
-  const rijen = overview(doel);
-  raster.innerHTML = rasterTabelHtml(rijen);
-  mobielOverzicht.innerHTML =
-    rijen.map(mobielCategorieHtml).join("") + `<p class="mobiel-uitleg">${mobielUitlegHtml()}</p>`;
+  const rows = overview(borrower);
+  grid.innerHTML = gridTableHtml(rows);
+  mobileOverview.innerHTML =
+    rows.map(mobileCategoryHtml).join("") + `<p class="mobile-explanation">${mobileExplanationHtml()}</p>`;
 
-  rasterVoetnoot.textContent =
-    `De klassen die onder categorie I vallen (${categorieILijst()}) staan niet in dit raster. Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
+  gridFootnote.textContent =
+    `De klassen die onder categorie I vallen (${categoryIList()}) staan niet in dit raster. Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
 
-  for (const knop of [...raster.querySelectorAll("button[data-categorie]"), ...mobielOverzicht.querySelectorAll("button[data-categorie]")]) {
-    knop.addEventListener("click", () => {
-      gekozenBron = { category: knop.dataset.categorie, classId: knop.dataset.klasse };
-      markeerGekozen();
-      toonDetail();
+  for (const button of [...grid.querySelectorAll("button[data-category]"), ...mobileOverview.querySelectorAll("button[data-category]")]) {
+    button.addEventListener("click", () => {
+      selectedLender = { category: button.dataset.category, classId: button.dataset.classId };
+      markSelected();
+      showDetail();
     });
   }
 
-  if (gekozenBron && !CLASSES[gekozenBron.category].some((k) => k.id === gekozenBron.classId)) {
-    gekozenBron = null;
+  if (selectedLender && !CLASSES[selectedLender.category].some((c) => c.id === selectedLender.classId)) {
+    selectedLender = null;
   }
-  if (gekozenBron) {
-    markeerGekozen();
-    toonDetail();
+  if (selectedLender) {
+    markSelected();
+    showDetail();
   } else {
-    verbergDetail();
+    hideDetail();
   }
 }
 
-function markeerGekozen() {
-  for (const knop of raster.querySelectorAll("button[data-categorie]")) {
-    const actief =
-      gekozenBron &&
-      knop.dataset.categorie === gekozenBron.category &&
-      knop.dataset.klasse === gekozenBron.classId;
-    knop.parentElement.classList.toggle("gekozen", Boolean(actief));
+function markSelected() {
+  for (const button of grid.querySelectorAll("button[data-category]")) {
+    const active =
+      selectedLender &&
+      button.dataset.category === selectedLender.category &&
+      button.dataset.classId === selectedLender.classId;
+    button.parentElement.classList.toggle("selected", Boolean(active));
   }
-  for (const knop of mobielOverzicht.querySelectorAll("button[data-categorie]")) {
-    const actief =
-      gekozenBron &&
-      knop.dataset.categorie === gekozenBron.category &&
-      knop.dataset.klasse === gekozenBron.classId;
-    knop.classList.toggle("gekozen", Boolean(actief));
+  for (const button of mobileOverview.querySelectorAll("button[data-category]")) {
+    const active =
+      selectedLender &&
+      button.dataset.category === selectedLender.category &&
+      button.dataset.classId === selectedLender.classId;
+    button.classList.toggle("selected", Boolean(active));
   }
 }
 
-function verbergDetail() {
-  detailBlok.hidden = true;
-  resultaat.innerHTML = "";
+function hideDetail() {
+  detailBlock.hidden = true;
+  result.innerHTML = "";
 }
 
-function lijst(titel, regels) {
-  if (regels.length === 0) return "";
-  const items = regels.map((regel) => `<li>${escape(regel)}</li>`).join("");
-  return `<h3>${titel}</h3><ul>${items}</ul>`;
+function list(title, lines) {
+  if (lines.length === 0) return "";
+  const items = lines.map((line) => `<li>${escape(line)}</li>`).join("");
+  return `<h3>${title}</h3><ul>${items}</ul>`;
 }
 
-// Toont de kanttekeningen die assess() meegeeft: geen voorwaarde waaraan de gebruiker kan
-// voldoen, maar een waarschuwing dat de regel zelf omstreden is (bijvoorbeeld lenen uit een
-// jongere leeftijdscategorie, waar artikel 5.3.5.1 een voorbeeld van geeft, maar artikel 3.1.3 en
-// de tabel klassengrenzen de leeftijdsgrenzen altijd bepalend laten zijn). Dit is iets anders dan
-// de kanttekening-driehoekjes bij max2 in het overzicht (zie kanttekeningVoorbeeldHtml en
-// SR_ONLY_KANTTEKENING hierboven); daarom heet dit blok "let op" en niet "kanttekening", om de
-// twee niet door elkaar te halen. Staat direct onder de samenvatting, boven de voorwaarden, zodat
-// iemand die alleen het oordeel leest deze waarschuwing niet kan missen.
-function letOpBlokHtml(kanttekeningen) {
-  if (kanttekeningen.length === 0) return "";
-  const items = kanttekeningen.map((tekst) => `<li>${escape(tekst)}</li>`).join("");
-  return `<div class="let-op"><h3>Let op</h3><ul>${items}</ul></div>`;
+// Shows the caveats that assess() hands over: not a condition the user can meet, but a warning
+// that the rule itself is contested (for example borrowing from a younger age category, which
+// article 5.3.5.1 gives an example of, while article 3.1.3 and the class boundaries table always
+// let the age limits decide). This is something different from the caveat triangles for max-two in
+// the overview (see caveatExampleHtml and SR_ONLY_CAVEAT above); that is why this block is called
+// "let op" and not "kanttekening", so the two are not mixed up. It sits directly under the summary,
+// above the conditions, so that someone who only reads the verdict cannot miss this warning.
+function cautionBlockHtml(caveats) {
+  if (caveats.length === 0) return "";
+  const items = caveats.map((text) => `<li>${escape(text)}</li>`).join("");
+  return `<div class="caution"><h3>Let op</h3><ul>${items}</ul></div>`;
 }
 
-// Rendert een blok uit toBlocks() als een leesbaar HTML-element. Een alinea wordt een
-// gewone paragraaf, een item krijgt een bullet via CSS (zie style.css) en de bijbehorende
-// inspringing op basis van het niveau.
-function blokHtml(blok) {
-  if (blok.kind === "item") {
-    return `<p class="artikel-item artikel-item-${blok.level}">${escape(blok.text)}</p>`;
+// Renders a block from toBlocks() as a readable HTML element. A paragraph becomes an ordinary
+// paragraph, an item gets a bullet through CSS (see style.css) and the matching indentation based
+// on its level.
+function blockHtml(block) {
+  if (block.kind === "item") {
+    return `<p class="article-item article-item-${block.level}">${escape(block.text)}</p>`;
   }
-  return `<p class="artikel-alinea">${escape(blok.text)}</p>`;
+  return `<p class="article-paragraph">${escape(block.text)}</p>`;
 }
 
-function artikelBlok(nummers) {
-  if (nummers.length === 0) return "";
-  const items = nummers
-    .map((nummer) => {
-      const artikel = ARTICLES[nummer];
-      if (!artikel) return "";
-      const blokken = toBlocks(artikel.text).map(blokHtml).join("");
-      return `<details><summary>Artikel ${escape(nummer)}: ${escape(artikel.title)}</summary><div class="artikel-tekst">${blokken}</div></details>`;
+function articleBlock(numbers) {
+  if (numbers.length === 0) return "";
+  const items = numbers
+    .map((number) => {
+      const article = ARTICLES[number];
+      if (!article) return "";
+      const blocks = toBlocks(article.text).map(blockHtml).join("");
+      return `<details><summary>Artikel ${escape(number)}: ${escape(article.title)}</summary><div class="article-text">${blocks}</div></details>`;
     })
     .join("");
   return `<h3>De artikelen zelf</h3>${items}`;
 }
 
-function toonDetail() {
-  if (!gekozenBron) return;
-  const doel = huidigDoel();
-  detailBlok.hidden = false;
-  detailKop.textContent = `Een speler uit ${gekozenBron.category} ${label(gekozenBron.category, gekozenBron.classId)} laten invallen in ${doel.category} ${label(doel.category, doel.classId)}`;
+function showDetail() {
+  if (!selectedLender) return;
+  const borrower = currentBorrower();
+  detailBlock.hidden = false;
+  detailHeading.textContent = `Een speler uit ${selectedLender.category} ${label(selectedLender.category, selectedLender.classId)} laten invallen in ${borrower.category} ${label(borrower.category, borrower.classId)}`;
 
-  const ingevoerd = geboortedatum.value;
-  const datum = ingevoerd ? new Date(`${ingevoerd}T00:00:00Z`) : null;
-  const uitkomst = assess(gekozenBron, doel, datum);
+  const entered = birthDate.value;
+  const date = entered ? new Date(`${entered}T00:00:00Z`) : null;
+  const outcome = assess(selectedLender, borrower, date);
 
-  // Of de geboortedatum nog iets uitmaakt, staat los van de ingevulde datum: zonder datum kan
-  // assess() alleen "toegestaan" teruggeven als de klasse zelf het toestaat (leeftijd is dan
-  // null, dus die kan de uitkomst niet blokkeren, zie assess() in rules.js). Is die uitkomst al
-  // niet-toegestaan of buiten-scope, dan verandert geen enkele datum daar iets aan en verbergen
-  // we het veld. Dit rekent niets zelf uit over invalregels, het hergebruikt alleen assess() met
-  // een lege datum.
-  const zonderDatum = assess(gekozenBron, doel, null);
-  geboorteVeld.hidden = zonderDatum.verdict !== "allowed";
+  // Whether the date of birth still matters is independent of the date that was entered: without a
+  // date assess() can only return "allowed" when the class itself permits it (age is null then, so
+  // it cannot block the outcome, see assess() in rules.js). Is that outcome already not-allowed or
+  // out-of-scope, then no date changes anything about it and we hide the field. This calculates
+  // nothing about substitution rules itself, it only reuses assess() with an empty date.
+  const withoutDate = assess(selectedLender, borrower, null);
+  birthDateField.hidden = withoutDate.verdict !== "allowed";
 
-  resultaat.className = uitkomst.verdict;
-  resultaat.innerHTML = [
-    `<p class="oordeel">${escape(uitkomst.summary)}</p>`,
-    letOpBlokHtml(uitkomst.caveats),
-    lijst("Voorwaarden", uitkomst.conditions),
-    uitkomst.age ? lijst("Leeftijd", uitkomst.age.messages) : "",
-    lijst("Waarom", uitkomst.reasoning),
-    artikelBlok(uitkomst.articles),
+  result.className = outcome.verdict;
+  result.innerHTML = [
+    `<p class="verdict">${escape(outcome.summary)}</p>`,
+    cautionBlockHtml(outcome.caveats),
+    list("Voorwaarden", outcome.conditions),
+    outcome.age ? list("Leeftijd", outcome.age.messages) : "",
+    list("Waarom", outcome.reasoning),
+    articleBlock(outcome.articles),
   ].join("");
 }
 
-vulCategorieen();
-vulKlassen();
-toonRaster();
+fillCategories();
+fillClasses();
+showGrid();
 
-doelCategorie.addEventListener("change", () => {
-  vulKlassen();
-  toonRaster();
+borrowerCategory.addEventListener("change", () => {
+  fillClasses();
+  showGrid();
 });
-doelKlasse.addEventListener("change", toonRaster);
-geboortedatum.addEventListener("change", toonDetail);
+borrowerClass.addEventListener("change", showGrid);
+birthDate.addEventListener("change", showDetail);
