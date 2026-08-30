@@ -263,9 +263,26 @@ thead th, tbody th {
 
 #resultaat.toegestaan { border-color: var(--groen); background: var(--groen-vlak); }
 #resultaat.niet-toegestaan { border-color: var(--rood); background: var(--rood-vlak); }
-#resultaat.omstreden { border-color: var(--geel); background: var(--geel-vlak); }
 
 .oordeel { margin: 0; font-size: 1.15rem; font-weight: 600; }
+
+/* Blok voor uitkomst.kanttekeningen: geen voorwaarde om aan te voldoen, maar een waarschuwing dat
+   de regel zelf omstreden is. Staat direct onder de samenvatting, boven de voorwaarden (zie
+   letOpBlokHtml in app.js). Zelfde geel/oranje palet als de aantallen-eis en de
+   kanttekening-driehoekjes bij max2, maar dit is een ander blok voor een ander begrip: de
+   driehoekjes horen bij het overzichtsraster, dit blok bij het detailscherm. */
+.let-op {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-left: 5px solid var(--geel);
+  border-radius: 4px;
+  background: var(--geel-vlak);
+}
+
+#resultaat .let-op h3 {
+  margin: 0 0 0.4rem;
+  color: var(--geel);
+}
 
 #resultaat h3 {
   margin: 1.25rem 0 0.4rem;

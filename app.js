@@ -10,6 +10,7 @@ const mobielOverzicht = document.getElementById("mobiel-overzicht");
 const rasterVoetnoot = document.getElementById("raster-voetnoot");
 const detailBlok = document.getElementById("detail-blok");
 const detailKop = document.getElementById("detail-kop");
+const geboorteVeld = document.getElementById("geboorte-veld");
 const geboortedatum = document.getElementById("geboortedatum");
 const resultaat = document.getElementById("resultaat");
 
@@ -264,6 +265,20 @@ function lijst(titel, regels) {
   return `<h3>${titel}</h3><ul>${items}</ul>`;
 }
 
+// Toont de kanttekeningen die assess() meegeeft: geen voorwaarde waaraan de gebruiker kan
+// voldoen, maar een waarschuwing dat de regel zelf omstreden is (bijvoorbeeld lenen uit een
+// jongere leeftijdscategorie, waar artikel 5.3.5.1 een voorbeeld van geeft, maar artikel 3.1.3 en
+// de tabel klassengrenzen de leeftijdsgrenzen altijd bepalend laten zijn). Dit is iets anders dan
+// de kanttekening-driehoekjes bij max2 in het overzicht (zie kanttekeningVoorbeeldHtml en
+// SR_ONLY_KANTTEKENING hierboven); daarom heet dit blok "let op" en niet "kanttekening", om de
+// twee niet door elkaar te halen. Staat direct onder de samenvatting, boven de voorwaarden, zodat
+// iemand die alleen het oordeel leest deze waarschuwing niet kan missen.
+function letOpBlokHtml(kanttekeningen) {
+  if (kanttekeningen.length === 0) return "";
+  const items = kanttekeningen.map((tekst) => `<li>${escape(tekst)}</li>`).join("");
+  return `<div class="let-op"><h3>Let op</h3><ul>${items}</ul></div>`;
+}
+
 // Rendert een blok uit naarBlokken() als een leesbaar HTML-element. Een alinea wordt een
 // gewone paragraaf, een item krijgt een bullet via CSS (zie style.css) en de bijbehorende
 // inspringing op basis van het niveau.
@@ -297,9 +312,19 @@ function toonDetail() {
   const datum = ingevoerd ? new Date(`${ingevoerd}T00:00:00Z`) : null;
   const uitkomst = assess(gekozenBron, doel, datum);
 
+  // Of de geboortedatum nog iets uitmaakt, staat los van de ingevulde datum: zonder datum kan
+  // assess() alleen "toegestaan" teruggeven als de klasse zelf het toestaat (leeftijd is dan
+  // null, dus die kan de uitkomst niet blokkeren, zie assess() in rules.js). Is die uitkomst al
+  // niet-toegestaan of buiten-scope, dan verandert geen enkele datum daar iets aan en verbergen
+  // we het veld. Dit rekent niets zelf uit over invalregels, het hergebruikt alleen assess() met
+  // een lege datum.
+  const zonderDatum = assess(gekozenBron, doel, null);
+  geboorteVeld.hidden = zonderDatum.verdict !== "toegestaan";
+
   resultaat.className = uitkomst.verdict;
   resultaat.innerHTML = [
     `<p class="oordeel">${escape(uitkomst.samenvatting)}</p>`,
+    letOpBlokHtml(uitkomst.kanttekeningen),
     lijst("Voorwaarden", uitkomst.voorwaarden),
     uitkomst.leeftijd ? lijst("Leeftijd", uitkomst.leeftijd.meldingen) : "",
     lijst("Waarom", uitkomst.redenering),
