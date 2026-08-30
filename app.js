@@ -1,4 +1,4 @@
-import { CATEGORIEEN, KLASSEN, KOLOMMEN, SEIZOEN, TAK } from "./data.js";
+import { CATEGORIEEN, KLASSEN, KOLOMMEN, CATEGORIE_I, SEIZOEN, TAK } from "./data.js";
 import { assess, overzicht, categorieIMelding } from "./rules.js";
 import { ARTIKELEN } from "./articles.js";
 import { naarBlokken } from "./artikeltekst.js";
@@ -6,6 +6,7 @@ import { naarBlokken } from "./artikeltekst.js";
 const doelCategorie = document.getElementById("doel-categorie");
 const doelKlasse = document.getElementById("doel-klasse");
 const raster = document.getElementById("raster");
+const mobielOverzicht = document.getElementById("mobiel-overzicht");
 const rasterVoetnoot = document.getElementById("raster-voetnoot");
 const detailBlok = document.getElementById("detail-blok");
 const detailKop = document.getElementById("detail-kop");
@@ -16,10 +17,12 @@ let gekozenBron = null;
 
 document.getElementById("context").textContent = `Seizoen ${SEIZOEN}, ${TAK}, categorie II`;
 
+// Ook veilig binnen een attribuut (title, data-*): innerHTML escapet punthaken en de
+// ampersand al, maar niet het aanhalingsteken waarmee attributen hier altijd omsloten worden.
 function escape(tekst) {
   const div = document.createElement("div");
   div.textContent = tekst;
-  return div.innerHTML;
+  return div.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
 function label(categorie, klasseId) {
@@ -60,31 +63,46 @@ function kolomLabel(kolom) {
   return kolom;
 }
 
-// De soorten uit overzicht() vertaald naar wat het vakje toont.
-const VAKJE_TEKST = {
-  vrij: "ja",
-  aantallen: "mits",
-  max2: "max 2",
-  leeftijd: "lft",
-  nee: "nee",
-  "buiten-scope": "?",
+// Een plek voor beide weergaven om uit te putten: het korte tekstje in een rastervakje en de
+// omschrijving die zowel de legenda onder het raster als de groepskopjes in de mobiele
+// weergave gebruiken. Volgorde: eerst wat mag, dan wat onder voorwaarden mag, dan wat niet mag,
+// dan waar geen uitspraak over is. Dat is ook de volgorde waarin groepen in de mobiele weergave
+// verschijnen, want de gebruiker zoekt wie er wel mag invallen.
+const SOORT_VOLGORDE = ["vrij", "aantallen", "max2", "leeftijd", "nee", "buiten-scope"];
+
+const SOORTEN = {
+  vrij: { kort: "ja", omschrijving: "mag altijd" },
+  aantallen: { kort: "mits", omschrijving: "mag alleen bij aantoonbaar te weinig spelers" },
+  max2: { kort: "max 2", omschrijving: "mag altijd, hooguit twee invallers zonder toestemming" },
+  leeftijd: { kort: "lft", omschrijving: "mag, mits de speler de juiste leeftijd heeft" },
+  nee: { kort: "nee", omschrijving: "mag niet" },
+  "buiten-scope": { kort: "?", omschrijving: "geen uitspraak" },
 };
 
 function vakjeTekst(vakje) {
-  return VAKJE_TEKST[vakje.soort] || "";
+  const soort = SOORTEN[vakje.soort];
+  return soort ? soort.kort : "";
 }
 
-function toonRaster() {
-  const doel = huidigDoel();
-  const melding = categorieIMelding(doel);
-  if (melding) {
-    raster.innerHTML = `<p class="buiten-scope-melding">${escape(melding)}</p>`;
-    rasterVoetnoot.textContent = "";
-    verbergDetail();
-    return;
-  }
+// Nederlandse opsomming: "a, b en c". Bij een of geen item geen komma's of "en" nodig.
+function opsommingMetEn(items) {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} en ${items[items.length - 1]}`;
+}
 
-  const rijen = overzicht(doel);
+// Somt op welke klassen onder categorie I vallen, voor de voetnoot onder het raster. Gegenereerd
+// uit CATEGORIE_I en KLASSEN, zodat de tekst automatisch meebeweegt als die gegevens wijzigen.
+function categorieILijst() {
+  return CATEGORIEEN.filter((categorie) => CATEGORIE_I[categorie])
+    .map((categorie) => {
+      const labels = CATEGORIE_I[categorie].map((klasseId) => label(categorie, klasseId));
+      return `${categorie}: ${opsommingMetEn(labels)}`;
+    })
+    .join("; ");
+}
+
+// Bouwt de tabel voor brede schermen uit dezelfde rijen als de mobiele weergave.
+function rasterTabelHtml(rijen) {
   const koppen = KOLOMMEN.map((kolom) => `<th scope="col">${escape(kolomLabel(kolom))}</th>`).join("");
   const lichaam = rijen
     .map((rij) => {
@@ -99,23 +117,69 @@ function toonRaster() {
     })
     .join("");
 
-  raster.innerHTML = `<div class="raster-schuif"><table>
+  const legenda = SOORT_VOLGORDE
+    .map((soort) => `<span class="${escape(soort)}">${escape(SOORTEN[soort].kort)}</span> ${escape(SOORTEN[soort].omschrijving)}`)
+    .join("\n");
+
+  return `<div class="raster-schuif"><table>
 <thead><tr><th scope="col">Komt uit</th>${koppen}</tr></thead>
 <tbody>${lichaam}</tbody>
 </table></div>
 <p class="legenda">
-<span class="vrij">ja</span> mag altijd
-<span class="aantallen">mits</span> mag alleen bij aantoonbaar te weinig spelers
-<span class="max2">max 2</span> mag altijd, hooguit twee invallers zonder toestemming
-<span class="leeftijd">lft</span> mag, mits de speler de juiste leeftijd heeft
-<span class="nee">nee</span> mag niet
-<span class="buiten-scope">?</span> geen uitspraak
+${legenda}
 </p>`;
+}
+
+// Groepeert de vakjes van een rij per soort, in de volgorde van SOORT_VOLGORDE, en laat lege
+// groepen en niet-bestaande klassen weg. Werkt op dezelfde rijen als de tabel, dus geen tweede
+// berekening.
+function mobielGroepen(rij) {
+  const bestaande = rij.vakjes.filter((vakje) => vakje.bestaat);
+  return SOORT_VOLGORDE
+    .map((soort) => ({ soort, vakjes: bestaande.filter((vakje) => vakje.soort === soort) }))
+    .filter((groep) => groep.vakjes.length > 0);
+}
+
+// Bouwt de mobiele weergave: per leeftijdscategorie een blok, daarbinnen de klassen gegroepeerd
+// op wat er mag. Een categorie zonder toegestane optie verdwijnt niet, die toont dan gewoon
+// alleen de groepen die er wel zijn.
+function mobielCategorieHtml(rij) {
+  const groepenHtml = mobielGroepen(rij)
+    .map((groep) => {
+      const knoppen = groep.vakjes
+        .map((vakje) => {
+          const titel = `${rij.categorie} ${vakje.label}`;
+          return `<button type="button" class="mobiel-klasse ${escape(vakje.soort)}" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${escape(vakje.label)}</button>`;
+        })
+        .join("");
+      return `<div class="mobiel-groep">
+<p class="mobiel-groep-kop ${escape(groep.soort)}">${escape(SOORTEN[groep.soort].omschrijving)}</p>
+<div class="mobiel-klassen">${knoppen}</div>
+</div>`;
+    })
+    .join("");
+  return `<div class="mobiel-categorie"><h3>${escape(rij.categorie)}</h3>${groepenHtml}</div>`;
+}
+
+function toonRaster() {
+  const doel = huidigDoel();
+  const melding = categorieIMelding(doel);
+  if (melding) {
+    raster.innerHTML = `<p class="buiten-scope-melding">${escape(melding)}</p>`;
+    mobielOverzicht.innerHTML = "";
+    rasterVoetnoot.textContent = "";
+    verbergDetail();
+    return;
+  }
+
+  const rijen = overzicht(doel);
+  raster.innerHTML = rasterTabelHtml(rijen);
+  mobielOverzicht.innerHTML = rijen.map(mobielCategorieHtml).join("");
 
   rasterVoetnoot.textContent =
-    "De Landelijke Competitie en de Super- en Topklasse van O16 en O18, en de Super Competitie en IDC van O14, staan niet in dit raster. Die vallen onder categorie I en daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.";
+    `De klassen die onder categorie I vallen (${categorieILijst()}) staan niet in dit raster. Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
 
-  for (const knop of raster.querySelectorAll("button[data-categorie]")) {
+  for (const knop of [...raster.querySelectorAll("button[data-categorie]"), ...mobielOverzicht.querySelectorAll("button[data-categorie]")]) {
     knop.addEventListener("click", () => {
       gekozenBron = { categorie: knop.dataset.categorie, klasse: knop.dataset.klasse };
       markeerGekozen();
@@ -141,6 +205,13 @@ function markeerGekozen() {
       knop.dataset.categorie === gekozenBron.categorie &&
       knop.dataset.klasse === gekozenBron.klasse;
     knop.parentElement.classList.toggle("gekozen", Boolean(actief));
+  }
+  for (const knop of mobielOverzicht.querySelectorAll("button[data-categorie]")) {
+    const actief =
+      gekozenBron &&
+      knop.dataset.categorie === gekozenBron.categorie &&
+      knop.dataset.klasse === gekozenBron.klasse;
+    knop.classList.toggle("gekozen", Boolean(actief));
   }
 }
 

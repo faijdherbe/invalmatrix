@@ -61,6 +61,17 @@ select, input {
   background: #fff;
 }
 
+/* Op een smal scherm (telefoon) is het raster met tien kolommen te veel, ook met horizontaal
+   schuiven. Onder 640px (de gangbare grens tussen telefoon en tablet/desktop) toont de pagina
+   in plaats daarvan de gegroepeerde lijst hieronder; beide weergaven komen uit dezelfde
+   overzicht()-aanroep. */
+.mobiel-weergave { display: none; }
+
+@media (max-width: 640px) {
+  .raster-weergave { display: none; }
+  .mobiel-weergave { display: block; }
+}
+
 .raster-schuif { overflow-x: auto; }
 
 table {
@@ -126,6 +137,49 @@ thead th, tbody th {
 .legenda .nee { background: var(--rood-vlak); color: var(--rood); }
 .legenda .buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
 
+.mobiel-categorie { margin-bottom: 1.25rem; }
+.mobiel-categorie:last-child { margin-bottom: 0; }
+
+.mobiel-categorie h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.mobiel-groep { margin-bottom: 0.6rem; }
+.mobiel-groep:last-child { margin-bottom: 0; }
+
+.mobiel-groep-kop {
+  margin: 0 0 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--grijs);
+}
+
+.mobiel-klassen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mobiel-klasse {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.mobiel-klasse.vrij { background: var(--groen-vlak); color: var(--groen); border-color: var(--groen-vlak); }
+.mobiel-klasse.aantallen { background: var(--geel-vlak); color: var(--geel); border-color: var(--geel-vlak); }
+.mobiel-klasse.max2 { background: var(--paars-vlak); color: var(--paars); border-color: var(--paars-vlak); }
+.mobiel-klasse.leeftijd { background: var(--blauw-vlak); color: var(--blauw); border-color: var(--blauw-vlak); }
+.mobiel-klasse.nee { background: var(--rood-vlak); color: var(--rood); border-color: var(--rood-vlak); }
+.mobiel-klasse.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); border-color: var(--grijs-vlak); }
+
+.mobiel-klasse.gekozen { outline: 3px solid #1a1a1a; outline-offset: -1px; }
+
 .voetnoot, .buiten-scope-melding {
   margin: 0.75rem 0 0;
   color: var(--grijs);
@@ -152,6 +206,7 @@ thead th, tbody th {
 
 #resultaat.toegestaan { border-color: var(--groen); background: var(--groen-vlak); }
 #resultaat.niet-toegestaan { border-color: var(--rood); background: var(--rood-vlak); }
+#resultaat.omstreden { border-color: var(--geel); background: var(--geel-vlak); }
 
 .oordeel { margin: 0; font-size: 1.15rem; font-weight: 600; }
 
