@@ -8,6 +8,7 @@ import {
   leeftijdOpPeildatum,
   beoordeelLeeftijd,
   peildatumNederlands,
+  assess,
 } from "../rules.js";
 
 const d = (s) => new Date(`${s}T00:00:00Z`);
@@ -277,4 +278,60 @@ test("meldingen van beoordeelLeeftijd bevatten de peildatum in Nederlands", () =
     d("2013-05-01"),
   );
   assert.ok(r.meldingen.some((m) => m.includes(verwachteTekst)), `Geen melding met "${verwachteTekst}" gevonden`);
+});
+
+test("assess geeft buiten-scope voor categorie I, ook als maar een van beide teams erin valt", () => {
+  const r = assess({ categorie: "O18", klasse: "landelijk" }, { categorie: "O18", klasse: "1e" }, null);
+  assert.equal(r.verdict, "buiten-scope");
+  assert.equal(r.voorwaarden.length, 0);
+});
+
+test("assess geeft toegestaan zonder geboortedatum", () => {
+  const r = assess({ categorie: "O16", klasse: "3e" }, { categorie: "O16", klasse: "2e" }, null);
+  assert.equal(r.verdict, "toegestaan");
+  assert.equal(r.leeftijd, null);
+});
+
+test("assess laat de leeftijdstoets een groen oordeel omslaan naar rood", () => {
+  const r = assess(
+    { categorie: "O14", klasse: "4e" },
+    { categorie: "O11", klasse: "4e" },
+    new Date("2013-05-01T00:00:00Z"),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+  assert.ok(r.leeftijd.meldingen.length > 0);
+});
+
+test("assess ontdubbelt en sorteert de artikelen", () => {
+  const r = assess(
+    { categorie: "O18", klasse: "3e" },
+    { categorie: "O16", klasse: "2e" },
+    new Date("2011-05-01T00:00:00Z"),
+  );
+  assert.deepEqual(r.artikelen, [...new Set(r.artikelen)].sort());
+});
+
+test("assess geeft altijd een samenvatting in gewone taal", () => {
+  for (const geval of [
+    [{ categorie: "O16", klasse: "3e" }, { categorie: "O16", klasse: "2e" }],
+    [{ categorie: "O18", klasse: "2e" }, { categorie: "O16", klasse: "3e" }],
+    [{ categorie: "O18", klasse: "landelijk" }, { categorie: "O18", klasse: "1e" }],
+  ]) {
+    const r = assess(geval[0], geval[1], null);
+    assert.equal(typeof r.samenvatting, "string");
+    assert.ok(r.samenvatting.length > 10);
+  }
+});
+
+test("afwijzing wegens te groot niveauverschil bevat geen redenering over leeftijd van oudere categorie", () => {
+  const r = assess(
+    { categorie: "O18", klasse: "1e" },
+    { categorie: "O11", klasse: "4e" },
+    new Date("2009-05-01T00:00:00Z"),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+  const redenering = r.redenering.join(" ");
+  assert.ok(!redenering.includes("leeftijdsgrenzen"), "Redenering mag geen leeftijdsgrens bevatten");
+  assert.ok(!r.artikelen.includes("3.1.1"), "Artikel 3.1.1 mag niet voorkomen");
+  assert.ok(!r.artikelen.includes("3.1.3"), "Artikel 3.1.3 mag niet voorkomen");
 });

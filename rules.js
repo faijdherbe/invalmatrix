@@ -60,7 +60,9 @@ export function beoordeelKlasse(bron, doel) {
     redenering.push(`${omschrijf(bron)} speelt volgens de tabel klassengrenzen ${nDoel - nBron} niveau${nDoel - nBron === 1 ? "" : "s"} hoger dan ${omschrijf(doel)}.`);
   }
 
-  if (uitOudereCategorie) {
+  // Voeg leeftijds-info toe voor alle gevallen behalve wanneer het niveauverschil te groot is.
+  // nBron - nDoel > -2 betekent dat het verschil 0 of -1 is (gelijk of een hoger).
+  if (uitOudereCategorie && nBron - nDoel > -2) {
     voorwaarden.push(`De speler moet voldoen aan de leeftijdsgrenzen van ${doel.categorie}, de categorie waarin zij invalt.`);
     artikelen.push("3.1.1", "3.1.3");
     redenering.push(`De speler komt uit een oudere leeftijdscategorie, dus de leeftijdsgrens van ${doel.categorie} is bepalend.`);
@@ -153,4 +155,46 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
   }
 
   return { leeftijd, blokkeert, meldingen, artikelen };
+}
+
+// De enige functie die de gebruikersinterface aanroept.
+export function assess(bron, doel, geboortedatum) {
+  const buitenScope = categorieIMelding(bron) || categorieIMelding(doel);
+  if (buitenScope) {
+    return {
+      verdict: "buiten-scope",
+      samenvatting: buitenScope,
+      voorwaarden: [],
+      redenering: [],
+      leeftijd: null,
+      artikelen: [],
+    };
+  }
+
+  const klasse = beoordeelKlasse(bron, doel);
+  const leeftijd = geboortedatum ? beoordeelLeeftijd(bron, doel, geboortedatum) : null;
+  const toegestaan = klasse.toegestaan && !(leeftijd && leeftijd.blokkeert);
+  const artikelen = klasse.toegestaan
+    ? [...new Set([...klasse.artikelen, ...(leeftijd ? leeftijd.artikelen : [])])].sort()
+    : [...new Set(klasse.artikelen)].sort();
+
+  let samenvatting;
+  if (!klasse.toegestaan) {
+    samenvatting = `Nee. ${omschrijf(bron)} speelt te veel niveaus hoger dan ${omschrijf(doel)}. Dit mag alleen met dispensatie van de competitieleiding.`;
+  } else if (leeftijd && leeftijd.blokkeert) {
+    samenvatting = `Nee. De klassengrens staat het toe, maar de leeftijd van de speler niet.`;
+  } else if (klasse.voorwaarden.length > 0) {
+    samenvatting = `Ja, mits aan de voorwaarden hieronder is voldaan.`;
+  } else {
+    samenvatting = `Ja. Een speler uit ${omschrijf(bron)} mag invallen in ${omschrijf(doel)}.`;
+  }
+
+  return {
+    verdict: toegestaan ? "toegestaan" : "niet-toegestaan",
+    samenvatting,
+    voorwaarden: klasse.toegestaan ? klasse.voorwaarden : [],
+    redenering: klasse.redenering,
+    leeftijd,
+    artikelen,
+  };
 }
