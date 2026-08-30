@@ -922,6 +922,25 @@ test("artikel 5.3.5.4: de voorwaardetekst leest 'meerdere teams in de', niet 'O1
 // de aantallen-eis van artikel 5.3.5.2, omdat de leeftijdstoets boven de aantallentoets stond.
 // Deze regressietest loopt over elk doelteam en elk bronteam en legt beide fouten vast.
 
+// Afbeelding van voorwaardetekst naar eis. overzicht() geeft assess() altijd geboortedatum null
+// mee, dus dit dekt precies de voorwaarden die beoordeelKlasse kan opleveren (beoordeelLeeftijd
+// draait dan niet mee). Dit is de omkering van de losse checks hierboven: waar die controleren
+// "eis X impliceert voorwaardetekst Y", controleert de regressietest hieronder juist "elke
+// voorwaardetekst hoort bij een eis". Zonder die omkering zou een nieuw voorwaardetype in
+// beoordeelKlasse stilletjes door het raster kunnen glippen zonder dat er ooit een eis bij komt,
+// precies zoals bij ticket #1 en #2. Voeg bij een nieuwe voorwaarde in rules.js hier een regel
+// toe die de tekst aan de bijbehorende eis koppelt.
+const VOORWAARDE_NAAR_EIS = [
+  [/leeftijdsgrenzen van/, "leeftijd"],
+  [/zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd/, "eerste-team"],
+  [/^Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding\.$/, "max2"],
+  [/^Onduidelijk is of dit maximum altijd geldt/, "max2"],
+  [/heeft aantoonbaar maximaal \d+ spelers beschikbaar uit het eigen of een lager spelend niveau/, "aantallen"],
+  [/^Er zijn aantoonbaar geen invallers beschikbaar uit een gelijk of lager spelend niveau\.$/, "aantallen"],
+  [/^Er mogen maximaal twee spelers invallen, inclusief een vaste doelverdediger\.$/, "aantallen"],
+  [/^Voor het inlenen van een doelverdediger geldt de eis over het aantal eigen spelers niet\.$/, "aantallen"],
+];
+
 test("regressie: geen enkel vakje verzwijgt een eis, over alle doel- en broncombinaties heen", () => {
   let metAantallen = 0;
   let metLeeftijd = 0;
@@ -935,6 +954,11 @@ test("regressie: geen enkel vakje verzwijgt een eis, over alle doel- en broncomb
           const waar = `${rij.categorie} ${vakje.klasse} naar ${doelCategorie} ${doelKlasse.id}`;
           const uitkomst = assess({ categorie: rij.categorie, klasse: vakje.klasse }, doel, null);
 
+          // Grond een-hoger impliceert de aantallen-eis. Dit klopt alleen omdat overzicht() hier
+          // altijd geboortedatum null meegeeft: met een blokkerende geboortedatum wordt hetzelfde
+          // vakje gewoon "nee" zonder eisen, zie assess() waar een blokkerende leeftijd de
+          // voorwaarden van beoordeelKlasse negeert. Dit is dus geen algemene waarheid over de
+          // grond een-hoger, maar een eigenschap van het klassenraster zonder geboortedatum.
           if (uitkomst.grond === "een-hoger") {
             assert.ok(vakje.eisen.includes("aantallen"), `${waar}: aantallen-eis ontbreekt`);
             metAantallen += 1;
@@ -952,6 +976,21 @@ test("regressie: geen enkel vakje verzwijgt een eis, over alle doel- en broncomb
           }
           if (uitkomst.artikelen.includes("5.3.5.4") && vakje.basis === "vrij") {
             assert.ok(vakje.eisen.includes("eerste-team"), `${waar}: eis eerste-team ontbreekt`);
+          }
+
+          // De omkering: elke voorwaarde die assess() hier teruggeeft, moet in de afbeelding
+          // hierboven voorkomen en de bijbehorende eis moet ook echt in vakje.eisen staan.
+          for (const voorwaarde of uitkomst.voorwaarden) {
+            const gevonden = VOORWAARDE_NAAR_EIS.find(([regex]) => regex.test(voorwaarde));
+            assert.ok(
+              gevonden,
+              `${waar}: voorwaarde zonder afbeelding naar een eis: "${voorwaarde}"`,
+            );
+            const [, eis] = gevonden;
+            assert.ok(
+              vakje.eisen.includes(eis),
+              `${waar}: voorwaarde "${voorwaarde}" hoort bij eis ${eis}, maar die ontbreekt in het raster`,
+            );
           }
         }
       }
