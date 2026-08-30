@@ -186,6 +186,11 @@ test("de Subtopklasse van O16 en O18 wisselt van categorie en krijgt een melding
   assert.match(o16, /winterstop/);
 });
 
+test("de periodetekst van O16 Subtopklasse volgt hoofdstuk 2 letterlijk: tot en met de winterstop", () => {
+  const o16 = categorieIMelding({ categorie: "O16", klasse: "subtop" });
+  assert.match(o16, /tot en met de winterstop/);
+});
+
 test("gewone klassen krijgen geen melding", () => {
   assert.equal(categorieIMelding({ categorie: "O18", klasse: "1e" }), null);
   assert.equal(categorieIMelding({ categorie: "O11", klasse: "1e" }), null);

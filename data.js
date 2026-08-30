@@ -86,7 +86,7 @@ export const CATEGORIE_I = {
 
 // Klassen die gedurende het seizoen van categorie wisselen.
 export const CATEGORIE_I_PERIODE = {
-  O16: { subtop: "tot de winterstop" },
+  O16: { subtop: "tot en met de winterstop" },
   O18: { subtop: "tot en met de herfstvakantie" },
 };
 
