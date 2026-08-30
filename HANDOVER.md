@@ -73,53 +73,10 @@ De asserts in `build.py` dekken de voorbeelden uit art. 5.3.5.1 t/m 5.3.5.3 en d
 
 ## Vragen voor de competitieleiding
 
-Gevonden bij het bouwen van de webversie, nog niet voorgelegd:
-
-1. De toelichting bij de tabel klassengrenzen zegt "O12- en O14-spelers mogen invallen bij O25-
-   en seniorenteams", terwijl de bijbehorende tabellen alleen mappings voor O16- en O18-spelers
-   geven. Dat leest als een fout in de tabel.
-2. De tabel zet bij O16 en O18 geen sterretje bij Landelijk, terwijl hoofdstuk 2 van het
-   reglement de Landelijke Competitie wel onder categorie I schaart.
-3. Het reglement gebruikt "voor 1 oktober" (art. 3.1.1) en "op 1 oktober" (art. 5.2.4, 5.2.5)
-   door elkaar.
-4. O11 en O12 staan in de tabel in dezelfde kolom, terwijl art. 5.3.5.1 spreekt van een klasse
-   erbij per leeftijdscategorie.
-5. Art. 5.3.5.3 legt een maximum van twee invallers op bij de 5e klasse en lager, terwijl die
-   klassen volgens de tabel op gelijk niveau staan en art. 5.3.5.1 daar geen maximum kent.
-6. Hoofdstuk 2 noemt bij O14 veldhockey alleen de Super Competitie onder categorie I. De tabel
-   klassengrenzen zet wel een sterretje bij Super O14, IDC-O14 en Topklasse samen, waardoor het
-   lijkt alsof alle drie categorie I zijn. Artikel 5.3.5.4 staat in hoofdstuk 5 en gaat juist
-   expliciet over O14 Topklasse en Subtopklasse. De tool behandelt O14 Topklasse daarom als
-   categorie II, en Super O14 samen met IDC-O14 als categorie I.
-7. Hoofdstuk 2 zegt dat IDC-O14 vanaf de winterstop onder categorie II valt, maar IDC-O14 staat
-   in de tabel klassengrenzen in dezelfde regel als Super O14, dat altijd categorie I is. De tool
-   behandelt die combinatie daarom altijd als categorie I. Dat is de veilige kant, maar voor
-   IDC-O14 na de winterstop mogelijk te streng.
-8. Artikel 5.3.5.3 legt bij de 5e klasse en lager een maximum van twee invallers op, terwijl die
-   klassen volgens de tabel klassengrenzen op gelijk niveau staan en artikel 5.3.5.1 daar geen
-   maximum kent (zie ook punt 5 hierboven, specifiek voor de webversie). De opdrachtgever heeft
-   een scherpere vraag gesteld: geldt dat maximum van twee altijd, of alleen als het team elf of
-   meer eigen spelers beschikbaar heeft? De tekst is er niet eenduidig over.
-   - Voor "alleen bij elf of meer" pleit dat 5.3.5.3 bijna een variant is op 5.3.5.2, dat
-     maximaal 11 beschikbare spelers eist en dan twee invallers toestaat. Artikel 5.3.5.3 laat
-     die aantallen-eis vallen met "ook bij meer dan 11 eigen spelers" en houdt de twee invallers
-     over; "hierbij" zou dan naar die uitzonderingssituatie verwijzen. Heeft het team te weinig
-     spelers, dan valt het terug op artikel 5.3.5.1, dat expliciet "ongeacht het aantal eigen
-     spelers" zegt en geen maximum noemt.
-   - Voor "altijd" pleit dat "hierbij" grammaticaal terugslaat op de hoofdzin ("mag er bij elkaar
-     worden ingevallen") en niet op de bijzin over de elf spelers.
-   De tool kent het aantal beschikbare spelers niet en kan dus niet kiezen. De webversie toont
-   daarom bij deze combinaties beide lezingen, vermeldt artikel 5.3.5.1 als mogelijk alternatief,
-   en raadt de gebruiker aan dit na te vragen bij de competitieleiding. Komt er een antwoord, dan
-   kan de voorwaarde in `rules.js` bij de grond `vijfde-klasse` weer eenduidig worden gemaakt.
-9. Artikel 5.3.5.1 staat lenen uit een jongere leeftijdscategorie toe en geeft er zelfs een
-   voorbeeld van (JO18-2 in de 3e klasse mag lenen uit JO14-2 in de 1e klasse), terwijl artikel
-   3.1.3 zegt dat spelers zonder dispensatie niet mogen uitkomen in een leeftijdscategorie waar ze
-   volgens de leeftijdsgrenzen niet in mogen, en de tabel klassengrenzen vermeldt dat de
-   leeftijdsgrenzen altijd bepalend blijven. Voor zo'n invaller is dat bijna altijd het geval: een
-   speler uit een jongere categorie is per definitie meestal te jong voor de doelcategorie. De tool
-   staat dit toe en toont een kanttekening die op deze tegenstrijdigheid wijst, zonder dat de
-   kanttekening het oordeel verandert.
+Alle vragen die bij het bouwen van de webversie zijn gevonden, samen met de bevindingen uit een
+volledige audit van het reglement, staan als ticket in de issue tracker:
+https://github.com/faijdherbe/invalmatrix/issues. Hou die lijst daar bij, niet hier, om te
+voorkomen dat er twee lijsten uit elkaar gaan lopen.
 
 ## Stijlvoorkeuren van de opdrachtgever
 
