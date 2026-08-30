@@ -170,6 +170,7 @@ export function assess(bron, doel, geboortedatum) {
       redenering: [],
       leeftijd: null,
       artikelen: [],
+      grond: null,
     };
   }
 
@@ -198,7 +199,22 @@ export function assess(bron, doel, geboortedatum) {
     redenering: klasse.redenering,
     leeftijd,
     artikelen,
+    grond: klasse.grond,
   };
+}
+
+// Gronden waarbij de aantallen-eis de zwaarste horde is: artikel 5.3.5.2 (een niveau hoger) en
+// artikel 5.3.5.3 (de uitzondering in de 5e klasse of lager). Een eventuele leeftijdsvoorwaarde
+// telt dan niet mee voor het vakje, die komt in het detailscherm aan bod.
+const AANTALLEN_GRONDEN = ["een-hoger", "vijfde-klasse"];
+
+// Bepaalt hoe een vakje in het overzichtsraster getekend moet worden.
+function soortVanVakje(uitkomst) {
+  if (uitkomst.verdict === "buiten-scope") return "buiten-scope";
+  if (uitkomst.verdict === "niet-toegestaan") return "nee";
+  if (AANTALLEN_GRONDEN.includes(uitkomst.grond)) return "aantallen";
+  if (uitkomst.voorwaarden.length > 0) return "leeftijd";
+  return "vrij";
 }
 
 // Bouwt de gegevens voor het overzichtsraster: per leeftijdscategorie een rij, per kolom een vakje.
@@ -215,7 +231,7 @@ export function overzicht(doel) {
         label: klasse.label,
         bestaat: true,
         verdict: uitkomst.verdict,
-        voorwaardelijk: uitkomst.voorwaarden.length > 0,
+        soort: soortVanVakje(uitkomst),
       };
     }),
   }));

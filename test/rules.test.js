@@ -287,6 +287,20 @@ test("assess geeft buiten-scope voor categorie I, ook als maar een van beide tea
   assert.equal(r.voorwaarden.length, 0);
 });
 
+test("assess geeft de grond van beoordeelKlasse terug, en null bij buiten-scope", () => {
+  const buitenScope = assess({ categorie: "O18", klasse: "landelijk" }, { categorie: "O18", klasse: "1e" }, null);
+  assert.equal(buitenScope.grond, null);
+
+  const eenHoger = assess({ categorie: "O14", klasse: "3e" }, { categorie: "O14", klasse: "4e" }, null);
+  assert.equal(eenHoger.grond, "een-hoger");
+
+  const vijfdeKlasse = assess({ categorie: "O14", klasse: "5e" }, { categorie: "O14", klasse: "6e" }, null);
+  assert.equal(vijfdeKlasse.grond, "vijfde-klasse");
+
+  const teHoog = assess({ categorie: "O12", klasse: "1e" }, { categorie: "O12", klasse: "5e" }, null);
+  assert.equal(teHoog.grond, "te-hoog");
+});
+
 test("assess geeft toegestaan zonder geboortedatum", () => {
   const r = assess({ categorie: "O16", klasse: "3e" }, { categorie: "O16", klasse: "2e" }, null);
   assert.equal(r.verdict, "toegestaan");
@@ -376,15 +390,78 @@ test("overzicht laat zien dat een team op gelijk niveau vrij mag invallen", () =
   const o14 = rijen.find((r) => r.categorie === "O14");
   const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
   assert.equal(vijfde.verdict, "toegestaan");
-  assert.equal(vijfde.voorwaardelijk, false);
+  assert.equal(vijfde.soort, "vrij");
 });
 
-test("overzicht laat zien dat een klasse hoger onder voorwaarden mag", () => {
+test("overzicht laat zien dat een klasse hoger onder de aantallen-eis mag", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o14 = rijen.find((r) => r.categorie === "O14");
   const derde = o14.vakjes.find((v) => v.klasse === "3e");
   assert.equal(derde.verdict, "toegestaan");
-  assert.equal(derde.voorwaardelijk, true);
+  assert.equal(derde.soort, "aantallen");
+});
+
+test("soort leeg: een klasse die de categorie niet heeft krijgt geen verdere velden", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o11 = rijen.find((r) => r.categorie === "O11");
+  const subtop = o11.vakjes.find((v) => v.klasse === "subtop");
+  assert.equal(subtop.bestaat, false);
+  assert.equal(subtop.soort, undefined);
+});
+
+test("soort buiten-scope: O16 Subtopklasse valt onder categorie I en krijgt geen klasseoordeel", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o16 = rijen.find((r) => r.categorie === "O16");
+  const subtop = o16.vakjes.find((v) => v.klasse === "subtop");
+  assert.equal(subtop.verdict, "buiten-scope");
+  assert.equal(subtop.soort, "buiten-scope");
+});
+
+test("soort nee: te groot niveauverschil is niet toegestaan", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const tweede = o14.vakjes.find((v) => v.klasse === "2e");
+  assert.equal(tweede.verdict, "niet-toegestaan");
+  assert.equal(tweede.soort, "nee");
+});
+
+test("soort aantallen: een niveau hoger mag alleen onder de voorwaarden van 5.3.5.2, dat is de zwaarste horde", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const derde = o14.vakjes.find((v) => v.klasse === "3e");
+  assert.equal(derde.soort, "aantallen");
+});
+
+test("soort leeftijd: O16 speelt vanaf de 5e klasse gelijk aan O14 4e klasse, dan telt alleen de leeftijd", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o16 = rijen.find((r) => r.categorie === "O16");
+  const vijfde = o16.vakjes.find((v) => v.klasse === "5e");
+  assert.equal(vijfde.verdict, "toegestaan");
+  assert.equal(vijfde.soort, "leeftijd");
+});
+
+test("soort vrij: gelijk niveau binnen dezelfde categorie mag zonder enige voorwaarde", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const vierde = o14.vakjes.find((v) => v.klasse === "4e");
+  assert.equal(vierde.verdict, "toegestaan");
+  assert.equal(vierde.soort, "vrij");
+});
+
+test("overzicht voor O14 4e klasse geeft het volledige raster zoals de opdrachtgever het wil zien", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  // kolommen: top subtop 1e 2e 3e 4e 5e 6e 7e 8e
+  const verwacht = {
+    O11: [null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O12: [null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O14: ["nee", "nee", "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O16: [null, "buiten-scope", "nee", "nee", "nee", "aantallen", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
+    O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "aantallen", "aantallen", "aantallen", "aantallen"],
+  };
+  for (const rij of rijen) {
+    const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));
+    assert.deepEqual(soorten, verwacht[rij.categorie], rij.categorie);
+  }
 });
 
 test("overzicht laat zien dat twee klassen hoger niet mag", () => {
