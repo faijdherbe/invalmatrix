@@ -426,6 +426,43 @@ test("assess verwijst naar de voorwaarden hieronder als alleen beoordeelLeeftijd
   assert.match(r.samenvatting, /voorwaarden hieronder/);
 });
 
+// Ticket #20: staat de klassengrens het invallen toe maar blokkeert de leeftijd van de speler,
+// dan moet de samenvatting niet alsnog een voorwaardenblok tonen. Dat leest anders alsof de
+// speler er via die voorwaarden nog uit zou kunnen komen, terwijl de leeftijd het al heeft
+// afgekeurd. O14 Topklasse naar O14 Subtopklasse is hiervoor een goed geval: de klassentoets
+// levert zelf al voorwaarden op (de eerste-teameis van artikel 5.3.5.4 en de aantallen-eis van
+// artikel 5.3.5.2, grond een-hoger), en een speler van veertien is te oud voor de doelcategorie
+// O14 (grens 13 jaar), dus de leeftijdstoets blokkeert.
+test("assess maakt de voorwaarden leeg als de leeftijd blokkeert, ook al levert de klassentoets zelf voorwaarden op", () => {
+  const r = assess(
+    { categorie: "O14", klasse: "top" },
+    { categorie: "O14", klasse: "subtop" },
+    new Date(Date.UTC(2012, 4, 1)),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+  assert.ok(r.leeftijd.blokkeert);
+  assert.deepEqual(r.voorwaarden, []);
+  // De artikelen en de leeftijdsmeldingen blijven staan: die dragen het oordeel en leggen uit
+  // waarom het nee is.
+  assert.ok(r.artikelen.includes("5.3.5.4"));
+  assert.ok(r.leeftijd.meldingen.length > 0);
+});
+
+// Regressiebescherming voor de fix hierboven: bij een toegestaan geval met voorwaarden uit de
+// klassentoets zelf (dus niet alleen uit beoordeelLeeftijd, zoals de test verderop al dekt) moet
+// de samenvatting "mits aan de voorwaarden hieronder" blijven verwijzen. Dezelfde combinatie als
+// hierboven, maar met een geboortedatum die wel binnen de leeftijdsgrenzen van O14 valt.
+test("assess houdt de samenvatting 'mits aan de voorwaarden' bij een toegestaan geval met klassenvoorwaarden", () => {
+  const r = assess(
+    { categorie: "O14", klasse: "top" },
+    { categorie: "O14", klasse: "subtop" },
+    new Date(Date.UTC(2013, 4, 1)),
+  );
+  assert.equal(r.verdict, "toegestaan");
+  assert.ok(r.voorwaarden.length > 0);
+  assert.match(r.samenvatting, /voorwaarden hieronder/);
+});
+
 test("afwijzing wegens te groot niveauverschil bevat geen redenering over leeftijd van oudere categorie", () => {
   const r = assess(
     { categorie: "O18", klasse: "1e" },

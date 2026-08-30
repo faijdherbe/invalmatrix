@@ -317,6 +317,14 @@ export function assess(bron, doel, geboortedatum) {
     samenvatting = `Ja. Een speler uit ${omschrijf(bron)} mag invallen in ${omschrijf(doel)}.`;
   }
 
+  // Is het oordeel niet-toegestaan, dan blijven er geen voorwaarden over: die suggereren dat de
+  // speler er alsnog aan zou kunnen voldoen, terwijl het oordeel al vaststaat. Dit geldt zowel als
+  // de klassentoets zelf afkeurt als wanneer de klasse het toestaat maar de leeftijd blokkeert.
+  // De samenvatting hierboven is dan al bepaald, dus dit raakt die keuze niet meer.
+  if (verdict === "niet-toegestaan") {
+    voorwaarden = [];
+  }
+
   return {
     verdict,
     samenvatting,
