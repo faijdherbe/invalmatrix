@@ -357,3 +357,15 @@ footer {
   color: var(--grijs);
   font-size: 0.85rem;
 }
+
+/* De link naar de repo in de voettekst. Het merkicoon staat links van de tekst en zakt mee met
+   de regel, vandaar de flex met align-items center in plaats van een vertical-align. */
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.repo-icoon {
+  flex: none;
+}
