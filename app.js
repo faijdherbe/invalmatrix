@@ -1,5 +1,5 @@
-import { CATEGORIEEN, KLASSEN, KOLOMMEN, CATEGORIE_I, SEIZOEN, TAK } from "./data.js";
-import { assess, overzicht, categorieIMelding } from "./rules.js";
+import { AGE_CATEGORIES, CLASSES, COLUMNS, CATEGORY_I, SEASON, DISCIPLINE } from "./data.js";
+import { assess, overview, categoryINotice } from "./rules.js";
 import { ARTIKELEN } from "./articles.js";
 import { naarBlokken } from "./artikeltekst.js";
 
@@ -16,7 +16,7 @@ const resultaat = document.getElementById("resultaat");
 
 let gekozenBron = null;
 
-document.getElementById("context").textContent = `Seizoen ${SEIZOEN}, ${TAK}, categorie II`;
+document.getElementById("context").textContent = `Seizoen ${SEASON}, ${DISCIPLINE}, categorie II`;
 
 // Ook veilig binnen een attribuut (title, data-*): innerHTML escapet punthaken en de
 // ampersand al, maar niet het aanhalingsteken waarmee attributen hier altijd omsloten worden.
@@ -27,12 +27,12 @@ function escape(tekst) {
 }
 
 function label(categorie, klasseId) {
-  const gevonden = KLASSEN[categorie].find((k) => k.id === klasseId);
+  const gevonden = CLASSES[categorie].find((k) => k.id === klasseId);
   return gevonden ? gevonden.label : klasseId;
 }
 
 function vulCategorieen() {
-  for (const categorie of CATEGORIEEN) {
+  for (const categorie of AGE_CATEGORIES) {
     const optie = document.createElement("option");
     optie.value = categorie;
     optie.textContent = categorie;
@@ -44,18 +44,18 @@ function vulCategorieen() {
 function vulKlassen() {
   const huidige = doelKlasse.value;
   doelKlasse.innerHTML = "";
-  for (const klasse of KLASSEN[doelCategorie.value]) {
+  for (const klasse of CLASSES[doelCategorie.value]) {
     const optie = document.createElement("option");
     optie.value = klasse.id;
     optie.textContent = klasse.label;
     doelKlasse.append(optie);
   }
-  const bestaat = KLASSEN[doelCategorie.value].some((k) => k.id === huidige);
+  const bestaat = CLASSES[doelCategorie.value].some((k) => k.id === huidige);
   doelKlasse.value = bestaat ? huidige : "4e";
 }
 
 function huidigDoel() {
-  return { categorie: doelCategorie.value, klasse: doelKlasse.value };
+  return { category: doelCategorie.value, classId: doelKlasse.value };
 }
 
 function kolomLabel(kolom) {
@@ -68,29 +68,29 @@ function kolomLabel(kolom) {
 // Een plek voor beide weergaven om uit te putten: het korte tekstje in een rastervakje en de
 // omschrijving die zowel de legenda onder het raster als de groepskopjes in de mobiele weergave
 // gebruiken. Een vakje bestaat uit een basis (mag, mag niet, geen uitspraak) en een lijst eisen,
-// zie vakjeVanUitkomst() in rules.js.
+// zie cellFromOutcome() in rules.js.
 //
 // Volgorde van de basissen: eerst wat mag, dan wat niet mag, dan waar geen uitspraak over is. Dat
 // is ook de volgorde waarin de groepen in de mobiele weergave verschijnen, want de gebruiker
 // zoekt wie er wel mag invallen. De groep "mag" bevat ook de voorwaardelijke gevallen, dus de kop
 // is "mag" en niet "mag altijd": welke voorwaarden er gelden staat per klasse achter het label.
-const BASIS_VOLGORDE = ["vrij", "nee", "buiten-scope"];
+const BASIS_VOLGORDE = ["free", "no", "out-of-scope"];
 
 const BASIS = {
-  vrij: { kort: "ja", omschrijving: "mag altijd", groepskop: "mag" },
-  nee: { kort: "nee", omschrijving: "mag niet", groepskop: "mag niet" },
-  "buiten-scope": { kort: "?", omschrijving: "geen uitspraak", groepskop: "geen uitspraak" },
+  free: { kort: "ja", omschrijving: "mag altijd", groepskop: "mag" },
+  no: { kort: "nee", omschrijving: "mag niet", groepskop: "mag niet" },
+  "out-of-scope": { kort: "?", omschrijving: "geen uitspraak", groepskop: "geen uitspraak" },
 };
 
 // De eisen met een eigen kort label in het vakje, in de volgorde waarin rules.js ze teruggeeft.
 // De eis max2 (artikel 5.3.5.3) staat hier niet in: die krijgt geen tekst maar het driehoekje
 // rechtsboven in het vakje, zie hoek-driehoek in style.css en SR_ONLY_KANTTEKENING hieronder.
-const EIS_VOLGORDE = ["aantallen", "leeftijd", "eerste-team"];
+const EIS_VOLGORDE = ["player-count", "age", "first-team"];
 
 const EISEN = {
-  aantallen: { kort: "mits", omschrijving: "mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)" },
-  leeftijd: { kort: "lft", omschrijving: "mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)" },
-  "eerste-team": { kort: "team", omschrijving: "mag niet voor spelers uit het eerste team, zonder toestemming van de competitieleiding (artikel 5.3.5.4)" },
+  "player-count": { kort: "mits", omschrijving: "mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)" },
+  age: { kort: "lft", omschrijving: "mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)" },
+  "first-team": { kort: "team", omschrijving: "mag niet voor spelers uit het eerste team, zonder toestemming van de competitieleiding (artikel 5.3.5.4)" },
 };
 
 // Uitleg bij de gecombineerde labels, voor onder de legenda.
@@ -111,8 +111,8 @@ function eisenLabel(eisen) {
 // max2), geel zodra er een voorwaarde geldt. De kleur zegt of er voorwaarden zijn, de tekst zegt
 // welke. Bij basis nee en buiten-scope is de basis zelf de kleur.
 function vakjeKleur(vakje) {
-  if (vakje.basis !== "vrij") return vakje.basis;
-  return zichtbareEisen(vakje.eisen).length > 0 ? "voorwaarde" : "vrij";
+  if (vakje.status !== "free") return vakje.status;
+  return zichtbareEisen(vakje.requirements).length > 0 ? "voorwaarde" : "free";
 }
 
 // Tekst die niet in beeld staat maar wel wordt voorgelezen: de driehoekjesmarkering zelf is puur
@@ -132,7 +132,7 @@ function srOnlyEisenHtml(eisen) {
 // Klein voorbeeld van de driehoekjesmarkering zelf, voor in de uitlegregel. aria-hidden omdat de
 // bijbehorende tekst ("mag, met een kanttekening...") al vertelt wat het betekent.
 function kanttekeningVoorbeeldHtml() {
-  return `<span class="kanttekening-voorbeeld hoek-driehoek" aria-hidden="true">${escape(BASIS.vrij.kort)}</span>`;
+  return `<span class="kanttekening-voorbeeld hoek-driehoek" aria-hidden="true">${escape(BASIS.free.kort)}</span>`;
 }
 
 // Verwijst naar de driehoekjesmarkering bij de max2-uitzondering (artikel 5.3.5.3): het mag, maar
@@ -159,9 +159,9 @@ function mobielUitlegHtml() {
 // De inhoud van een rastervakje: de korte labels van de eisen, of de tekst van de basis als er
 // geen zichtbare eis is. Daarachter de uitleg voor schermlezers.
 function vakjeHtml(vakje) {
-  const tekst = eisenLabel(vakje.eisen) || BASIS[vakje.basis].kort;
-  const kanttekening = vakje.eisen.includes("max2") ? SR_ONLY_KANTTEKENING : "";
-  return `${escape(tekst)}${srOnlyEisenHtml(vakje.eisen)}${kanttekening}`;
+  const tekst = eisenLabel(vakje.requirements) || BASIS[vakje.status].kort;
+  const kanttekening = vakje.requirements.includes("max-two") ? SR_ONLY_KANTTEKENING : "";
+  return `${escape(tekst)}${srOnlyEisenHtml(vakje.requirements)}${kanttekening}`;
 }
 
 // Nederlandse opsomming: "a, b en c". Bij een of geen item geen komma's of "en" nodig.
@@ -171,11 +171,11 @@ function opsommingMetEn(items) {
 }
 
 // Somt op welke klassen onder categorie I vallen, voor de voetnoot onder het raster. Gegenereerd
-// uit CATEGORIE_I en KLASSEN, zodat de tekst automatisch meebeweegt als die gegevens wijzigen.
+// uit CATEGORY_I en CLASSES, zodat de tekst automatisch meebeweegt als die gegevens wijzigen.
 function categorieILijst() {
-  return CATEGORIEEN.filter((categorie) => CATEGORIE_I[categorie])
+  return AGE_CATEGORIES.filter((categorie) => CATEGORY_I[categorie])
     .map((categorie) => {
-      const labels = CATEGORIE_I[categorie].map((klasseId) => label(categorie, klasseId));
+      const labels = CATEGORY_I[categorie].map((klasseId) => label(categorie, klasseId));
       return `${categorie}: ${opsommingMetEn(labels)}`;
     })
     .join("; ");
@@ -183,28 +183,28 @@ function categorieILijst() {
 
 // Bouwt de tabel voor brede schermen uit dezelfde rijen als de mobiele weergave.
 function rasterTabelHtml(rijen) {
-  const koppen = KOLOMMEN.map((kolom) => `<th scope="col">${escape(kolomLabel(kolom))}</th>`).join("");
+  const koppen = COLUMNS.map((kolom) => `<th scope="col">${escape(kolomLabel(kolom))}</th>`).join("");
   const lichaam = rijen
     .map((rij) => {
-      const cellen = rij.vakjes
+      const cellen = rij.cells
         .map((vakje) => {
-          if (!vakje.bestaat) return `<td class="vakje leeg"></td>`;
-          const titel = `${rij.categorie} ${vakje.label}`;
-          const knopKlasse = vakje.eisen.includes("max2") ? ' class="hoek-driehoek"' : "";
-          return `<td class="vakje ${escape(vakjeKleur(vakje))}"><button type="button"${knopKlasse} data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
+          if (!vakje.exists) return `<td class="vakje leeg"></td>`;
+          const titel = `${rij.category} ${vakje.label}`;
+          const knopKlasse = vakje.requirements.includes("max-two") ? ' class="hoek-driehoek"' : "";
+          return `<td class="vakje ${escape(vakjeKleur(vakje))}"><button type="button"${knopKlasse} data-categorie="${escape(rij.category)}" data-klasse="${escape(vakje.classId)}" title="${escape(titel)}">${vakjeHtml(vakje)}</button></td>`;
         })
         .join("");
-      return `<tr><th scope="row">${escape(rij.categorie)}</th>${cellen}</tr>`;
+      return `<tr><th scope="row">${escape(rij.category)}</th>${cellen}</tr>`;
     })
     .join("");
 
   // Eerst wat altijd mag, dan de eisen die een vakje voorwaardelijk maken, dan wat niet mag en
   // waar geen uitspraak over is, en tot slot de twee uitlegregels.
   const legenda = [
-    legendaRegelHtml("vrij", BASIS.vrij.kort, BASIS.vrij.omschrijving),
+    legendaRegelHtml("vrij", BASIS.free.kort, BASIS.free.omschrijving),
     ...EIS_VOLGORDE.map((eis) => legendaRegelHtml("voorwaarde", EISEN[eis].kort, EISEN[eis].omschrijving)),
-    legendaRegelHtml("nee", BASIS.nee.kort, BASIS.nee.omschrijving),
-    legendaRegelHtml("buiten-scope", BASIS["buiten-scope"].kort, BASIS["buiten-scope"].omschrijving),
+    legendaRegelHtml("nee", BASIS.no.kort, BASIS.no.omschrijving),
+    legendaRegelHtml("buiten-scope", BASIS["out-of-scope"].kort, BASIS["out-of-scope"].omschrijving),
     kanttekeningUitlegHtml(),
     escape(COMBINATIE_UITLEG),
   ].join("\n");
@@ -223,10 +223,10 @@ ${legenda}
 // berekening. De groepering gaat bewust op basis en niet op de eisencombinatie: dat zou een
 // wildgroei aan groepjes opleveren. De eisen staan per klasse achter het label.
 function mobielGroepen(rij) {
-  const bestaande = rij.vakjes.filter((vakje) => vakje.bestaat);
+  const bestaande = rij.cells.filter((vakje) => vakje.exists);
   return BASIS_VOLGORDE
-    .map((basis) => ({ basis, vakjes: bestaande.filter((vakje) => vakje.basis === basis) }))
-    .filter((groep) => groep.vakjes.length > 0);
+    .map((basis) => ({ basis, cells: bestaande.filter((vakje) => vakje.status === basis) }))
+    .filter((groep) => groep.cells.length > 0);
 }
 
 // Bouwt de mobiele weergave: per leeftijdscategorie een blok, daarbinnen de klassen gegroepeerd
@@ -235,19 +235,19 @@ function mobielGroepen(rij) {
 function mobielCategorieHtml(rij) {
   const groepenHtml = mobielGroepen(rij)
     .map((groep) => {
-      const knoppen = groep.vakjes
+      const knoppen = groep.cells
         .map((vakje) => {
-          const titel = `${rij.categorie} ${vakje.label}`;
-          const kanttekening = vakje.eisen.includes("max2");
-          const eisen = eisenLabel(vakje.eisen);
+          const titel = `${rij.category} ${vakje.label}`;
+          const kanttekening = vakje.requirements.includes("max-two");
+          const eisen = eisenLabel(vakje.requirements);
           const labelHtml = [
             escape(vakje.label),
             eisen ? ` <span class="mobiel-eisen">${escape(eisen)}</span>` : "",
-            srOnlyEisenHtml(vakje.eisen),
+            srOnlyEisenHtml(vakje.requirements),
             kanttekening ? SR_ONLY_KANTTEKENING : "",
           ].join("");
           const klasse = `mobiel-klasse ${escape(vakjeKleur(vakje))}${kanttekening ? " kanttekening" : ""}`;
-          return `<button type="button" class="${klasse}" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${labelHtml}</button>`;
+          return `<button type="button" class="${klasse}" data-categorie="${escape(rij.category)}" data-klasse="${escape(vakje.classId)}" title="${escape(titel)}">${labelHtml}</button>`;
         })
         .join("");
       return `<div class="mobiel-groep">
@@ -256,12 +256,12 @@ function mobielCategorieHtml(rij) {
 </div>`;
     })
     .join("");
-  return `<div class="mobiel-categorie"><h3>${escape(rij.categorie)}</h3>${groepenHtml}</div>`;
+  return `<div class="mobiel-categorie"><h3>${escape(rij.category)}</h3>${groepenHtml}</div>`;
 }
 
 function toonRaster() {
   const doel = huidigDoel();
-  const melding = categorieIMelding(doel);
+  const melding = categoryINotice(doel);
   if (melding) {
     raster.innerHTML = `<p class="buiten-scope-melding">${escape(melding)}</p>`;
     mobielOverzicht.innerHTML = "";
@@ -270,7 +270,7 @@ function toonRaster() {
     return;
   }
 
-  const rijen = overzicht(doel);
+  const rijen = overview(doel);
   raster.innerHTML = rasterTabelHtml(rijen);
   mobielOverzicht.innerHTML =
     rijen.map(mobielCategorieHtml).join("") + `<p class="mobiel-uitleg">${mobielUitlegHtml()}</p>`;
@@ -280,13 +280,13 @@ function toonRaster() {
 
   for (const knop of [...raster.querySelectorAll("button[data-categorie]"), ...mobielOverzicht.querySelectorAll("button[data-categorie]")]) {
     knop.addEventListener("click", () => {
-      gekozenBron = { categorie: knop.dataset.categorie, klasse: knop.dataset.klasse };
+      gekozenBron = { category: knop.dataset.categorie, classId: knop.dataset.klasse };
       markeerGekozen();
       toonDetail();
     });
   }
 
-  if (gekozenBron && !KLASSEN[gekozenBron.categorie].some((k) => k.id === gekozenBron.klasse)) {
+  if (gekozenBron && !CLASSES[gekozenBron.category].some((k) => k.id === gekozenBron.classId)) {
     gekozenBron = null;
   }
   if (gekozenBron) {
@@ -301,15 +301,15 @@ function markeerGekozen() {
   for (const knop of raster.querySelectorAll("button[data-categorie]")) {
     const actief =
       gekozenBron &&
-      knop.dataset.categorie === gekozenBron.categorie &&
-      knop.dataset.klasse === gekozenBron.klasse;
+      knop.dataset.categorie === gekozenBron.category &&
+      knop.dataset.klasse === gekozenBron.classId;
     knop.parentElement.classList.toggle("gekozen", Boolean(actief));
   }
   for (const knop of mobielOverzicht.querySelectorAll("button[data-categorie]")) {
     const actief =
       gekozenBron &&
-      knop.dataset.categorie === gekozenBron.categorie &&
-      knop.dataset.klasse === gekozenBron.klasse;
+      knop.dataset.categorie === gekozenBron.category &&
+      knop.dataset.klasse === gekozenBron.classId;
     knop.classList.toggle("gekozen", Boolean(actief));
   }
 }
@@ -366,7 +366,7 @@ function toonDetail() {
   if (!gekozenBron) return;
   const doel = huidigDoel();
   detailBlok.hidden = false;
-  detailKop.textContent = `Een speler uit ${gekozenBron.categorie} ${label(gekozenBron.categorie, gekozenBron.klasse)} laten invallen in ${doel.categorie} ${label(doel.categorie, doel.klasse)}`;
+  detailKop.textContent = `Een speler uit ${gekozenBron.category} ${label(gekozenBron.category, gekozenBron.classId)} laten invallen in ${doel.category} ${label(doel.category, doel.classId)}`;
 
   const ingevoerd = geboortedatum.value;
   const datum = ingevoerd ? new Date(`${ingevoerd}T00:00:00Z`) : null;
@@ -379,16 +379,16 @@ function toonDetail() {
   // we het veld. Dit rekent niets zelf uit over invalregels, het hergebruikt alleen assess() met
   // een lege datum.
   const zonderDatum = assess(gekozenBron, doel, null);
-  geboorteVeld.hidden = zonderDatum.verdict !== "toegestaan";
+  geboorteVeld.hidden = zonderDatum.verdict !== "allowed";
 
   resultaat.className = uitkomst.verdict;
   resultaat.innerHTML = [
-    `<p class="oordeel">${escape(uitkomst.samenvatting)}</p>`,
-    letOpBlokHtml(uitkomst.kanttekeningen),
-    lijst("Voorwaarden", uitkomst.voorwaarden),
-    uitkomst.leeftijd ? lijst("Leeftijd", uitkomst.leeftijd.meldingen) : "",
-    lijst("Waarom", uitkomst.redenering),
-    artikelBlok(uitkomst.artikelen),
+    `<p class="oordeel">${escape(uitkomst.summary)}</p>`,
+    letOpBlokHtml(uitkomst.caveats),
+    lijst("Voorwaarden", uitkomst.conditions),
+    uitkomst.age ? lijst("Leeftijd", uitkomst.age.messages) : "",
+    lijst("Waarom", uitkomst.reasoning),
+    artikelBlok(uitkomst.articles),
   ].join("");
 }
 

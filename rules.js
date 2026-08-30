@@ -1,421 +1,423 @@
 import {
-  NIVEAU,
-  KLASSEN,
-  CATEGORIEEN,
-  KOLOMMEN,
-  CATEGORIE_I,
-  CATEGORIE_I_PERIODE,
-  LEEFTIJDSGRENZEN,
-  OUDERE_SPELER_UITZONDERING,
-  O14_NIVEAUGROEPEN,
-  PEILDATUM,
+  LEVELS,
+  CLASSES,
+  AGE_CATEGORIES,
+  COLUMNS,
+  CATEGORY_I,
+  CATEGORY_I_PERIOD,
+  AGE_LIMITS,
+  OLDER_PLAYER_EXCEPTION,
+  O14_LEVEL_GROUPS,
+  REFERENCE_DATE,
 } from "./data.js";
 
-const MAANDNAMEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+const MONTH_NAMES = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
 
-export function peildatumNederlands(peildatum) {
-  const dag = peildatum.getUTCDate();
-  const maand = MAANDNAMEN[peildatum.getUTCMonth()];
-  const jaar = peildatum.getUTCFullYear();
-  return `${dag} ${maand} ${jaar}`;
+export function formatDateDutch(date) {
+  const day = date.getUTCDate();
+  const month = MONTH_NAMES[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  return `${day} ${month} ${year}`;
 }
 
-// Absoluut niveau volgens de tabel klassengrenzen. Lager getal is hoger niveau.
-export function niveau(categorie, klasseId) {
-  const kolom = NIVEAU[categorie];
-  if (!kolom) throw new Error(`onbekende categorie: ${categorie}`);
-  const rij = kolom[klasseId];
-  if (rij === undefined) throw new Error(`onbekende klasse ${klasseId} voor ${categorie}`);
-  return rij;
+// Absolute level according to the class boundaries table. A lower number is a higher level.
+export function level(category, classId) {
+  const column = LEVELS[category];
+  if (!column) throw new Error(`unknown age category: ${category}`);
+  const row = column[classId];
+  if (row === undefined) throw new Error(`unknown class ${classId} for ${category}`);
+  return row;
 }
 
-const CATEGORIE_VOLGORDE = ["O11", "O12", "O14", "O16", "O18"];
+const AGE_CATEGORY_ORDER = ["O11", "O12", "O14", "O16", "O18"];
 
-const LAGE_KLASSEN_VOLGORDE = ["5e", "6e", "7e", "8e"];
+const LOW_CLASS_ORDER = ["5e", "6e", "7e", "8e"];
 
-function isVijfdeOfLager(klasseId) {
-  return LAGE_KLASSEN_VOLGORDE.includes(klasseId);
+function isFifthOrLower(classId) {
+  return LOW_CLASS_ORDER.includes(classId);
 }
 
-// Klassenummer binnen de lage klassen: de 5e klasse krijgt het laagste nummer, de 8e klasse het
-// hoogste. Een lager nummer betekent een hogere klasse, dus "bron speelt hoger dan doel" komt neer
-// op lageKlasseNummer(bron) < lageKlasseNummer(doel).
-function lageKlasseNummer(klasseId) {
-  return LAGE_KLASSEN_VOLGORDE.indexOf(klasseId);
+// Class number within the low classes: the 5th class gets the lowest number, the 8th class the
+// highest. A lower number means a higher class, so "the lender plays higher than the borrower"
+// comes down to lowClassNumber(lender) < lowClassNumber(borrower).
+function lowClassNumber(classId) {
+  return LOW_CLASS_ORDER.indexOf(classId);
 }
 
-function klasseLabel(categorie, klasseId) {
-  const gevonden = KLASSEN[categorie].find((k) => k.id === klasseId);
-  return gevonden ? gevonden.label : klasseId;
+function classLabel(category, classId) {
+  const found = CLASSES[category].find((k) => k.id === classId);
+  return found ? found.label : classId;
 }
 
-function omschrijf(team) {
-  return `${team.categorie} ${klasseLabel(team.categorie, team.klasse)}`;
+function describe(team) {
+  return `${team.category} ${classLabel(team.category, team.classId)}`;
 }
 
-// Beoordeelt alleen de klassenregels. De leeftijdstoets zit in beoordeelLeeftijd.
-export function beoordeelKlasse(bron, doel) {
-  const nBron = niveau(bron.categorie, bron.klasse);
-  const nDoel = niveau(doel.categorie, doel.klasse);
-  const uitOudereCategorie =
-    CATEGORIE_VOLGORDE.indexOf(bron.categorie) > CATEGORIE_VOLGORDE.indexOf(doel.categorie);
-  const uitJongereCategorie =
-    CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
+// Assesses the class rules only. The age check lives in assessAge.
+export function assessLevel(lender, borrower) {
+  const lenderLevel = level(lender.category, lender.classId);
+  const borrowerLevel = level(borrower.category, borrower.classId);
+  const fromOlderCategory =
+    AGE_CATEGORY_ORDER.indexOf(lender.category) > AGE_CATEGORY_ORDER.indexOf(borrower.category);
+  const fromYoungerCategory =
+    AGE_CATEGORY_ORDER.indexOf(lender.category) < AGE_CATEGORY_ORDER.indexOf(borrower.category);
 
-  const voorwaarden = [];
-  const redenering = [];
-  const artikelen = [];
-  const kanttekeningen = [];
+  const conditions = [];
+  const reasoning = [];
+  const articles = [];
+  const caveats = [];
 
-  // Lenen uit een jongere leeftijdscategorie is precies waar artikel 5.3.5.1 een voorbeeld van
-  // geeft, en de meest voorkomende invalsituatie van allemaal. Maar artikel 3.1.3 en de tabel
-  // klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn, en bij twijfel beslist de
-  // competitieleiding. Dat is geen voorwaarde waaraan de gebruiker iets kan doen, maar een
-  // kanttekening bij de regel zelf: die geldt altijd als de bron jonger is, ongeacht geboortedatum,
-  // en verandert het oordeel niet.
-  const jongereCategorieKanttekening = `De speler komt uit een jongere leeftijdscategorie dan ${doel.categorie}. Artikel 5.3.5.1 staat dat toe en geeft er zelfs een voorbeeld van, maar artikel 3.1.3 en de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn. Bij twijfel beslist de competitieleiding.`;
+  // Borrowing from a younger age category is exactly what article 5.3.5.1 gives an example of, and
+  // the most common substitution situation of all. But article 3.1.3 and the class boundaries
+  // table say that the age limits are always decisive, and in case of doubt the competition
+  // management decides. That is not a condition the user can do anything about, but a caveat about
+  // the rule itself: it always applies when the lender is younger, regardless of date of birth,
+  // and it does not change the verdict.
+  const youngerCategoryCaveat = `De speler komt uit een jongere leeftijdscategorie dan ${borrower.category}. Artikel 5.3.5.1 staat dat toe en geeft er zelfs een voorbeeld van, maar artikel 3.1.3 en de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn. Bij twijfel beslist de competitieleiding.`;
 
-  // Drie kanttekeningen bij artikelen die het oordeel kunnen omdraaien, maar waarover deze tool
-  // geen uitspraak kan doen: hij kent de wedstrijddag, de speelronde, de vereniging en de
-  // gespeelde wedstrijden niet. Ze veranderen het oordeel niet, net als de kanttekening hierboven.
+  // Three caveats about articles that can reverse the verdict, but on which this tool cannot make
+  // a statement: it does not know the match day, the round, the club or the matches played. They
+  // do not change the verdict, just like the caveat above.
 
-  // Artikel 5.3.4 heeft twee helften. De eerste: wie binnen de vereniging evenveel of vaker
-  // uitkomt voor een hoger spelend team dan voor het eigen team, krijgt dat hogere niveau als
-  // niveaubepaling. Dat raakt grond gelijk-of-lager, want daar valt de speler omhoog in. De
-  // tweede, de slotzin van het artikel: de speler mag daarna niet meer voor lager spelende teams
-  // uitkomen. Dat raakt juist de gronden een-hoger en vijfde-klasse, want daar valt de speler
-  // omlaag in en kan een eerder gewijzigde niveaubepaling die invalbeurt alsnog verbieden. Dit
-  // geldt dus, net als de twee kanttekeningen hierna, bij elk toegestaan oordeel.
-  const wijzigingNiveaubepalingKanttekening = "Komt de speler binnen de vereniging evenveel of vaker uit voor een hoger spelend team dan voor het team waar zij gewoonlijk voor uitkomt, dan wordt dat hogere niveau de niveaubepaling en mag de speler daarna niet meer voor lager spelende teams uitkomen, dus ook niet voor het team waarin hier wordt ingevallen (artikel 5.3.4). Deze tool kent de speelgeschiedenis van de speler niet en kan dit niet beoordelen.";
+  // Article 5.3.4 has two halves. The first: a player who within the club appears as often or
+  // more often for a higher playing team than for her own team gets that higher level as her level
+  // determination. That touches ground equal-or-lower, because there the player substitutes
+  // upward. The second, the closing sentence of the article: the player may afterwards no longer
+  // appear for lower playing teams. That touches the grounds one-higher and fifth-class instead,
+  // because there the player substitutes downward and an earlier changed level determination can
+  // still forbid that appearance. So this applies, like the two caveats below, to every allowed
+  // verdict.
+  const levelDeterminationCaveat = "Komt de speler binnen de vereniging evenveel of vaker uit voor een hoger spelend team dan voor het team waar zij gewoonlijk voor uitkomt, dan wordt dat hogere niveau de niveaubepaling en mag de speler daarna niet meer voor lager spelende teams uitkomen, dus ook niet voor het team waarin hier wordt ingevallen (artikel 5.3.4). Deze tool kent de speelgeschiedenis van de speler niet en kan dit niet beoordelen.";
 
-  // Artikel 5.3.6 en 5.3.6.1: in een beslissingswedstrijd mag alleen invallen wie al een
-  // vastgestelde niveaubepaling heeft. Dit geldt ongeacht de grond waarop is ingevallen, dus bij
-  // elk toegestaan oordeel.
-  const beslissingswedstrijdKanttekening = "In een beslissingswedstrijd (de laatste een tot drie speelronden van de competitie, een kampioenschap, of een wedstrijd die de competitieleiding als zodanig heeft aangewezen) mag alleen invallen wie al een vastgestelde niveaubepaling heeft (artikel 5.3.6 en 5.3.6.1). Deze tool kent de speelronde niet en kan dit niet beoordelen.";
+  // Articles 5.3.6 and 5.3.6.1: in a deciding match only a player who already has an established
+  // level determination may substitute. This applies regardless of the ground for substituting, so
+  // to every allowed verdict.
+  const decidingMatchCaveat = "In een beslissingswedstrijd (de laatste een tot drie speelronden van de competitie, een kampioenschap, of een wedstrijd die de competitieleiding als zodanig heeft aangewezen) mag alleen invallen wie al een vastgestelde niveaubepaling heeft (artikel 5.3.6 en 5.3.6.1). Deze tool kent de speelronde niet en kan dit niet beoordelen.";
 
-  // Artikel 5.1.1: een invaller van een andere vereniging mag niet in teams van verschillende
-  // verenigingen in dezelfde poule uitkomen en mag dit seizoen voor maximaal drie verenigingen
-  // uitkomen. Dit geldt ongeacht de grond waarop is ingevallen, dus bij elk toegestaan oordeel.
-  const verschillendeVerenigingenKanttekening = "Komt de invaller van een andere vereniging, controleer dan dat de twee teams niet in dezelfde poule spelen en dat de speler dit seizoen nog niet voor drie verschillende verenigingen is uitgekomen (artikel 5.1.1). Deze tool kent de poule-indeling en de speelgeschiedenis van de speler niet.";
+  // Article 5.1.1: a substitute from another club may not appear in teams of different clubs in
+  // the same pool and may appear for at most three clubs this season. This applies regardless of
+  // the ground for substituting, so to every allowed verdict.
+  const differentClubsCaveat = "Komt de invaller van een andere vereniging, controleer dan dat de twee teams niet in dezelfde poule spelen en dat de speler dit seizoen nog niet voor drie verschillende verenigingen is uitgekomen (artikel 5.1.1). Deze tool kent de poule-indeling en de speelgeschiedenis van de speler niet.";
 
-  if (nBron === nDoel) {
-    redenering.push(`${omschrijf(bron)} en ${omschrijf(doel)} staan volgens de tabel klassengrenzen op hetzelfde niveau.`);
-  } else if (nBron > nDoel) {
-    redenering.push(`${omschrijf(bron)} speelt volgens de tabel klassengrenzen ${nBron - nDoel} niveau${nBron - nDoel === 1 ? "" : "s"} lager dan ${omschrijf(doel)}.`);
+  if (lenderLevel === borrowerLevel) {
+    reasoning.push(`${describe(lender)} en ${describe(borrower)} staan volgens de tabel klassengrenzen op hetzelfde niveau.`);
+  } else if (lenderLevel > borrowerLevel) {
+    reasoning.push(`${describe(lender)} speelt volgens de tabel klassengrenzen ${lenderLevel - borrowerLevel} niveau${lenderLevel - borrowerLevel === 1 ? "" : "s"} lager dan ${describe(borrower)}.`);
   } else {
-    redenering.push(`${omschrijf(bron)} speelt volgens de tabel klassengrenzen ${nDoel - nBron} niveau${nDoel - nBron === 1 ? "" : "s"} hoger dan ${omschrijf(doel)}.`);
+    reasoning.push(`${describe(lender)} speelt volgens de tabel klassengrenzen ${borrowerLevel - lenderLevel} niveau${borrowerLevel - lenderLevel === 1 ? "" : "s"} hoger dan ${describe(borrower)}.`);
   }
 
-  // Voeg leeftijds-info toe voor alle gevallen behalve wanneer het niveauverschil te groot is.
-  // nBron - nDoel > -2 betekent dat het verschil 0 of -1 is (gelijk of een hoger).
-  if (uitOudereCategorie && nBron - nDoel > -2) {
-    voorwaarden.push(`De speler moet voldoen aan de leeftijdsgrenzen van ${doel.categorie}, de categorie waarin zij invalt.`);
-    artikelen.push("3.1.1", "3.1.3");
-    redenering.push(`De speler komt uit een oudere leeftijdscategorie, dus de leeftijdsgrens van ${doel.categorie} is bepalend.`);
+  // Add the age information for every case except when the level difference is too large.
+  // lenderLevel - borrowerLevel > -2 means the difference is 0 or -1 (equal or one higher).
+  if (fromOlderCategory && lenderLevel - borrowerLevel > -2) {
+    conditions.push(`De speler moet voldoen aan de leeftijdsgrenzen van ${borrower.category}, de categorie waarin zij invalt.`);
+    articles.push("3.1.1", "3.1.3");
+    reasoning.push(`De speler komt uit een oudere leeftijdscategorie, dus de leeftijdsgrens van ${borrower.category} is bepalend.`);
   }
 
-  // Artikel 5.3.5.4: aanvullende regel voor O14-veldhockey. Het artikel kent twee
-  // niveaugroepen, elk in een eigen periode van het seizoen (de voorcompetitie met Topklasse en
-  // Subtopklasse, de lentecompetitie met Super O14 en IDC-O14). Binnen een groep mogen spelers
-  // van het eerste team niet zonder toestemming van de competitieleiding invallen bij de andere
-  // teams op dat niveau. De tool kent geen teamlijst en kan dus niet weten of een team het
-  // eerste team is, dus deze voorwaarde geldt hier altijd als waarschuwing.
-  if (bron.categorie === "O14" && doel.categorie === "O14") {
-    const groep = O14_NIVEAUGROEPEN.find(
-      (g) => g.klassen.includes(bron.klasse) && g.klassen.includes(doel.klasse),
+  // Article 5.3.5.4: additional rule for O14 field hockey. The article has two level groups, each
+  // in its own period of the season (the voorcompetitie with Topklasse and Subtopklasse, the
+  // lentecompetitie with Super O14 and IDC-O14). Within a group the players of the first team may
+  // not substitute for the other teams at that level without permission from the competition
+  // management. The tool has no team list and therefore cannot know whether a team is the first
+  // team, so this condition always applies here as a warning.
+  if (lender.category === "O14" && borrower.category === "O14") {
+    const group = O14_LEVEL_GROUPS.find(
+      (g) => g.classes.includes(lender.classId) && g.classes.includes(borrower.classId),
     );
-    if (groep) {
-      const klasseNamen = groep.klassen.map((k) => klasseLabel("O14", k));
-      voorwaarden.push(
-        `In de ${groep.periode} geldt: als de vereniging meerdere teams in de ${klasseNamen.join(" of de ")} heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.`,
+    if (group) {
+      const classNames = group.classes.map((k) => classLabel("O14", k));
+      conditions.push(
+        `In de ${group.period} geldt: als de vereniging meerdere teams in de ${classNames.join(" of de ")} heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.`,
       );
-      artikelen.push("5.3.5.4");
-      redenering.push(`Beide teams spelen O14 in dezelfde niveaugroep van artikel 5.3.5.4 (${groep.periode}: ${klasseNamen.join(" en ")}).`);
+      articles.push("5.3.5.4");
+      reasoning.push(`Beide teams spelen O14 in dezelfde niveaugroep van artikel 5.3.5.4 (${group.period}: ${classNames.join(" en ")}).`);
     }
   }
 
-  // Ticket #3: artikel 5.3.5.1 dekt al elke situatie waarin de bron in dezelfde klasse of een
-  // lagere klasse speelt dan de doel, zonder maximum. De uitzondering van artikel 5.3.5.3 (het
-  // maximum van twee) is dus alleen nog nodig voor de omgekeerde richting: de bron speelt in een
-  // hogere klasse dan de doel, allebei binnen de 5e klasse of lager en dezelfde leeftijdscategorie.
-  const zelfdeCategorie = bron.categorie === doel.categorie;
-  const bronSpeeltHogerBinnenLageKlassen =
-    zelfdeCategorie &&
-    isVijfdeOfLager(bron.klasse) &&
-    isVijfdeOfLager(doel.klasse) &&
-    lageKlasseNummer(bron.klasse) < lageKlasseNummer(doel.klasse);
-  if (bronSpeeltHogerBinnenLageKlassen) {
-    voorwaarden.push("Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding.");
-    // De open vraag van ticket #13 blijft staan: geldt dit maximum altijd, of alleen als het team
-    // elf of meer eigen spelers beschikbaar heeft. Artikel 5.3.5.1 kan hier niet de terugvaloptie
-    // zijn: de bron speelt juist in een hogere klasse dan de doel, dus dat artikel is hier per
-    // definitie niet van toepassing.
-    voorwaarden.push(
+  // Ticket #3: article 5.3.5.1 already covers every situation where the lender plays in the same
+  // class or a lower class than the borrower, without a maximum. The exception of article 5.3.5.3
+  // (the maximum of two) is therefore only needed for the opposite direction: the lender plays in
+  // a higher class than the borrower, both within the 5th class or lower and the same age
+  // category.
+  const sameCategory = lender.category === borrower.category;
+  const lenderPlaysHigherWithinLowClasses =
+    sameCategory &&
+    isFifthOrLower(lender.classId) &&
+    isFifthOrLower(borrower.classId) &&
+    lowClassNumber(lender.classId) < lowClassNumber(borrower.classId);
+  if (lenderPlaysHigherWithinLowClasses) {
+    conditions.push("Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding.");
+    // The open question of ticket #13 remains: does this maximum always apply, or only when the
+    // team has eleven or more of its own players available. Article 5.3.5.1 cannot be the fallback
+    // here: the lender plays in a higher class than the borrower, so that article does not apply
+    // here by definition.
+    conditions.push(
       "Onduidelijk is of dit maximum altijd geldt, of alleen als het team elf of meer eigen spelers beschikbaar heeft. Vraag dit na bij de competitieleiding.",
     );
-    artikelen.push("5.3.5.3");
-    redenering.push("De bron speelt in een hogere klasse dan de doel, allebei in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
-    kanttekeningen.push(wijzigingNiveaubepalingKanttekening, beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
-    artikelen.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
-    return { toegestaan: true, grond: "vijfde-klasse", voorwaarden, redenering, artikelen, kanttekeningen };
+    articles.push("5.3.5.3");
+    reasoning.push("De bron speelt in een hogere klasse dan de doel, allebei in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
+    caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
+    articles.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
+    return { allowed: true, ground: "fifth-class", conditions, reasoning, articles, caveats };
   }
 
-  if (nBron >= nDoel) {
-    artikelen.push("5.3.5.1");
-    redenering.push("Lenen uit een team op gelijk of lager niveau mag altijd, ongeacht het aantal eigen spelers.");
-    if (uitJongereCategorie) {
-      kanttekeningen.push(jongereCategorieKanttekening);
-      artikelen.push("3.1.3");
+  if (lenderLevel >= borrowerLevel) {
+    articles.push("5.3.5.1");
+    reasoning.push("Lenen uit een team op gelijk of lager niveau mag altijd, ongeacht het aantal eigen spelers.");
+    if (fromYoungerCategory) {
+      caveats.push(youngerCategoryCaveat);
+      articles.push("3.1.3");
     }
-    kanttekeningen.push(wijzigingNiveaubepalingKanttekening, beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
-    artikelen.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
-    return { toegestaan: true, grond: "gelijk-of-lager", voorwaarden, redenering, artikelen, kanttekeningen };
+    caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
+    articles.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
+    return { allowed: true, ground: "equal-or-lower", conditions, reasoning, articles, caveats };
   }
 
-  if (nBron === nDoel - 1) {
-    const aantal = doel.categorie === "O11" ? 9 : 11;
-    voorwaarden.push(`Het team waarin wordt ingevallen heeft aantoonbaar maximaal ${aantal} spelers beschikbaar uit het eigen of een lager spelend niveau.`);
-    voorwaarden.push("Er zijn aantoonbaar geen invallers beschikbaar uit een gelijk of lager spelend niveau.");
-    voorwaarden.push("Er mogen maximaal twee spelers invallen, inclusief een vaste doelverdediger.");
-    voorwaarden.push("Voor het inlenen van een doelverdediger geldt de eis over het aantal eigen spelers niet.");
-    artikelen.push("5.3.5.2");
-    redenering.push("Lenen uit een team dat precies een niveau hoger speelt mag alleen als aan alle voorwaarden van artikel 5.3.5.2 is voldaan.");
-    if (uitJongereCategorie) {
-      kanttekeningen.push(jongereCategorieKanttekening);
-      artikelen.push("3.1.3");
+  if (lenderLevel === borrowerLevel - 1) {
+    const playerCount = borrower.category === "O11" ? 9 : 11;
+    conditions.push(`Het team waarin wordt ingevallen heeft aantoonbaar maximaal ${playerCount} spelers beschikbaar uit het eigen of een lager spelend niveau.`);
+    conditions.push("Er zijn aantoonbaar geen invallers beschikbaar uit een gelijk of lager spelend niveau.");
+    conditions.push("Er mogen maximaal twee spelers invallen, inclusief een vaste doelverdediger.");
+    conditions.push("Voor het inlenen van een doelverdediger geldt de eis over het aantal eigen spelers niet.");
+    articles.push("5.3.5.2");
+    reasoning.push("Lenen uit een team dat precies een niveau hoger speelt mag alleen als aan alle voorwaarden van artikel 5.3.5.2 is voldaan.");
+    if (fromYoungerCategory) {
+      caveats.push(youngerCategoryCaveat);
+      articles.push("3.1.3");
     }
-    kanttekeningen.push(wijzigingNiveaubepalingKanttekening, beslissingswedstrijdKanttekening, verschillendeVerenigingenKanttekening);
-    artikelen.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
-    return { toegestaan: true, grond: "een-hoger", voorwaarden, redenering, artikelen, kanttekeningen };
+    caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
+    articles.push("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
+    return { allowed: true, ground: "one-higher", conditions, reasoning, articles, caveats };
   }
 
-  artikelen.push("5.3.5.2");
-  redenering.push("Meer dan een niveau verschil is niet toegestaan zonder dispensatie van de competitieleiding.");
-  return { toegestaan: false, grond: "te-hoog", voorwaarden: [], redenering, artikelen, kanttekeningen: [] };
+  articles.push("5.3.5.2");
+  reasoning.push("Meer dan een niveau verschil is niet toegestaan zonder dispensatie van de competitieleiding.");
+  return { allowed: false, ground: "too-high", conditions: [], reasoning, articles, caveats: [] };
 }
 
-// Geeft een uitleg terug als het team buiten categorie II valt, anders null.
-export function categorieIMelding(team) {
-  const vast = CATEGORIE_I[team.categorie];
-  if (vast && vast.includes(team.klasse)) {
-    return `${omschrijf(team)} valt volgens hoofdstuk 2 van het Bondsreglement onder categorie I. Daarvoor gelden de speelgerechtigdheidsregels van hoofdstuk 4, die deze tool niet dekt.`;
+// Returns an explanation when the team falls outside category II, otherwise null.
+export function categoryINotice(team) {
+  const fixed = CATEGORY_I[team.category];
+  if (fixed && fixed.includes(team.classId)) {
+    return `${describe(team)} valt volgens hoofdstuk 2 van het Bondsreglement onder categorie I. Daarvoor gelden de speelgerechtigdheidsregels van hoofdstuk 4, die deze tool niet dekt.`;
   }
-  const periode = CATEGORIE_I_PERIODE[team.categorie];
-  if (periode && periode[team.klasse]) {
-    return `${omschrijf(team)} valt ${periode[team.klasse]} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. Deze tool weet niet in welke periode de wedstrijd valt en doet hier geen uitspraak over.`;
+  const period = CATEGORY_I_PERIOD[team.category];
+  if (period && period[team.classId]) {
+    return `${describe(team)} valt ${period[team.classId]} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. Deze tool weet niet in welke periode de wedstrijd valt en doet hier geen uitspraak over.`;
   }
   return null;
 }
 
-export function leeftijdOpPeildatum(geboortedatum) {
-  if (Number.isNaN(geboortedatum.getTime())) {
-    throw new Error("leeftijdOpPeildatum heeft een geldige geboortedatum nodig, dit is een ongeldige datum");
+export function ageOnReferenceDate(dateOfBirth) {
+  if (Number.isNaN(dateOfBirth.getTime())) {
+    throw new Error("ageOnReferenceDate needs a valid date of birth, this is an invalid date");
   }
-  let leeftijd = PEILDATUM.getUTCFullYear() - geboortedatum.getUTCFullYear();
-  const maandVerschil = PEILDATUM.getUTCMonth() - geboortedatum.getUTCMonth();
-  const dagVerschil = PEILDATUM.getUTCDate() - geboortedatum.getUTCDate();
-  if (maandVerschil < 0 || (maandVerschil === 0 && dagVerschil < 0)) leeftijd -= 1;
-  return leeftijd;
+  let age = REFERENCE_DATE.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+  const monthDiff = REFERENCE_DATE.getUTCMonth() - dateOfBirth.getUTCMonth();
+  const dayDiff = REFERENCE_DATE.getUTCDate() - dateOfBirth.getUTCDate();
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) age -= 1;
+  return age;
 }
 
-export function beoordeelLeeftijd(bron, doel, geboortedatum) {
-  const leeftijd = leeftijdOpPeildatum(geboortedatum);
-  const meldingen = [];
-  const artikelen = [];
-  const voorwaarden = [];
-  let blokkeert = false;
+export function assessAge(lender, borrower, dateOfBirth) {
+  const age = ageOnReferenceDate(dateOfBirth);
+  const messages = [];
+  const articles = [];
+  const conditions = [];
+  let blocks = false;
 
-  const datumTekst = peildatumNederlands(PEILDATUM);
-  const grensDoel = LEEFTIJDSGRENZEN[doel.categorie];
-  // Een bron uit een jongere leeftijdscategorie is per definitie vaak te jong voor de
-  // doelcategorie: dat is nu juist de normale situatie bij lenen uit een jongere categorie
-  // (artikel 5.3.5.1), geen afwijking. Dit mag dus niet blokkeren. Te oud voor de doelcategorie
-  // en de uitzondering van artikel 5.2.4 blokkeren onverminderd, ook bij een jongere bron. En
-  // "te jong" bij een gelijke of oudere bron blijft gewoon een dispensatiegeval.
-  const bronUitJongereCategorie =
-    CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
-  // Artikel 5.2.5 maakt de O11-categorie een uitzondering op "te oud": een O12-jarige (een jaar
-  // boven de bovengrens van O11) mag daar worden ingedeeld als de vereniging op basis van
-  // aantallen problemen heeft om tot volledige teams of goede teamsamenstellingen te komen in de
-  // O11- en O12-categorie. Dat is uitdrukkelijk geen dispensatiegeval (artikel 3.1.3), dus dit mag
-  // niet blokkeren en de eerste melding mag niet beweren dat dispensatie nodig is.
-  const isAantallenuitzonderingO11 =
-    doel.categorie === "O11" && leeftijd === grensDoel.max + 1;
-  if (leeftijd > grensDoel.max) {
-    artikelen.push("3.1.1", "3.1.3");
-    if (isAantallenuitzonderingO11) {
-      meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar, een jaar boven de bovengrens van ${grensDoel.max} jaar voor ${doel.categorie}.`);
-      meldingen.push(
+  const dateText = formatDateDutch(REFERENCE_DATE);
+  const borrowerLimits = AGE_LIMITS[borrower.category];
+  // A lender from a younger age category is by definition often too young for the borrower
+  // category: that is precisely the normal situation when borrowing from a younger category
+  // (article 5.3.5.1), not a deviation. So this must not block. Too old for the borrower category
+  // and the exception of article 5.2.4 still block, also with a younger lender. And "too young"
+  // with an equal or older lender simply remains a dispensation case.
+  const lenderFromYoungerCategory =
+    AGE_CATEGORY_ORDER.indexOf(lender.category) < AGE_CATEGORY_ORDER.indexOf(borrower.category);
+  // Article 5.2.5 makes the O11 category an exception to "too old": a player of O12 age (one year
+  // above the upper limit of O11) may be placed there when the club, on the basis of player
+  // numbers, has trouble forming complete teams or good team compositions in the O11 and O12
+  // categories. That is explicitly not a dispensation case (article 3.1.3), so this must not block
+  // and the first message must not claim that dispensation is needed.
+  const isO11PlayerCountException =
+    borrower.category === "O11" && age === borrowerLimits.max + 1;
+  if (age > borrowerLimits.max) {
+    articles.push("3.1.1", "3.1.3");
+    if (isO11PlayerCountException) {
+      messages.push(`Op ${dateText} is de speler ${age} jaar, een jaar boven de bovengrens van ${borrowerLimits.max} jaar voor ${borrower.category}.`);
+      messages.push(
         "Artikel 5.2.5 maakt hierop een uitzondering: verenigingen die op basis van aantallen problemen hebben om tot volledige teams of goede teamsamenstellingen te komen in de O11- en O12-categorie, mogen O12-jarigen indelen in de O11-categorie. Een individueel dispensatieverzoek is daarvoor niet nodig, mits de vereniging deze aantallenproblemen heeft.",
       );
-      artikelen.push("5.2.5");
-      voorwaarden.push(
+      articles.push("5.2.5");
+      conditions.push(
         "De vereniging moet op basis van de ingeschreven aantallen problemen hebben om tot volledige teams of goede teamsamenstellingen te komen in de O11- en O12-categorie (artikel 5.2.5).",
       );
     } else {
-      blokkeert = true;
-      meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
+      blocks = true;
+      messages.push(`Op ${dateText} is de speler ${age} jaar en daarmee te oud voor ${borrower.category}, waar de grens ${borrowerLimits.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
     }
-  } else if (leeftijd < grensDoel.min && !bronUitJongereCategorie) {
-    blokkeert = true;
-    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te jong voor ${doel.categorie}, waar de ondergrens ${grensDoel.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
-    artikelen.push("3.1.1", "3.1.3");
-  } else if (leeftijd < grensDoel.min) {
-    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar. Dat is jonger dan de ondergrens van ${grensDoel.min} jaar voor ${doel.categorie}, maar de speler komt uit een jongere leeftijdscategorie, dus dat is hier de normale situatie en geen afwijking.`);
+  } else if (age < borrowerLimits.min && !lenderFromYoungerCategory) {
+    blocks = true;
+    messages.push(`Op ${dateText} is de speler ${age} jaar en daarmee te jong voor ${borrower.category}, waar de ondergrens ${borrowerLimits.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
+    articles.push("3.1.1", "3.1.3");
+  } else if (age < borrowerLimits.min) {
+    messages.push(`Op ${dateText} is de speler ${age} jaar. Dat is jonger dan de ondergrens van ${borrowerLimits.min} jaar voor ${borrower.category}, maar de speler komt uit een jongere leeftijdscategorie, dus dat is hier de normale situatie en geen afwijking.`);
   } else {
-    meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en past daarmee binnen ${doel.categorie}.`);
+    messages.push(`Op ${dateText} is de speler ${age} jaar en past daarmee binnen ${borrower.category}.`);
   }
 
-  const grensBron = LEEFTIJDSGRENZEN[bron.categorie];
-  const valtOnderUitzondering =
-    OUDERE_SPELER_UITZONDERING.categorieen.includes(bron.categorie) &&
-    OUDERE_SPELER_UITZONDERING.klassen.includes(bron.klasse) &&
-    leeftijd === grensBron.max + 1;
-  if (valtOnderUitzondering) {
-    blokkeert = true;
-    meldingen.push(`De speler is een jaar ouder dan de grens van ${bron.categorie}. Zij kan op de teamlijst staan als een van de twee spelers die volgens artikel 5.2.4 maximaal een jaar ouder mogen zijn, maar die spelers mogen uitsluitend uitkomen voor het team waarop zij op de teamlijst staan en dus nooit invallen.`);
-    artikelen.push("5.2.4");
+  const lenderLimits = AGE_LIMITS[lender.category];
+  const fallsUnderException =
+    OLDER_PLAYER_EXCEPTION.categories.includes(lender.category) &&
+    OLDER_PLAYER_EXCEPTION.classes.includes(lender.classId) &&
+    age === lenderLimits.max + 1;
+  if (fallsUnderException) {
+    blocks = true;
+    messages.push(`De speler is een jaar ouder dan de grens van ${lender.category}. Zij kan op de teamlijst staan als een van de twee spelers die volgens artikel 5.2.4 maximaal een jaar ouder mogen zijn, maar die spelers mogen uitsluitend uitkomen voor het team waarop zij op de teamlijst staan en dus nooit invallen.`);
+    articles.push("5.2.4");
   }
 
-  if (geboortedatum.getUTCMonth() === PEILDATUM.getUTCMonth() && geboortedatum.getUTCDate() === PEILDATUM.getUTCDate()) {
-    meldingen.push(`Deze geboortedatum valt precies op ${datumTekst}. Het reglement gebruikt 'voor ${datumTekst}' en 'op ${datumTekst}' door elkaar, dus dit is een randgeval. Leg dit voor aan de competitieleiding.`);
+  if (dateOfBirth.getUTCMonth() === REFERENCE_DATE.getUTCMonth() && dateOfBirth.getUTCDate() === REFERENCE_DATE.getUTCDate()) {
+    messages.push(`Deze geboortedatum valt precies op ${dateText}. Het reglement gebruikt 'voor ${dateText}' en 'op ${dateText}' door elkaar, dus dit is een randgeval. Leg dit voor aan de competitieleiding.`);
   }
 
-  return { leeftijd, blokkeert, meldingen, artikelen, voorwaarden };
+  return { age, blocks, messages, articles, conditions };
 }
 
-function heeftGeldigeGeboortedatum(geboortedatum) {
-  return geboortedatum instanceof Date && !Number.isNaN(geboortedatum.getTime());
+function hasValidDateOfBirth(dateOfBirth) {
+  return dateOfBirth instanceof Date && !Number.isNaN(dateOfBirth.getTime());
 }
 
-// De enige functie die de gebruikersinterface aanroept.
-export function assess(bron, doel, geboortedatum) {
-  const buitenScope = categorieIMelding(bron) || categorieIMelding(doel);
-  if (buitenScope) {
+// The only function the user interface calls.
+export function assess(lender, borrower, dateOfBirth) {
+  const outOfScope = categoryINotice(lender) || categoryINotice(borrower);
+  if (outOfScope) {
     return {
-      verdict: "buiten-scope",
-      samenvatting: buitenScope,
-      voorwaarden: [],
-      redenering: [],
-      leeftijd: null,
-      artikelen: [],
-      grond: null,
-      kanttekeningen: [],
+      verdict: "out-of-scope",
+      summary: outOfScope,
+      conditions: [],
+      reasoning: [],
+      age: null,
+      articles: [],
+      ground: null,
+      caveats: [],
     };
   }
 
-  const klasse = beoordeelKlasse(bron, doel);
-  // Een onleesbare geboortedatum wordt behandeld als "geen geboortedatum opgegeven": de
-  // leeftijdstoets draait dan gewoon niet. leeftijdOpPeildatum geeft wel een duidelijke fout als
-  // hij direct met een ongeldige datum wordt aangeroepen, zie de toelichting in het rapport.
-  const leeftijd = heeftGeldigeGeboortedatum(geboortedatum) ? beoordeelLeeftijd(bron, doel, geboortedatum) : null;
+  const levelOutcome = assessLevel(lender, borrower);
+  // An unreadable date of birth is treated as "no date of birth given": the age check simply does
+  // not run then. ageOnReferenceDate does throw a clear error when it is called directly with an
+  // invalid date, see the explanation in the report.
+  const age = hasValidDateOfBirth(dateOfBirth) ? assessAge(lender, borrower, dateOfBirth) : null;
 
-  // Voorwaarden en artikelen uit beoordeelLeeftijd horen er alleen bij als de klasse het al
-  // toestaat. Blokkeert de klasse zelf (grond te-hoog), dan is de leeftijd niet meer relevant en
-  // mag die informatie niet alsnog binnensluipen.
-  let artikelen;
-  let voorwaarden;
-  if (klasse.toegestaan) {
-    artikelen = [...new Set([...klasse.artikelen, ...(leeftijd ? leeftijd.artikelen : [])])].sort();
-    voorwaarden = [...klasse.voorwaarden, ...(leeftijd ? leeftijd.voorwaarden : [])];
+  // Conditions and articles from assessAge only belong here when the class already allows it. When
+  // the class itself blocks (ground too-high), the age is no longer relevant and that information
+  // must not sneak in after all.
+  let articles;
+  let conditions;
+  if (levelOutcome.allowed) {
+    articles = [...new Set([...levelOutcome.articles, ...(age ? age.articles : [])])].sort();
+    conditions = [...levelOutcome.conditions, ...(age ? age.conditions : [])];
   } else {
-    artikelen = [...new Set(klasse.artikelen)].sort();
-    voorwaarden = [];
+    articles = [...new Set(levelOutcome.articles)].sort();
+    conditions = [];
   }
 
   let verdict;
-  let samenvatting;
-  if (!klasse.toegestaan) {
-    verdict = "niet-toegestaan";
-    samenvatting = `Nee. ${omschrijf(bron)} speelt te veel niveaus hoger dan ${omschrijf(doel)}. Dit mag alleen met dispensatie van de competitieleiding.`;
-  } else if (leeftijd && leeftijd.blokkeert) {
-    verdict = "niet-toegestaan";
-    samenvatting = `Nee. De klassengrens staat het toe, maar de leeftijd van de speler niet.`;
-  } else if (voorwaarden.length > 0) {
-    verdict = "toegestaan";
-    samenvatting = `Ja, mits aan de voorwaarden hieronder is voldaan.`;
+  let summary;
+  if (!levelOutcome.allowed) {
+    verdict = "not-allowed";
+    summary = `Nee. ${describe(lender)} speelt te veel niveaus hoger dan ${describe(borrower)}. Dit mag alleen met dispensatie van de competitieleiding.`;
+  } else if (age && age.blocks) {
+    verdict = "not-allowed";
+    summary = `Nee. De klassengrens staat het toe, maar de leeftijd van de speler niet.`;
+  } else if (conditions.length > 0) {
+    verdict = "allowed";
+    summary = `Ja, mits aan de voorwaarden hieronder is voldaan.`;
   } else {
-    verdict = "toegestaan";
-    samenvatting = `Ja. Een speler uit ${omschrijf(bron)} mag invallen in ${omschrijf(doel)}.`;
+    verdict = "allowed";
+    summary = `Ja. Een speler uit ${describe(lender)} mag invallen in ${describe(borrower)}.`;
   }
 
-  // Is het oordeel niet-toegestaan, dan blijven er geen voorwaarden over: die suggereren dat de
-  // speler er alsnog aan zou kunnen voldoen, terwijl het oordeel al vaststaat. Dit geldt zowel als
-  // de klassentoets zelf afkeurt als wanneer de klasse het toestaat maar de leeftijd blokkeert.
-  // De samenvatting hierboven is dan al bepaald, dus dit raakt die keuze niet meer.
-  if (verdict === "niet-toegestaan") {
-    voorwaarden = [];
+  // When the verdict is not-allowed, no conditions remain: they would suggest that the player
+  // could still meet them, while the verdict is already settled. This holds both when the class
+  // check itself rejects and when the class allows it but the age blocks. The summary above has
+  // already been determined, so this no longer affects that choice.
+  if (verdict === "not-allowed") {
+    conditions = [];
   }
 
   return {
     verdict,
-    samenvatting,
-    voorwaarden,
-    redenering: klasse.redenering,
-    leeftijd,
-    artikelen,
-    grond: klasse.grond,
-    kanttekeningen: klasse.kanttekeningen,
+    summary,
+    conditions,
+    reasoning: levelOutcome.reasoning,
+    age,
+    articles,
+    ground: levelOutcome.ground,
+    caveats: levelOutcome.caveats,
   };
 }
 
-// Grond waarbij de aantallen-eis van artikel 5.3.5.2 geldt: een niveau hoger.
-const AANTALLEN_GRONDEN = ["een-hoger"];
+// Ground on which the player-count requirement of article 5.3.5.2 applies: one level higher.
+const PLAYER_COUNT_GROUNDS = ["one-higher"];
 
-// Grond waarbij artikel 5.3.5.3 geldt: de uitzondering vanaf de 5e klasse binnen dezelfde
-// leeftijdscategorie. Daar geldt de aantallen-eis juist niet, alleen een maximum van twee
-// invallers zonder toestemming van de competitieleiding.
-const MAX2_GRONDEN = ["vijfde-klasse"];
+// Ground on which article 5.3.5.3 applies: the exception from the 5th class down within the same
+// age category. There the player-count requirement does not apply, only a maximum of two
+// substitutes without permission from the competition management.
+const MAX_TWO_GROUNDS = ["fifth-class"];
 
-// Bepaalt hoe een vakje in het overzichtsraster getekend moet worden: een grondslag plus de lijst
-// eisen die er daadwerkelijk gelden.
+// Determines how a cell in the overview grid must be drawn: a status plus the list of
+// requirements that actually apply.
 //
-// Een vakje kan meer dan een eis dragen. Eerder koos deze functie er een en gooide de rest weg,
-// waardoor het raster voorwaarden verzweeg: een vakje waar zowel de leeftijdsgrens als de
-// aantallen-eis van artikel 5.3.5.2 gold, toonde alleen de leeftijd, en een vakje waarvan de
-// enige voorwaarde uit artikel 5.3.5.4 kwam kreeg ten onrechte het label leeftijd.
+// A cell can carry more than one requirement. This function used to pick one and throw the rest
+// away, which made the grid keep conditions quiet: a cell where both the age limit and the
+// player-count requirement of article 5.3.5.2 applied showed only the age, and a cell whose only
+// condition came from article 5.3.5.4 wrongly got the age label.
 //
-// De volgorde van de eisen ligt vast, zodat de labels in het raster voorspelbaar zijn.
-// Kanttekeningen (uitkomst.kanttekeningen) zijn geen voorwaarden en leveren dus geen eis op.
-export function vakjeVanUitkomst(uitkomst) {
-  if (uitkomst.verdict === "buiten-scope") return { basis: "buiten-scope", eisen: [] };
-  if (uitkomst.verdict === "niet-toegestaan") return { basis: "nee", eisen: [] };
+// The order of the requirements is fixed, so that the labels in the grid are predictable.
+// Caveats (outcome.caveats) are not conditions and therefore yield no requirement.
+export function cellFromOutcome(outcome) {
+  if (outcome.verdict === "out-of-scope") return { status: "out-of-scope", requirements: [] };
+  if (outcome.verdict === "not-allowed") return { status: "no", requirements: [] };
 
-  const eisen = [];
-  // Artikel 5.3.5.2: lenen uit een team dat een niveau hoger speelt mag alleen bij aantoonbaar te
-  // weinig eigen spelers.
-  if (AANTALLEN_GRONDEN.includes(uitkomst.grond)) eisen.push("aantallen");
-  // Artikel 5.3.5.1, derde bullet: de invaller moet voldoen aan de leeftijdsgrenzen van de
-  // categorie waarin zij invalt.
-  if (uitkomst.voorwaarden.some((v) => /leeftijdsgrenzen van/.test(v))) eisen.push("leeftijd");
-  // Artikel 5.3.5.4: spelers van het eerste team zijn binnen dezelfde O14-niveaugroep niet
-  // speelgerechtigd voor de andere teams. Het artikel draagt deze voorwaarde, dus de aanwezigheid
-  // van het artikelnummer is hier de afleiding.
-  if (uitkomst.artikelen.includes("5.3.5.4")) eisen.push("eerste-team");
-  // Artikel 5.3.5.3: vanaf de 5e klasse binnen dezelfde leeftijdscategorie mogen zonder
-  // toestemming van de competitieleiding maximaal twee spelers invallen.
-  if (MAX2_GRONDEN.includes(uitkomst.grond)) eisen.push("max2");
+  const requirements = [];
+  // Article 5.3.5.2: borrowing from a team that plays one level higher is only allowed with
+  // demonstrably too few own players.
+  if (PLAYER_COUNT_GROUNDS.includes(outcome.ground)) requirements.push("player-count");
+  // Article 5.3.5.1, third bullet: the substitute must meet the age limits of the category she
+  // substitutes in.
+  if (outcome.conditions.some((v) => /leeftijdsgrenzen van/.test(v))) requirements.push("age");
+  // Article 5.3.5.4: players of the first team are not eligible for the other teams within the
+  // same O14 level group. The article carries this condition, so the presence of the article
+  // number is what it is derived from here.
+  if (outcome.articles.includes("5.3.5.4")) requirements.push("first-team");
+  // Article 5.3.5.3: from the 5th class down within the same age category at most two players may
+  // substitute without permission from the competition management.
+  if (MAX_TWO_GROUNDS.includes(outcome.ground)) requirements.push("max-two");
 
-  return { basis: "vrij", eisen };
+  return { status: "free", requirements };
 }
 
-// Bouwt de gegevens voor het overzichtsraster: per leeftijdscategorie een rij, per kolom een vakje.
-// Een vakje zonder geboortedatum, want het raster toont wat er op klassenniveau mogelijk is.
-export function overzicht(doel) {
-  return CATEGORIEEN.map((categorie) => ({
-    categorie,
-    vakjes: KOLOMMEN.map((kolom) => {
-      const klasse = KLASSEN[categorie].find((k) => k.id === kolom);
-      if (!klasse) return { klasse: kolom, bestaat: false };
-      const uitkomst = assess({ categorie, klasse: kolom }, doel, null);
-      const vakje = vakjeVanUitkomst(uitkomst);
+// Builds the data for the overview grid: one row per age category, one cell per column.
+// A cell without a date of birth, because the grid shows what is possible at class level.
+export function overview(borrower) {
+  return AGE_CATEGORIES.map((category) => ({
+    category,
+    cells: COLUMNS.map((column) => {
+      const classEntry = CLASSES[category].find((k) => k.id === column);
+      if (!classEntry) return { classId: column, exists: false };
+      const outcome = assess({ category, classId: column }, borrower, null);
+      const cell = cellFromOutcome(outcome);
       return {
-        klasse: kolom,
-        label: klasse.label,
-        bestaat: true,
-        verdict: uitkomst.verdict,
-        basis: vakje.basis,
-        eisen: vakje.eisen,
+        classId: column,
+        label: classEntry.label,
+        exists: true,
+        verdict: outcome.verdict,
+        status: cell.status,
+        requirements: cell.requirements,
       };
     }),
   }));
