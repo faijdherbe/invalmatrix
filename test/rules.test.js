@@ -69,8 +69,8 @@ test("5th class and lower sit at the same level within a category", () => {
 
 test("level knows every class from the picker", () => {
   for (const [category, classes] of Object.entries(CLASSES)) {
-    for (const classId of classes) {
-      assert.equal(typeof level(category, classId.id), "number", `${category} ${classId.id}`);
+    for (const classEntry of classes) {
+      assert.equal(typeof level(category, classEntry.id), "number", `${category} ${classEntry.id}`);
     }
   }
 });

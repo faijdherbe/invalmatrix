@@ -37,6 +37,12 @@ aan elkaar met een `+` als er meerdere gelden (bijvoorbeeld `mits+lft`):
 De uitzondering van artikel 5.3.5.3 (maximaal twee invallers zonder toestemming) krijgt geen
 label maar een driehoekje rechtsboven in het vakje.
 
+## Taal in deze repo
+
+De code is Engels: variabelen, functies, commentaar, testnamen, bestandsnamen, DOM-id's en
+CSS-klassen. Alles wat een mens leest is Nederlands: de tekst op de pagina, de letterlijke
+artikelcitaten, deze README, de tickets en de commitberichten. Zie `CLAUDE.md`.
+
 ## Draaien
 
 Er is geen build-stap. Voor lokaal bekijken:
@@ -45,7 +51,7 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 ## Tests
 
-Er zijn 123 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`artikeltekst.js`)
+Er zijn 134 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`article-text.js`)
 en de artikeltekst-extractie (`articles.js`):
 
     npm test
@@ -65,13 +71,13 @@ De letterlijke artikelteksten in `articles.js` worden gegenereerd uit de bron-PD
 `articles.js`. Die test faalt zodra `articles.js` afwijkt van wat er (opnieuw) uit de PDF komt,
 bijvoorbeeld na een wijziging in de bron-PDF zonder dat de extractie opnieuw is gedraaid.
 
-`artikeltekst.js` doet alleen de weergave: het zet de letterlijke tekst uit `articles.js` om in
+`article-text.js` doet alleen de weergave: het zet de letterlijke tekst uit `articles.js` om in
 alinea's en opsommingsitems voor op de pagina. Het verandert de tekst zelf niet.
 
 ## Nieuw seizoen
 
-Alles wat per seizoen wijzigt staat in `data.js`: `SEIZOEN`, `PEILDATUM`, `NIVEAU`, `KLASSEN`,
-`LEEFTIJDSGRENZEN`, `CATEGORIE_I` en `CATEGORIE_I_PERIODE`. Vervang daarnaast de PDF's in
+Alles wat per seizoen wijzigt staat in `data.js`: `SEASON`, `REFERENCE_DATE`, `LEVELS`,
+`CLASSES`, `AGE_LIMITS`, `CATEGORY_I` en `CATEGORY_I_PERIOD`. Vervang daarnaast de PDF's in
 `bronnen/` en draai de artikelextractie opnieuw (zie hierboven).
 
 ## Bestanden
@@ -82,10 +88,11 @@ Alles wat per seizoen wijzigt staat in `data.js`: `SEIZOEN`, `PEILDATUM`, `NIVEA
   niets uit.
 - `articles.js`: letterlijke artikelteksten, gegenereerd (zie hierboven, niet met de hand
   bewerken).
-- `artikeltekst.js`: zet de letterlijke tekst uit `articles.js` om in weergeefbare blokken.
+- `article-text.js`: zet de letterlijke tekst uit `articles.js` om in weergeefbare blokken.
 - `tools/extract-articles.mjs`: genereert `articles.js` uit de bron-PDF.
-- `test/`: de 73 tests.
+- `test/`: de 134 tests.
 - `bronnen/`: de twee bron-PDF's van de KNHB.
+- `CLAUDE.md`: de werkafspraken, waaronder de taalregel hieronder.
 
 ## Verwant
 
