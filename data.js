@@ -68,3 +68,17 @@ export const NIVEAU = {
   O16: { landelijk: 2, super: 3, subtop: 4, ...ladder(5) },
   O18: { landelijk: 1, super: 2, subtop: 3, ...ladder(4) },
 };
+
+// Klassen die volledig onder categorie I vallen, hoofdstuk 4 van het reglement.
+// Deze tool dekt alleen categorie II en doet hier geen uitspraak over.
+export const CATEGORIE_I = {
+  O14: ["super"],
+  O16: ["landelijk", "super"],
+  O18: ["landelijk", "super"],
+};
+
+// Klassen die gedurende het seizoen van categorie wisselen.
+export const CATEGORIE_I_PERIODE = {
+  O16: { subtop: "tot de winterstop" },
+  O18: { subtop: "tot en met de herfstvakantie" },
+};

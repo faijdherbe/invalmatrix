@@ -1,4 +1,4 @@
-import { NIVEAU, KLASSEN } from "./data.js";
+import { NIVEAU, KLASSEN, CATEGORIE_I, CATEGORIE_I_PERIODE } from "./data.js";
 
 // Absoluut niveau volgens de tabel klassengrenzen. Lager getal is hoger niveau.
 export function niveau(categorie, klasseId) {
@@ -77,4 +77,17 @@ export function beoordeelKlasse(bron, doel) {
   artikelen.push("5.3.5.2");
   redenering.push("Meer dan een niveau verschil is niet toegestaan zonder dispensatie van de competitieleiding.");
   return { toegestaan: false, grond: "te-hoog", voorwaarden: [], redenering, artikelen };
+}
+
+// Geeft een uitleg terug als het team buiten categorie II valt, anders null.
+export function categorieIMelding(team) {
+  const vast = CATEGORIE_I[team.categorie];
+  if (vast && vast.includes(team.klasse)) {
+    return `${omschrijf(team)} valt onder categorie I, hoofdstuk 4 van het Bondsreglement. Deze tool dekt alleen categorie II en doet hier geen uitspraak over.`;
+  }
+  const periode = CATEGORIE_I_PERIODE[team.categorie];
+  if (periode && periode[team.klasse]) {
+    return `${omschrijf(team)} valt ${periode[team.klasse]} onder categorie I, hoofdstuk 4 van het Bondsreglement, en daarna onder categorie II. Deze tool weet niet in welke periode de wedstrijd valt en doet hier geen uitspraak over.`;
+  }
+  return null;
 }

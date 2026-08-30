@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { KLASSEN } from "../data.js";
-import { niveau, beoordeelKlasse } from "../rules.js";
+import { niveau, beoordeelKlasse, categorieIMelding } from "../rules.js";
 
 function check(bronCat, bronKlasse, doelCat, doelKlasse) {
   return beoordeelKlasse(
@@ -137,4 +137,31 @@ test("de twaalf gevallen uit build.py leveren dezelfde uitkomst", () => {
     assert.equal(r.toegestaan, toegestaan, `${bc} ${bk} naar ${dc} ${dk}`);
     assert.equal(r.grond, grond, `${bc} ${bk} naar ${dc} ${dk}`);
   }
+});
+
+test("Landelijk en Super vallen bij O16 en O18 onder categorie I", () => {
+  assert.ok(categorieIMelding({ categorie: "O18", klasse: "landelijk" }));
+  assert.ok(categorieIMelding({ categorie: "O18", klasse: "super" }));
+  assert.ok(categorieIMelding({ categorie: "O16", klasse: "landelijk" }));
+  assert.ok(categorieIMelding({ categorie: "O16", klasse: "super" }));
+});
+
+test("de Super Competitie valt bij O14 onder categorie I", () => {
+  assert.ok(categorieIMelding({ categorie: "O14", klasse: "super" }));
+});
+
+test("de Subtopklasse van O14 valt onder categorie II en krijgt geen melding", () => {
+  assert.equal(categorieIMelding({ categorie: "O14", klasse: "subtop" }), null);
+});
+
+test("de Subtopklasse van O16 en O18 wisselt van categorie en krijgt een melding met periode", () => {
+  const o18 = categorieIMelding({ categorie: "O18", klasse: "subtop" });
+  assert.match(o18, /herfstvakantie/);
+  const o16 = categorieIMelding({ categorie: "O16", klasse: "subtop" });
+  assert.match(o16, /winterstop/);
+});
+
+test("gewone klassen krijgen geen melding", () => {
+  assert.equal(categorieIMelding({ categorie: "O18", klasse: "1e" }), null);
+  assert.equal(categorieIMelding({ categorie: "O11", klasse: "1e" }), null);
 });
