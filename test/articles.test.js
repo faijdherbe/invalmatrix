@@ -23,3 +23,20 @@ test("de artikelen die de regellogica noemt zijn allemaal opgenomen", () => {
     assert.ok(ARTIKELEN[nummer], `artikel ${nummer} wordt genoemd maar is niet opgenomen`);
   }
 });
+
+test("de artikeltekst begint niet met een restje van de eigen titel", () => {
+  // Als een titel in de PDF over meerdere regels loopt en de kopregex mist een vervolgregel,
+  // belandt dat stukje titel als eerste regel in de tekst. Zo'n stukje is (na het wegnemen
+  // van overtollige spaties) altijd het slot van de titel, terwijl de echte artikeltekst
+  // een eigen zin is die daar niet mee overeenkomt. Werkt voor elk artikel, niet alleen 5.3.3.
+  for (const nummer of GEWENST) {
+    const artikel = ARTIKELEN[nummer];
+    const eersteRegel = artikel.tekst.split("\n")[0].replace(/\s+/g, " ").trim().toLowerCase();
+    const titel = artikel.titel.replace(/\s+/g, " ").trim().toLowerCase();
+    const isTitelrestje = eersteRegel.length > 1 && titel.endsWith(eersteRegel);
+    assert.ok(
+      !isTitelrestje,
+      `artikel ${nummer}: eerste regel van de tekst ("${artikel.tekst.split("\n")[0]}") lijkt een restje van de titel te zijn`
+    );
+  }
+});

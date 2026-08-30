@@ -36,6 +36,12 @@ export function leesRegels(pdf = PDF) {
     .map((regel) => regel.replace(/\s+$/, ""));
 }
 
+// Haalt overtollige spaties weg zodat een ingesprongen vervolgregel te vergelijken is
+// met de rest van de titel.
+function normaliseer(tekst) {
+  return tekst.replace(/\s+/g, " ").trim();
+}
+
 export function extraheer(regels) {
   const KOP = /^(\d+(?:\.\d+)+)\s+(\S.*)$/;
   const koppen = [];
@@ -55,13 +61,30 @@ export function extraheer(regels) {
     const kop = gevonden[0];
     const volgende = koppen.find((andere) => andere.index > kop.index);
     const eind = volgende ? volgende.index : regels.length;
-    const tekst = regels
-      .slice(kop.index + 1, eind)
+    let tekstRegels = regels.slice(kop.index + 1, eind);
+
+    // Als de titel over meerdere regels loopt, staan de vervolgregels van de kop
+    // aan het begin van tekstRegels. Bouw de titel stap voor stap op en sla precies
+    // zoveel regels over als nodig is om bij de gecorrigeerde titel uit te komen.
+    const titel = TITEL_CORRECTIE[nummer] || kop.titel;
+    if (TITEL_CORRECTIE[nummer]) {
+      const doel = normaliseer(titel);
+      let opgebouwd = normaliseer(kop.titel);
+      while (opgebouwd !== doel && tekstRegels.length > 0 && doel.startsWith(`${opgebouwd} `)) {
+        opgebouwd = normaliseer(`${opgebouwd} ${tekstRegels[0]}`);
+        tekstRegels = tekstRegels.slice(1);
+      }
+      if (opgebouwd !== doel) {
+        throw new Error(`titelcorrectie voor artikel ${nummer} komt niet overeen met de regels na de kop`);
+      }
+    }
+
+    const tekst = tekstRegels
       .join("\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
     if (tekst.length === 0) throw new Error(`artikel ${nummer} heeft geen tekst`);
-    artikelen[nummer] = { titel: TITEL_CORRECTIE[nummer] || kop.titel, tekst };
+    artikelen[nummer] = { titel, tekst };
   }
   return artikelen;
 }
