@@ -1,6 +1,8 @@
 import {
   NIVEAU,
   KLASSEN,
+  CATEGORIEEN,
+  KOLOMMEN,
   CATEGORIE_I,
   CATEGORIE_I_PERIODE,
   LEEFTIJDSGRENZEN,
@@ -197,4 +199,24 @@ export function assess(bron, doel, geboortedatum) {
     leeftijd,
     artikelen,
   };
+}
+
+// Bouwt de gegevens voor het overzichtsraster: per leeftijdscategorie een rij, per kolom een vakje.
+// Een vakje zonder geboortedatum, want het raster toont wat er op klassenniveau mogelijk is.
+export function overzicht(doel) {
+  return CATEGORIEEN.map((categorie) => ({
+    categorie,
+    vakjes: KOLOMMEN.map((kolom) => {
+      const klasse = KLASSEN[categorie].find((k) => k.id === kolom);
+      if (!klasse) return { klasse: kolom, bestaat: false };
+      const uitkomst = assess({ categorie, klasse: kolom }, doel, null);
+      return {
+        klasse: kolom,
+        label: klasse.label,
+        bestaat: true,
+        verdict: uitkomst.verdict,
+        voorwaardelijk: uitkomst.voorwaarden.length > 0,
+      };
+    }),
+  }));
 }

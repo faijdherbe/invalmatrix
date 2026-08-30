@@ -48,6 +48,11 @@ export const KLASSEN = {
   ],
 };
 
+// De klassen die een kolom krijgen in het overzichtsraster, van hoog naar laag niveau.
+// landelijk en super staan er niet in: die vallen altijd onder categorie I, dus daar zou elk
+// vakje hetzelfde nietszeggende antwoord geven. De pagina noemt ze in een voetnoot.
+export const KOLOMMEN = ["top", "subtop", "1e", "2e", "3e", "4e", "5e", "6e", "7e", "8e"];
+
 // Rijnummer in de tabel klassengrenzen. De 5e klasse en alles daaronder deelt een rij.
 function ladder(start) {
   return {

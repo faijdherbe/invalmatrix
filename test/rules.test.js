@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { KLASSEN, PEILDATUM } from "../data.js";
+import { KLASSEN, PEILDATUM, KOLOMMEN, CATEGORIEEN } from "../data.js";
 import {
   niveau,
   beoordeelKlasse,
@@ -9,6 +9,7 @@ import {
   beoordeelLeeftijd,
   peildatumNederlands,
   assess,
+  overzicht,
 } from "../rules.js";
 
 const d = (s) => new Date(`${s}T00:00:00Z`);
@@ -334,4 +335,90 @@ test("afwijzing wegens te groot niveauverschil bevat geen redenering over leefti
   assert.ok(!redenering.includes("leeftijdsgrenzen"), "Redenering mag geen leeftijdsgrens bevatten");
   assert.ok(!r.artikelen.includes("3.1.1"), "Artikel 3.1.1 mag niet voorkomen");
   assert.ok(!r.artikelen.includes("3.1.3"), "Artikel 3.1.3 mag niet voorkomen");
+});
+
+test("overzicht geeft een rij per leeftijdscategorie", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  assert.equal(rijen.length, CATEGORIEEN.length);
+  assert.deepEqual(rijen.map((r) => r.categorie), CATEGORIEEN);
+});
+
+test("overzicht geeft per rij een vakje per kolom", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  for (const rij of rijen) {
+    assert.equal(rij.vakjes.length, KOLOMMEN.length);
+    assert.deepEqual(rij.vakjes.map((v) => v.klasse), KOLOMMEN);
+  }
+});
+
+test("overzicht markeert klassen die een categorie niet heeft als niet bestaand", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o11 = rijen.find((r) => r.categorie === "O11");
+  const subtop = o11.vakjes.find((v) => v.klasse === "subtop");
+  assert.equal(subtop.bestaat, false);
+  const eerste = o11.vakjes.find((v) => v.klasse === "1e");
+  assert.equal(eerste.bestaat, true);
+});
+
+test("overzicht komt per vakje overeen met assess", () => {
+  const doel = { categorie: "O14", klasse: "4e" };
+  for (const rij of overzicht(doel)) {
+    for (const vakje of rij.vakjes) {
+      if (!vakje.bestaat) continue;
+      const verwacht = assess({ categorie: rij.categorie, klasse: vakje.klasse }, doel, null);
+      assert.equal(vakje.verdict, verwacht.verdict, `${rij.categorie} ${vakje.klasse}`);
+    }
+  }
+});
+
+test("overzicht laat zien dat een team op gelijk niveau vrij mag invallen", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
+  assert.equal(vijfde.verdict, "toegestaan");
+  assert.equal(vijfde.voorwaardelijk, false);
+});
+
+test("overzicht laat zien dat een klasse hoger onder voorwaarden mag", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const derde = o14.vakjes.find((v) => v.klasse === "3e");
+  assert.equal(derde.verdict, "toegestaan");
+  assert.equal(derde.voorwaardelijk, true);
+});
+
+test("overzicht laat zien dat twee klassen hoger niet mag", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const tweede = o14.vakjes.find((v) => v.klasse === "2e");
+  assert.equal(tweede.verdict, "niet-toegestaan");
+});
+
+test("overzicht geeft de Subtopklasse van O16 en O18 als buiten scope", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  for (const categorie of ["O16", "O18"]) {
+    const rij = rijen.find((r) => r.categorie === categorie);
+    const subtop = rij.vakjes.find((v) => v.klasse === "subtop");
+    assert.equal(subtop.bestaat, true);
+    assert.equal(subtop.verdict, "buiten-scope");
+  }
+});
+
+test("overzicht geeft de Subtopklasse van O14 wel een echt oordeel", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const subtop = o14.vakjes.find((v) => v.klasse === "subtop");
+  assert.notEqual(subtop.verdict, "buiten-scope");
+});
+
+test("KOLOMMEN bevat geen klassen die altijd onder categorie I vallen", () => {
+  assert.ok(!KOLOMMEN.includes("landelijk"));
+  assert.ok(!KOLOMMEN.includes("super"));
+});
+
+test("elke kolom bestaat bij minstens een leeftijdscategorie", () => {
+  for (const kolom of KOLOMMEN) {
+    const bestaat = CATEGORIEEN.some((c) => KLASSEN[c].some((k) => k.id === kolom));
+    assert.ok(bestaat, `kolom ${kolom} bestaat bij geen enkele categorie`);
+  }
 });
