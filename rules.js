@@ -274,7 +274,9 @@ export function assessAge(lender, borrower, dateOfBirth) {
   // category: that is precisely the normal situation when borrowing from a younger category
   // (article 5.3.5.1), not a deviation. So this must not block. Too old for the borrower category
   // and the exception of article 5.2.4 still block, also with a younger lender. And "too young"
-  // with an equal or older lender simply remains a dispensation case.
+  // no longer blocks when lender and borrower sit in the same age category either: the player is
+  // then on a team list in exactly that category (ticket #22). Only with an older lender does it
+  // still block.
   const lenderFromYoungerCategory =
     AGE_CATEGORY_ORDER.indexOf(lender.category) < AGE_CATEGORY_ORDER.indexOf(borrower.category);
   // Article 5.2.5 makes the O11 category an exception to "too old": a player of O12 age (one year
@@ -299,12 +301,25 @@ export function assessAge(lender, borrower, dateOfBirth) {
       blocks = true;
       messages.push(`Op ${dateText} is de speler ${age} jaar en daarmee te oud voor ${borrower.category}, waar de grens ${borrowerLimits.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
     }
-  } else if (age < borrowerLimits.min && !lenderFromYoungerCategory) {
-    blocks = true;
-    messages.push(`Op ${dateText} is de speler ${age} jaar en daarmee te jong voor ${borrower.category}, waar de ondergrens ${borrowerLimits.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
-    articles.push("3.1.1", "3.1.3");
   } else if (age < borrowerLimits.min) {
-    messages.push(`Op ${dateText} is de speler ${age} jaar. Dat is jonger dan de ondergrens van ${borrowerLimits.min} jaar voor ${borrower.category}, maar de speler komt uit een jongere leeftijdscategorie, dus dat is hier de normale situatie en geen afwijking.`);
+    if (lenderFromYoungerCategory) {
+      messages.push(`Op ${dateText} is de speler ${age} jaar. Dat is jonger dan de ondergrens van ${borrowerLimits.min} jaar voor ${borrower.category}, maar de speler komt uit een jongere leeftijdscategorie, dus dat is hier de normale situatie en geen afwijking.`);
+    } else if (lender.category === borrower.category) {
+      // Ticket #22: the player is on a team list in exactly the category she substitutes in. She
+      // can only be there because the competition management placed her there, and article 3.1.3
+      // says that body decides in advance in which age category a player is placed. So that
+      // question has already been answered and the tool must not answer it again. What remains is
+      // a note: check that the dispensation is really there.
+      messages.push(`Op ${dateText} is de speler ${age} jaar, jonger dan de ondergrens van ${borrowerLimits.min} jaar voor ${borrower.category}. Zij staat al op een teamlijst in ${borrower.category}, dus de competitieleiding heeft die indeling al beoordeeld (artikel 3.1.3). Ga na dat die dispensatie er is.`);
+      articles.push("3.1.1", "3.1.3");
+    } else {
+      // The lender comes from an older age category. Whether a dispensation for that older
+      // category also makes her eligible here is nowhere in the regulations, so this keeps
+      // blocking: the conservative side, see the ticket about those cases.
+      blocks = true;
+      messages.push(`Op ${dateText} is de speler ${age} jaar en daarmee te jong voor ${borrower.category}, waar de ondergrens ${borrowerLimits.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
+      articles.push("3.1.1", "3.1.3");
+    }
   } else {
     messages.push(`Op ${dateText} is de speler ${age} jaar en past daarmee binnen ${borrower.category}.`);
   }

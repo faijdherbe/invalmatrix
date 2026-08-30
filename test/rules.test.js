@@ -361,9 +361,22 @@ test("a player who is too old for the borrower category may not play there", () 
   assert.ok(r.articles.includes("3.1.3"));
 });
 
-test("a player who is too young for her own category is a dispensation case, also with an equal or older lender", () => {
+test("a player who is too young for her own category no longer blocks with an equal lender", () => {
+  // Ticket #22: this used to block. The player is on a team list in exactly the borrower
+  // category, which the competition management can only have done under article 3.1.3, so that
+  // assessment already stands and the tool must not repeat it with a different answer.
   const r = assessAge(
     { category: "O14", classId: "3e" },
+    { category: "O14", classId: "4e" },
+    d("2016-05-01"),
+  );
+  assert.equal(r.blocks, false);
+  assert.ok(r.messages.some((m) => /dispensatie/.test(m)));
+});
+
+test("a player who is too young for her own category is a dispensation case with an older lender", () => {
+  const r = assessAge(
+    { category: "O16", classId: "3e" },
     { category: "O14", classId: "4e" },
     d("2016-05-01"),
   );
@@ -1362,4 +1375,68 @@ test("every article appears at most once in the list of assessLevel", () => {
       assert.equal(new Set(r.articles).size, r.articles.length, `${category} ${classId}`);
     }
   }
+});
+
+test("a player already in the borrower category is not blocked on the lower age limit", () => {
+  // Ticket #22: an eleven year old can only be on an O14 team list when the competition
+  // management placed her there (article 3.1.3), so that assessment has already been made. The
+  // tool must not make it again and come to a different answer.
+  const outcome = assess(
+    { category: "O14", classId: "5e" },
+    { category: "O14", classId: "5e" },
+    d("2015-08-20"),
+  );
+  assert.equal(outcome.verdict, "allowed");
+});
+
+test("the same player is allowed from a younger category too, and the answers match", () => {
+  const fromO12 = assess({ category: "O12", classId: "5e" }, { category: "O14", classId: "5e" }, d("2015-08-20"));
+  const fromO14 = assess({ category: "O14", classId: "5e" }, { category: "O14", classId: "5e" }, d("2015-08-20"));
+  assert.equal(fromO12.verdict, "allowed");
+  assert.equal(fromO14.verdict, fromO12.verdict);
+});
+
+test("the age explanation points at the dispensation of article 3.1.3", () => {
+  const outcome = assessAge(
+    { category: "O14", classId: "5e" },
+    { category: "O14", classId: "5e" },
+    d("2015-08-20"),
+  );
+  assert.equal(outcome.blocks, false);
+  const line = outcome.messages.find((v) => /3\.1\.3/.test(v));
+  assert.ok(line, "no message about article 3.1.3");
+  assert.ok(/ondergrens/.test(line), line);
+  assert.ok(outcome.articles.includes("3.1.3"));
+});
+
+test("an older lender with a player under the lower limit keeps blocking", () => {
+  // Whether a dispensation for O16 also makes her eligible in O14 is nowhere in the regulations.
+  // CLAUDE.md then prescribes the conservative side, so this stays no until the KNHB answers.
+  const outcome = assess(
+    { category: "O16", classId: "5e" },
+    { category: "O14", classId: "5e" },
+    d("2015-08-20"),
+  );
+  assert.equal(outcome.verdict, "not-allowed");
+});
+
+test("too old within the same age category keeps blocking", () => {
+  // Article 5.2.4 does say in so many words that those players may only appear for their own team.
+  // For too young no comparable provision exists, which is why the two differ.
+  const outcome = assessAge(
+    { category: "O12", classId: "1e" },
+    { category: "O12", classId: "1e" },
+    d("2013-08-20"),
+  );
+  assert.equal(outcome.blocks, true);
+});
+
+test("a player within the limits gets no dispensation note", () => {
+  const outcome = assessAge(
+    { category: "O14", classId: "5e" },
+    { category: "O14", classId: "5e" },
+    d("2013-08-20"),
+  );
+  assert.equal(outcome.blocks, false);
+  assert.ok(!outcome.messages.some((v) => /3\.1\.3/.test(v)));
 });
