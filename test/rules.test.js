@@ -432,12 +432,12 @@ test("soort aantallen: een niveau hoger mag alleen onder de voorwaarden van 5.3.
   assert.equal(derde.soort, "aantallen");
 });
 
-test("soort max2: de grond een-hoger blijft aantallen opleveren, ook na de toevoeging van max2", () => {
+test("grond een-hoger levert hier leeftijd op: een O18-speler kan nooit aan de O16-leeftijdsgrens voldoen", () => {
   const rijen = overzicht({ categorie: "O16", klasse: "1e" });
   const o18 = rijen.find((r) => r.categorie === "O18");
   const eerste = o18.vakjes.find((v) => v.klasse === "1e");
   assert.equal(eerste.verdict, "toegestaan");
-  assert.equal(eerste.soort, "aantallen");
+  assert.equal(eerste.soort, "leeftijd");
 });
 
 test("soort max2: de grond vijfde-klasse levert max2 op, niet aantallen", () => {
@@ -471,8 +471,8 @@ test("overzicht voor O14 4e klasse geeft het volledige raster zoals de opdrachtg
     O11: [null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
     O12: [null, null, "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij", "vrij"],
     O14: ["nee", "nee", "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
-    O16: [null, "buiten-scope", "nee", "nee", "nee", "aantallen", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
-    O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "aantallen", "aantallen", "aantallen", "aantallen"],
+    O16: [null, "buiten-scope", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
+    O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
   };
   for (const rij of rijen) {
     const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));
@@ -487,7 +487,7 @@ test("overzicht voor O14 5e klasse geeft max2 voor de vijfde-klasse-uitzondering
     O11: [null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
     O12: [null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
     O14: ["nee", "nee", "nee", "nee", "nee", "aantallen", "max2", "max2", "max2", "max2"],
-    O16: [null, "buiten-scope", "nee", "nee", "nee", "nee", "aantallen", "aantallen", "aantallen", "aantallen"],
+    O16: [null, "buiten-scope", "nee", "nee", "nee", "nee", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
     O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "nee", "nee", "nee", "nee"],
   };
   for (const rij of rijen) {
@@ -530,4 +530,116 @@ test("elke kolom bestaat bij minstens een leeftijdscategorie", () => {
     const bestaat = CATEGORIEEN.some((c) => KLASSEN[c].some((k) => k.id === kolom));
     assert.ok(bestaat, `kolom ${kolom} bestaat bij geen enkele categorie`);
   }
+});
+
+// Fout 1: de leeftijdstoets sprak de klassenlogica tegen bij lenen uit een jongere categorie.
+
+test("omstreden: artikel 5.3.5.1 en 3.1.3 spreken elkaar tegen bij een te jonge invaller uit een jongere categorie", () => {
+  const r = assess(
+    { categorie: "O14", klasse: "1e" },
+    { categorie: "O18", klasse: "3e" },
+    d("2013-05-01"),
+  );
+  assert.equal(r.verdict, "omstreden");
+  assert.ok(r.artikelen.includes("5.3.5.1"), "artikel 5.3.5.1 ontbreekt");
+  assert.ok(r.artikelen.includes("3.1.3"), "artikel 3.1.3 ontbreekt");
+});
+
+test("omstreden: hetzelfde geval zonder geboortedatum levert gewoon toegestaan op", () => {
+  const r = assess(
+    { categorie: "O14", klasse: "1e" },
+    { categorie: "O18", klasse: "3e" },
+    null,
+  );
+  assert.equal(r.verdict, "toegestaan");
+});
+
+test("omstreden: overzicht roept assess altijd zonder geboortedatum aan en levert dus nooit omstreden", () => {
+  for (const doelCategorie of CATEGORIEEN) {
+    for (const doelKlasse of KLASSEN[doelCategorie]) {
+      const rijen = overzicht({ categorie: doelCategorie, klasse: doelKlasse.id });
+      for (const rij of rijen) {
+        for (const vakje of rij.vakjes) {
+          assert.notEqual(vakje.verdict, "omstreden", `${rij.categorie} naar ${doelCategorie} ${doelKlasse.id}`);
+        }
+      }
+    }
+  }
+});
+
+test("de andere richting blijft geblokkeerd: te oud voor de doelcategorie met bron uit een oudere categorie", () => {
+  const r = assess(
+    { categorie: "O18", klasse: "3e" },
+    { categorie: "O16", klasse: "2e" },
+    d("2005-05-01"),
+  );
+  assert.equal(r.verdict, "niet-toegestaan");
+});
+
+// Fout 2: artikel 5.3.5.4, de aanvullende regel voor O14 Topklasse en Subtopklasse.
+
+test("artikel 5.3.5.4: O14 Topklasse naar O14 Subtopklasse krijgt de aanvullende voorwaarde over het eerste team", () => {
+  const r = check("O14", "top", "O14", "subtop");
+  assert.equal(r.toegestaan, true);
+  assert.ok(r.artikelen.includes("5.3.5.4"));
+  assert.ok(r.voorwaarden.some((v) => /eerste team/.test(v)));
+});
+
+test("artikel 5.3.5.4 geldt ook de andere kant op, van Subtopklasse naar Topklasse", () => {
+  const r = check("O14", "subtop", "O14", "top");
+  assert.equal(r.toegestaan, true);
+  assert.ok(r.artikelen.includes("5.3.5.4"));
+});
+
+test("artikel 5.3.5.4 geldt niet buiten de Topklasse en Subtopklasse van O14", () => {
+  const r = check("O14", "1e", "O14", "2e");
+  assert.ok(!r.artikelen.includes("5.3.5.4"));
+});
+
+// Fout 3: de voorwaardetekst bij een-hoger moet het team noemen waarin wordt ingevallen.
+
+test("de voorwaarde bij grond een-hoger noemt het team waarin wordt ingevallen, niet het invallende team", () => {
+  const r = check("O18", "1e", "O16", "1e");
+  assert.ok(r.voorwaarden.some((v) => /^Het team waarin wordt ingevallen/.test(v)));
+  assert.ok(!r.voorwaarden.some((v) => /invallende team/.test(v)));
+});
+
+// Fout 4: een onleesbare geboortedatum mag niet doorrekenen tot NaN.
+
+test("leeftijdOpPeildatum geeft een duidelijke fout bij een ongeldige datum", () => {
+  assert.throws(() => leeftijdOpPeildatum(new Date("niet-een-datum")));
+});
+
+test("assess behandelt een ongeldige geboortedatum als geen geboortedatum opgegeven", () => {
+  const r = assess(
+    { categorie: "O14", klasse: "4e" },
+    { categorie: "O14", klasse: "5e" },
+    new Date("niet-een-datum"),
+  );
+  assert.equal(r.verdict, "toegestaan");
+  assert.equal(r.leeftijd, null);
+});
+
+// Fout 5: artikel 5.2.5, de aantallenuitzondering voor O12-jarigen in de O11-categorie.
+
+test("artikel 5.2.5: een O12-jarige in O11 wijst op de uitzondering voor aantallenproblemen", () => {
+  const r = beoordeelLeeftijd(
+    { categorie: "O11", klasse: "1e" },
+    { categorie: "O11", klasse: "1e" },
+    d("2015-05-01"),
+  );
+  assert.equal(r.leeftijd, 11);
+  assert.ok(r.meldingen.some((m) => /5\.2\.5/.test(m)));
+  assert.ok(r.meldingen.some((m) => /aantallenproblemen/.test(m)));
+  assert.ok(r.artikelen.includes("5.2.5"));
+});
+
+// Fout 6: een onmogelijke leeftijdseis moet voorrang krijgen op de aantallen-eis in het raster.
+
+test("een leeftijdseis die nooit haalbaar is krijgt voorrang op de aantallen-eis in het raster", () => {
+  const rijen = overzicht({ categorie: "O11", klasse: "4e" });
+  const o16 = rijen.find((r) => r.categorie === "O16");
+  const vijfde = o16.vakjes.find((v) => v.klasse === "5e");
+  assert.equal(vijfde.verdict, "toegestaan");
+  assert.equal(vijfde.soort, "leeftijd");
 });

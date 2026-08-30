@@ -70,6 +70,24 @@ export function beoordeelKlasse(bron, doel) {
     redenering.push(`De speler komt uit een oudere leeftijdscategorie, dus de leeftijdsgrens van ${doel.categorie} is bepalend.`);
   }
 
+  // Artikel 5.3.5.4: aanvullende regel voor O14-veldhockey. Bij Topklasse en Subtopklasse mogen
+  // spelers van het eerste team niet zonder toestemming van de competitieleiding invallen bij de
+  // andere teams op dat niveau. De tool kent geen teamlijst en kan dus niet weten of een team het
+  // eerste team is, dus deze voorwaarde geldt hier altijd als waarschuwing.
+  const O14_TOP_SUBTOP = ["top", "subtop"];
+  const beideO14TopOfSubtop =
+    bron.categorie === "O14" &&
+    doel.categorie === "O14" &&
+    O14_TOP_SUBTOP.includes(bron.klasse) &&
+    O14_TOP_SUBTOP.includes(doel.klasse);
+  if (beideO14TopOfSubtop) {
+    voorwaarden.push(
+      "Als de vereniging meerdere O14-teams op de Topklasse of de Subtopklasse heeft, zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd.",
+    );
+    artikelen.push("5.3.5.4");
+    redenering.push("Beide teams spelen O14 in de Topklasse of de Subtopklasse, dus de aanvullende regel van artikel 5.3.5.4 geldt.");
+  }
+
   const zelfdeCategorie = bron.categorie === doel.categorie;
   if (zelfdeCategorie && isVijfdeOfLager(bron.klasse) && isVijfdeOfLager(doel.klasse)) {
     voorwaarden.push("Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding.");
@@ -86,7 +104,7 @@ export function beoordeelKlasse(bron, doel) {
 
   if (nBron === nDoel - 1) {
     const aantal = doel.categorie === "O11" ? 9 : 11;
-    voorwaarden.push(`Het invallende team heeft aantoonbaar maximaal ${aantal} spelers beschikbaar uit het eigen of een lager spelend niveau.`);
+    voorwaarden.push(`Het team waarin wordt ingevallen heeft aantoonbaar maximaal ${aantal} spelers beschikbaar uit het eigen of een lager spelend niveau.`);
     voorwaarden.push("Er zijn aantoonbaar geen invallers beschikbaar uit een gelijk of lager spelend niveau.");
     voorwaarden.push("Er mogen maximaal twee spelers invallen, inclusief een vaste doelverdediger.");
     voorwaarden.push("Voor het inlenen van een doelverdediger geldt de eis over het aantal eigen spelers niet.");
@@ -114,6 +132,9 @@ export function categorieIMelding(team) {
 }
 
 export function leeftijdOpPeildatum(geboortedatum) {
+  if (Number.isNaN(geboortedatum.getTime())) {
+    throw new Error("leeftijdOpPeildatum heeft een geldige geboortedatum nodig, dit is een ongeldige datum");
+  }
   let leeftijd = PEILDATUM.getUTCFullYear() - geboortedatum.getUTCFullYear();
   const maandVerschil = PEILDATUM.getUTCMonth() - geboortedatum.getUTCMonth();
   const dagVerschil = PEILDATUM.getUTCDate() - geboortedatum.getUTCDate();
@@ -133,6 +154,12 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
     blokkeert = true;
     meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te oud voor ${doel.categorie}, waar de grens ${grensDoel.max} jaar is. Uitkomen in een categorie waarin zij volgens de leeftijdsgrenzen niet past mag alleen met dispensatie van de competitieleiding.`);
     artikelen.push("3.1.1", "3.1.3");
+    if (doel.categorie === "O11" && leeftijd === grensDoel.max + 1) {
+      meldingen.push(
+        "Artikel 5.2.5 maakt hierop een uitzondering: verenigingen die op basis van aantallen problemen hebben om tot volledige teams te komen in de O11- en O12-categorie, mogen O12-jarigen indelen in de O11-categorie. Een individueel dispensatieverzoek is daarvoor niet nodig, mits de vereniging deze aantallenproblemen heeft.",
+      );
+      artikelen.push("5.2.5");
+    }
   } else if (leeftijd < grensDoel.min) {
     blokkeert = true;
     meldingen.push(`Op ${datumTekst} is de speler ${leeftijd} jaar en daarmee te jong voor ${doel.categorie}, waar de ondergrens ${grensDoel.min} jaar is. Dit mag alleen met dispensatie van de competitieleiding.`);
@@ -159,6 +186,10 @@ export function beoordeelLeeftijd(bron, doel, geboortedatum) {
   return { leeftijd, blokkeert, meldingen, artikelen };
 }
 
+function heeftGeldigeGeboortedatum(geboortedatum) {
+  return geboortedatum instanceof Date && !Number.isNaN(geboortedatum.getTime());
+}
+
 // De enige functie die de gebruikersinterface aanroept.
 export function assess(bron, doel, geboortedatum) {
   const buitenScope = categorieIMelding(bron) || categorieIMelding(doel);
@@ -175,25 +206,52 @@ export function assess(bron, doel, geboortedatum) {
   }
 
   const klasse = beoordeelKlasse(bron, doel);
-  const leeftijd = geboortedatum ? beoordeelLeeftijd(bron, doel, geboortedatum) : null;
-  const toegestaan = klasse.toegestaan && !(leeftijd && leeftijd.blokkeert);
-  const artikelen = klasse.toegestaan
-    ? [...new Set([...klasse.artikelen, ...(leeftijd ? leeftijd.artikelen : [])])].sort()
-    : [...new Set(klasse.artikelen)].sort();
+  // Een onleesbare geboortedatum wordt behandeld als "geen geboortedatum opgegeven": de
+  // leeftijdstoets draait dan gewoon niet. leeftijdOpPeildatum geeft wel een duidelijke fout als
+  // hij direct met een ongeldige datum wordt aangeroepen, zie de toelichting in het rapport.
+  const leeftijd = heeftGeldigeGeboortedatum(geboortedatum) ? beoordeelLeeftijd(bron, doel, geboortedatum) : null;
 
+  // Omstreden: de bron komt uit een jongere leeftijdscategorie dan het doel, de klassenregels
+  // staan het toe, maar de speler is volgens de leeftijdsgrenzen te jong voor het doel. Artikel
+  // 5.3.5.1 geeft dit als voorbeeld van iets dat mag (de derde bullet noemt de leeftijdseis
+  // alleen bij lenen uit een oudere categorie, niet hierbij), terwijl artikel 3.1.3 en de
+  // voetnoot bij de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn. De
+  // tool doet hier geen uitspraak over, maar waarschuwt.
+  const bronUitJongereCategorie =
+    CATEGORIE_VOLGORDE.indexOf(bron.categorie) < CATEGORIE_VOLGORDE.indexOf(doel.categorie);
+  const teJongVoorDoel = leeftijd !== null && leeftijd.leeftijd < LEEFTIJDSGRENZEN[doel.categorie].min;
+  const omstreden = klasse.toegestaan && bronUitJongereCategorie && teJongVoorDoel;
+
+  let artikelen;
+  if (omstreden) {
+    artikelen = [...new Set([...klasse.artikelen, "5.3.5.1", "3.1.3", ...leeftijd.artikelen])].sort();
+  } else if (klasse.toegestaan) {
+    artikelen = [...new Set([...klasse.artikelen, ...(leeftijd ? leeftijd.artikelen : [])])].sort();
+  } else {
+    artikelen = [...new Set(klasse.artikelen)].sort();
+  }
+
+  let verdict;
   let samenvatting;
-  if (!klasse.toegestaan) {
+  if (omstreden) {
+    verdict = "omstreden";
+    samenvatting = `Omstreden: het Bondsreglement spreekt zichzelf hier tegen. Artikel 5.3.5.1 geeft lenen uit een jongere leeftijdscategorie als voorbeeld van iets dat mag, maar artikel 3.1.3 en de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn, en de speler is met ${leeftijd.leeftijd} jaar volgens die grenzen te jong voor ${doel.categorie}. Deze tool doet hier geen uitspraak over. Leg dit voor aan de competitieleiding.`;
+  } else if (!klasse.toegestaan) {
+    verdict = "niet-toegestaan";
     samenvatting = `Nee. ${omschrijf(bron)} speelt te veel niveaus hoger dan ${omschrijf(doel)}. Dit mag alleen met dispensatie van de competitieleiding.`;
   } else if (leeftijd && leeftijd.blokkeert) {
+    verdict = "niet-toegestaan";
     samenvatting = `Nee. De klassengrens staat het toe, maar de leeftijd van de speler niet.`;
   } else if (klasse.voorwaarden.length > 0) {
+    verdict = "toegestaan";
     samenvatting = `Ja, mits aan de voorwaarden hieronder is voldaan.`;
   } else {
+    verdict = "toegestaan";
     samenvatting = `Ja. Een speler uit ${omschrijf(bron)} mag invallen in ${omschrijf(doel)}.`;
   }
 
   return {
-    verdict: toegestaan ? "toegestaan" : "niet-toegestaan",
+    verdict,
     samenvatting,
     voorwaarden: klasse.toegestaan ? klasse.voorwaarden : [],
     redenering: klasse.redenering,
@@ -203,9 +261,8 @@ export function assess(bron, doel, geboortedatum) {
   };
 }
 
-// Grond waarbij de aantallen-eis de zwaarste horde is: artikel 5.3.5.2, een niveau hoger.
-// Een eventuele leeftijdsvoorwaarde telt dan niet mee voor het vakje, die komt in het
-// detailscherm aan bod.
+// Grond waarbij de aantallen-eis van artikel 5.3.5.2 geldt: een niveau hoger. Als daarbij ook
+// een leeftijdsvoorwaarde geldt, weegt die zwaarder voor het vakje, zie soortVanVakje hieronder.
 const AANTALLEN_GRONDEN = ["een-hoger"];
 
 // Grond waarbij artikel 5.3.5.3 geldt: de uitzondering vanaf de 5e klasse binnen dezelfde
@@ -214,9 +271,19 @@ const AANTALLEN_GRONDEN = ["een-hoger"];
 const MAX2_GRONDEN = ["vijfde-klasse"];
 
 // Bepaalt hoe een vakje in het overzichtsraster getekend moet worden.
+// Volgorde van zwaarte: een leeftijdsvoorwaarde weegt het zwaarst, want daar valt voor de
+// vereniging niets aan te regelen. Pas daarna volgen de aantallen-eis (5.3.5.2) en de
+// max-twee-uitzondering (5.3.5.3), waar de vereniging wel iets aan kan doen. Een vakje kan zowel
+// de aantallen-eis als een leeftijdsvoorwaarde hebben (lenen uit een oudere categorie die een
+// klasse hoger speelt); dan krijgt het soort leeftijd, niet aantallen, want een onhaalbare
+// leeftijdsgrens kan nooit groen worden.
 function soortVanVakje(uitkomst) {
   if (uitkomst.verdict === "buiten-scope") return "buiten-scope";
   if (uitkomst.verdict === "niet-toegestaan") return "nee";
+  // overzicht() roept assess() altijd zonder geboortedatum aan, dus dit gebeurt in de praktijk
+  // niet, maar de afhandeling staat er voor de volledigheid.
+  if (uitkomst.verdict === "omstreden") return "omstreden";
+  if (uitkomst.voorwaarden.some((v) => /leeftijdsgrenzen van/.test(v))) return "leeftijd";
   if (AANTALLEN_GRONDEN.includes(uitkomst.grond)) return "aantallen";
   if (MAX2_GRONDEN.includes(uitkomst.grond)) return "max2";
   if (uitkomst.voorwaarden.length > 0) return "leeftijd";
