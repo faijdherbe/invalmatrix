@@ -22,7 +22,7 @@ speler en de letterlijke artikelteksten waarop het oordeel is gebaseerd.
 
 Een vakje heeft een grondslag en daarbinnen nul of meer eisen. De grondslag:
 
-- **ja** (groen): mag, zonder voorwaarden
+- **ja** (groen): mag altijd
 - **nee**: mag niet
 - **?**: geen uitspraak (categorie I)
 
