@@ -1058,7 +1058,178 @@ git commit -m "feat: letterlijke artikelteksten uit het reglement met bewakende 
 
 ---
 
-### Task 7: De pagina
+### Task 7: Overzicht van wat er bij een team mag invallen
+
+**Files:**
+- Modify: `data.js`
+- Modify: `rules.js`
+- Test: `test/rules.test.js`
+
+**Interfaces:**
+- Consumes: `assess`, `KLASSEN`, `CATEGORIEEN`.
+- Produces: `data.js` exporteert `KOLOMMEN`, de klassen die in het raster een kolom krijgen, van hoog
+  naar laag niveau. `rules.js` exporteert `overzicht(doel)` die een array van rijen teruggeeft, een
+  per leeftijdscategorie, elk met een array vakjes in de volgorde van `KOLOMMEN`.
+
+Achtergrond: de pagina toont na het kiezen van een doelteam een raster met daarin per
+leeftijdscategorie en klasse of daar iets vandaan mag komen. Deze taak levert de gegevens voor dat
+raster. Alle regelkennis blijft in `rules.js`, `app.js` rekent niets zelf uit.
+
+`KOLOMMEN` bevat niet de klassen `landelijk` en `super`. Die vallen altijd onder categorie I, dus
+elk vakje daar zou hetzelfde nietszeggende antwoord geven. De pagina noemt ze in een voetnoot.
+`subtop` staat er wel in, want bij O14 valt die onder categorie II en krijgt dus een echt oordeel.
+De klasse `top` staat er ook in, die bestaat alleen bij O14.
+
+- [ ] **Step 1: Schrijf de falende tests**
+
+Werk de importregel voor `rules.js` bovenaan `test/rules.test.js` bij zodat `overzicht` erbij staat,
+en die voor `data.js` zodat `KOLOMMEN` en `CATEGORIEEN` erbij staan. Voeg daaronder toe:
+
+```js
+test("overzicht geeft een rij per leeftijdscategorie", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  assert.equal(rijen.length, CATEGORIEEN.length);
+  assert.deepEqual(rijen.map((r) => r.categorie), CATEGORIEEN);
+});
+
+test("overzicht geeft per rij een vakje per kolom", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  for (const rij of rijen) {
+    assert.equal(rij.vakjes.length, KOLOMMEN.length);
+    assert.deepEqual(rij.vakjes.map((v) => v.klasse), KOLOMMEN);
+  }
+});
+
+test("overzicht markeert klassen die een categorie niet heeft als niet bestaand", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o11 = rijen.find((r) => r.categorie === "O11");
+  const subtop = o11.vakjes.find((v) => v.klasse === "subtop");
+  assert.equal(subtop.bestaat, false);
+  const eerste = o11.vakjes.find((v) => v.klasse === "1e");
+  assert.equal(eerste.bestaat, true);
+});
+
+test("overzicht komt per vakje overeen met assess", () => {
+  const doel = { categorie: "O14", klasse: "4e" };
+  for (const rij of overzicht(doel)) {
+    for (const vakje of rij.vakjes) {
+      if (!vakje.bestaat) continue;
+      const verwacht = assess({ categorie: rij.categorie, klasse: vakje.klasse }, doel, null);
+      assert.equal(vakje.verdict, verwacht.verdict, `${rij.categorie} ${vakje.klasse}`);
+    }
+  }
+});
+
+test("overzicht laat zien dat een team op gelijk niveau vrij mag invallen", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
+  assert.equal(vijfde.verdict, "toegestaan");
+  assert.equal(vijfde.voorwaardelijk, false);
+});
+
+test("overzicht laat zien dat een klasse hoger onder voorwaarden mag", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const derde = o14.vakjes.find((v) => v.klasse === "3e");
+  assert.equal(derde.verdict, "toegestaan");
+  assert.equal(derde.voorwaardelijk, true);
+});
+
+test("overzicht laat zien dat twee klassen hoger niet mag", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const tweede = o14.vakjes.find((v) => v.klasse === "2e");
+  assert.equal(tweede.verdict, "niet-toegestaan");
+});
+
+test("overzicht geeft de Subtopklasse van O16 en O18 als buiten scope", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  for (const categorie of ["O16", "O18"]) {
+    const rij = rijen.find((r) => r.categorie === categorie);
+    const subtop = rij.vakjes.find((v) => v.klasse === "subtop");
+    assert.equal(subtop.bestaat, true);
+    assert.equal(subtop.verdict, "buiten-scope");
+  }
+});
+
+test("overzicht geeft de Subtopklasse van O14 wel een echt oordeel", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "4e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const subtop = o14.vakjes.find((v) => v.klasse === "subtop");
+  assert.notEqual(subtop.verdict, "buiten-scope");
+});
+
+test("KOLOMMEN bevat geen klassen die altijd onder categorie I vallen", () => {
+  assert.ok(!KOLOMMEN.includes("landelijk"));
+  assert.ok(!KOLOMMEN.includes("super"));
+});
+
+test("elke kolom bestaat bij minstens een leeftijdscategorie", () => {
+  for (const kolom of KOLOMMEN) {
+    const bestaat = CATEGORIEEN.some((c) => KLASSEN[c].some((k) => k.id === kolom));
+    assert.ok(bestaat, `kolom ${kolom} bestaat bij geen enkele categorie`);
+  }
+});
+```
+
+- [ ] **Step 2: Draai de tests en controleer dat ze falen**
+
+Run: `node --test test/`
+Expected: FAIL, `overzicht is not a function` of een importfout op `KOLOMMEN`.
+
+- [ ] **Step 3: Voeg KOLOMMEN toe aan data.js**
+
+Zet dit onder `KLASSEN`:
+
+```js
+// De klassen die een kolom krijgen in het overzichtsraster, van hoog naar laag niveau.
+// landelijk en super staan er niet in: die vallen altijd onder categorie I, dus daar zou elk
+// vakje hetzelfde nietszeggende antwoord geven. De pagina noemt ze in een voetnoot.
+export const KOLOMMEN = ["top", "subtop", "1e", "2e", "3e", "4e", "5e", "6e", "7e", "8e"];
+```
+
+- [ ] **Step 4: Voeg overzicht toe aan rules.js**
+
+```js
+// Bouwt de gegevens voor het overzichtsraster: per leeftijdscategorie een rij, per kolom een vakje.
+// Een vakje zonder geboortedatum, want het raster toont wat er op klassenniveau mogelijk is.
+export function overzicht(doel) {
+  return CATEGORIEEN.map((categorie) => ({
+    categorie,
+    vakjes: KOLOMMEN.map((kolom) => {
+      const klasse = KLASSEN[categorie].find((k) => k.id === kolom);
+      if (!klasse) return { klasse: kolom, bestaat: false };
+      const uitkomst = assess({ categorie, klasse: kolom }, doel, null);
+      return {
+        klasse: kolom,
+        label: klasse.label,
+        bestaat: true,
+        verdict: uitkomst.verdict,
+        voorwaardelijk: uitkomst.voorwaarden.length > 0,
+      };
+    }),
+  }));
+}
+```
+
+Werk de importregel bovenaan `rules.js` bij zodat `CATEGORIEEN` en `KOLOMMEN` erbij staan.
+
+- [ ] **Step 5: Draai de tests en controleer dat ze slagen**
+
+Run: `node --test test/`
+Expected: PASS, alle bestaande tests plus de elf nieuwe.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add data.js rules.js test/rules.test.js
+git commit -m "feat: overzicht van wat er bij een team mag invallen"
+```
+
+---
+
+### Task 8: De pagina
 
 **Files:**
 - Create: `index.html`
@@ -1067,8 +1238,17 @@ git commit -m "feat: letterlijke artikelteksten uit het reglement met bewakende 
 - Create: `.nojekyll`
 
 **Interfaces:**
-- Consumes: `assess` uit Task 5, `CATEGORIEEN`, `KLASSEN`, `SEIZOEN`, `TAK` uit `data.js`, `ARTIKELEN` uit Task 6.
+- Consumes: `assess` en `overzicht` uit `rules.js`, `CATEGORIEEN`, `KLASSEN`, `KOLOMMEN`, `SEIZOEN`,
+  `TAK` uit `data.js`, `ARTIKELEN` uit `articles.js`.
 - Produces: niets voor latere taken.
+
+De flow volgt de vraag die de teammanager echt heeft. Hij heeft een gat in een team en zoekt wie dat
+mag vullen, dus het doelteam komt eerst.
+
+1. Bovenaan kiest hij het team waar ingevallen moet worden: leeftijdscategorie en klasse.
+2. Daaronder verschijnt het raster met wat daar vandaan mag komen.
+3. Klikt hij op een vakje, dan verschijnt eronder het volledige oordeel, met een veld voor de
+   geboortedatum en de letterlijke artikelteksten.
 
 - [ ] **Step 1: Schrijf index.html**
 
@@ -1088,32 +1268,31 @@ git commit -m "feat: letterlijke artikelteksten uit het reglement met bewakende 
 </header>
 
 <main>
-  <form id="formulier">
-    <fieldset>
-      <legend>De speler staat op de teamlijst van</legend>
-      <label>Leeftijdscategorie
-        <select id="bron-categorie"></select>
-      </label>
-      <label>Klasse
-        <select id="bron-klasse"></select>
-      </label>
-      <label>Geboortedatum (optioneel)
-        <input type="date" id="geboortedatum">
-      </label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Zij zou invallen bij</legend>
+  <section class="stap">
+    <h2>Bij welk team moet er worden ingevallen?</h2>
+    <div class="keuzes">
       <label>Leeftijdscategorie
         <select id="doel-categorie"></select>
       </label>
       <label>Klasse
         <select id="doel-klasse"></select>
       </label>
-    </fieldset>
-  </form>
+    </div>
+  </section>
 
-  <section id="resultaat" aria-live="polite"></section>
+  <section class="stap">
+    <h2>Wie mag daar invallen?</h2>
+    <div id="raster" aria-live="polite"></div>
+    <p class="voetnoot" id="raster-voetnoot"></p>
+  </section>
+
+  <section class="stap" id="detail-blok" hidden>
+    <h2 id="detail-kop"></h2>
+    <label class="geboorte">Geboortedatum van de speler (optioneel)
+      <input type="date" id="geboortedatum">
+    </label>
+    <div id="resultaat" aria-live="polite"></div>
+  </section>
 </main>
 
 <footer>
@@ -1134,54 +1313,159 @@ git commit -m "feat: letterlijke artikelteksten uit het reglement met bewakende 
 - [ ] **Step 2: Schrijf app.js**
 
 ```js
-import { CATEGORIEEN, KLASSEN, SEIZOEN, TAK } from "./data.js";
-import { assess } from "./rules.js";
+import { CATEGORIEEN, KLASSEN, KOLOMMEN, SEIZOEN, TAK } from "./data.js";
+import { assess, overzicht, categorieIMelding } from "./rules.js";
 import { ARTIKELEN } from "./articles.js";
 
-const velden = {
-  bronCategorie: document.getElementById("bron-categorie"),
-  bronKlasse: document.getElementById("bron-klasse"),
-  doelCategorie: document.getElementById("doel-categorie"),
-  doelKlasse: document.getElementById("doel-klasse"),
-  geboortedatum: document.getElementById("geboortedatum"),
-};
+const doelCategorie = document.getElementById("doel-categorie");
+const doelKlasse = document.getElementById("doel-klasse");
+const raster = document.getElementById("raster");
+const rasterVoetnoot = document.getElementById("raster-voetnoot");
+const detailBlok = document.getElementById("detail-blok");
+const detailKop = document.getElementById("detail-kop");
+const geboortedatum = document.getElementById("geboortedatum");
 const resultaat = document.getElementById("resultaat");
+
+let gekozenBron = null;
 
 document.getElementById("context").textContent = `Seizoen ${SEIZOEN}, ${TAK}, categorie II`;
 
-function vulCategorieen(select, standaard) {
-  select.innerHTML = "";
+function escape(tekst) {
+  const div = document.createElement("div");
+  div.textContent = tekst;
+  return div.innerHTML;
+}
+
+function label(categorie, klasseId) {
+  const gevonden = KLASSEN[categorie].find((k) => k.id === klasseId);
+  return gevonden ? gevonden.label : klasseId;
+}
+
+function vulCategorieen() {
   for (const categorie of CATEGORIEEN) {
     const optie = document.createElement("option");
     optie.value = categorie;
     optie.textContent = categorie;
-    select.append(optie);
+    doelCategorie.append(optie);
   }
-  select.value = standaard;
+  doelCategorie.value = "O14";
 }
 
-function vulKlassen(select, categorie) {
-  const huidige = select.value;
-  select.innerHTML = "";
-  for (const klasse of KLASSEN[categorie]) {
+function vulKlassen() {
+  const huidige = doelKlasse.value;
+  doelKlasse.innerHTML = "";
+  for (const klasse of KLASSEN[doelCategorie.value]) {
     const optie = document.createElement("option");
     optie.value = klasse.id;
     optie.textContent = klasse.label;
-    select.append(optie);
+    doelKlasse.append(optie);
   }
-  select.value = KLASSEN[categorie].some((k) => k.id === huidige) ? huidige : "1e";
+  const bestaat = KLASSEN[doelCategorie.value].some((k) => k.id === huidige);
+  doelKlasse.value = bestaat ? huidige : "4e";
+}
+
+function huidigDoel() {
+  return { categorie: doelCategorie.value, klasse: doelKlasse.value };
+}
+
+function kolomLabel(kolom) {
+  if (kolom === "top") return "Top";
+  if (kolom === "subtop") return "Subtop";
+  return kolom;
+}
+
+function vakjeKlasse(vakje) {
+  if (!vakje.bestaat) return "leeg";
+  if (vakje.verdict === "buiten-scope") return "buiten-scope";
+  if (vakje.verdict === "niet-toegestaan") return "nee";
+  return vakje.voorwaardelijk ? "mits" : "ja";
+}
+
+function vakjeTekst(vakje) {
+  if (!vakje.bestaat) return "";
+  if (vakje.verdict === "buiten-scope") return "?";
+  if (vakje.verdict === "niet-toegestaan") return "nee";
+  return vakje.voorwaardelijk ? "mits" : "ja";
+}
+
+function toonRaster() {
+  const doel = huidigDoel();
+  const melding = categorieIMelding(doel);
+  if (melding) {
+    raster.innerHTML = `<p class="buiten-scope-melding">${escape(melding)}</p>`;
+    rasterVoetnoot.textContent = "";
+    verbergDetail();
+    return;
+  }
+
+  const rijen = overzicht(doel);
+  const koppen = KOLOMMEN.map((kolom) => `<th scope="col">${escape(kolomLabel(kolom))}</th>`).join("");
+  const lichaam = rijen
+    .map((rij) => {
+      const cellen = rij.vakjes
+        .map((vakje) => {
+          const soort = vakjeKlasse(vakje);
+          if (!vakje.bestaat) return `<td class="vakje leeg"></td>`;
+          const titel = `${rij.categorie} ${vakje.label}`;
+          return `<td class="vakje ${soort}"><button type="button" data-categorie="${escape(rij.categorie)}" data-klasse="${escape(vakje.klasse)}" title="${escape(titel)}">${escape(vakjeTekst(vakje))}</button></td>`;
+        })
+        .join("");
+      return `<tr><th scope="row">${escape(rij.categorie)}</th>${cellen}</tr>`;
+    })
+    .join("");
+
+  raster.innerHTML = `<div class="raster-schuif"><table>
+<thead><tr><th scope="col">Komt uit</th>${koppen}</tr></thead>
+<tbody>${lichaam}</tbody>
+</table></div>
+<p class="legenda">
+<span class="ja">ja</span> mag altijd
+<span class="mits">mits</span> mag onder voorwaarden
+<span class="nee">nee</span> mag niet
+<span class="buiten-scope">?</span> geen uitspraak
+</p>`;
+
+  rasterVoetnoot.textContent =
+    "De Landelijke Competitie en de Super- en Topklasse van O16 en O18, en de Super Competitie en IDC van O14, staan niet in dit raster. Die vallen onder categorie I en daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.";
+
+  for (const knop of raster.querySelectorAll("button[data-categorie]")) {
+    knop.addEventListener("click", () => {
+      gekozenBron = { categorie: knop.dataset.categorie, klasse: knop.dataset.klasse };
+      markeerGekozen();
+      toonDetail();
+    });
+  }
+
+  if (gekozenBron && !KLASSEN[gekozenBron.categorie].some((k) => k.id === gekozenBron.klasse)) {
+    gekozenBron = null;
+  }
+  if (gekozenBron) {
+    markeerGekozen();
+    toonDetail();
+  } else {
+    verbergDetail();
+  }
+}
+
+function markeerGekozen() {
+  for (const knop of raster.querySelectorAll("button[data-categorie]")) {
+    const actief =
+      gekozenBron &&
+      knop.dataset.categorie === gekozenBron.categorie &&
+      knop.dataset.klasse === gekozenBron.klasse;
+    knop.parentElement.classList.toggle("gekozen", Boolean(actief));
+  }
+}
+
+function verbergDetail() {
+  detailBlok.hidden = true;
+  resultaat.innerHTML = "";
 }
 
 function lijst(titel, regels) {
   if (regels.length === 0) return "";
   const items = regels.map((regel) => `<li>${escape(regel)}</li>`).join("");
   return `<h3>${titel}</h3><ul>${items}</ul>`;
-}
-
-function escape(tekst) {
-  const div = document.createElement("div");
-  div.textContent = tekst;
-  return div.innerHTML;
 }
 
 function artikelBlok(nummers) {
@@ -1196,46 +1480,36 @@ function artikelBlok(nummers) {
   return `<h3>De artikelen zelf</h3>${items}`;
 }
 
-function toon() {
-  const bron = { categorie: velden.bronCategorie.value, klasse: velden.bronKlasse.value };
-  const doel = { categorie: velden.doelCategorie.value, klasse: velden.doelKlasse.value };
-  const ingevoerd = velden.geboortedatum.value;
-  const geboortedatum = ingevoerd ? new Date(`${ingevoerd}T00:00:00Z`) : null;
+function toonDetail() {
+  if (!gekozenBron) return;
+  const doel = huidigDoel();
+  detailBlok.hidden = false;
+  detailKop.textContent = `Een speler uit ${gekozenBron.categorie} ${label(gekozenBron.categorie, gekozenBron.klasse)} laten invallen in ${doel.categorie} ${label(doel.categorie, doel.klasse)}`;
 
-  const uitkomst = assess(bron, doel, geboortedatum);
-
-  const leeftijdBlok = uitkomst.leeftijd
-    ? lijst("Leeftijd", uitkomst.leeftijd.meldingen)
-    : "";
+  const ingevoerd = geboortedatum.value;
+  const datum = ingevoerd ? new Date(`${ingevoerd}T00:00:00Z`) : null;
+  const uitkomst = assess(gekozenBron, doel, datum);
 
   resultaat.className = uitkomst.verdict;
   resultaat.innerHTML = [
     `<p class="oordeel">${escape(uitkomst.samenvatting)}</p>`,
     lijst("Voorwaarden", uitkomst.voorwaarden),
-    leeftijdBlok,
+    uitkomst.leeftijd ? lijst("Leeftijd", uitkomst.leeftijd.meldingen) : "",
     lijst("Waarom", uitkomst.redenering),
     artikelBlok(uitkomst.artikelen),
   ].join("");
 }
 
-vulCategorieen(velden.bronCategorie, "O14");
-vulCategorieen(velden.doelCategorie, "O14");
-vulKlassen(velden.bronKlasse, velden.bronCategorie.value);
-vulKlassen(velden.doelKlasse, velden.doelCategorie.value);
+vulCategorieen();
+vulKlassen();
+toonRaster();
 
-velden.bronCategorie.addEventListener("change", () => {
-  vulKlassen(velden.bronKlasse, velden.bronCategorie.value);
-  toon();
+doelCategorie.addEventListener("change", () => {
+  vulKlassen();
+  toonRaster();
 });
-velden.doelCategorie.addEventListener("change", () => {
-  vulKlassen(velden.doelKlasse, velden.doelCategorie.value);
-  toon();
-});
-for (const veld of [velden.bronKlasse, velden.doelKlasse, velden.geboortedatum]) {
-  veld.addEventListener("change", toon);
-}
-
-toon();
+doelKlasse.addEventListener("change", toonRaster);
+geboortedatum.addEventListener("change", toonDetail);
 ```
 
 - [ ] **Step 3: Schrijf style.css**
@@ -1244,6 +1518,8 @@ toon();
 :root {
   --groen: #1b7f3b;
   --groen-vlak: #e4f4e9;
+  --geel: #8a6100;
+  --geel-vlak: #fdf3d7;
   --rood: #b3261e;
   --rood-vlak: #fbe9e7;
   --grijs: #5b5b5b;
@@ -1256,7 +1532,7 @@ toon();
 body {
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
-  max-width: 46rem;
+  max-width: 52rem;
   font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #1a1a1a;
 }
@@ -1269,42 +1545,114 @@ h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
   font-size: 0.9rem;
 }
 
-form {
-  display: grid;
+.stap { margin-bottom: 2rem; }
+
+.stap h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.keuzes {
+  display: flex;
   gap: 1rem;
-  grid-template-columns: 1fr 1fr;
+  flex-wrap: wrap;
 }
-
-fieldset {
-  margin: 0;
-  padding: 1rem;
-  border: 1px solid var(--rand);
-  border-radius: 6px;
-}
-
-legend { padding: 0 0.4rem; font-weight: 600; }
 
 label {
   display: block;
-  margin-bottom: 0.75rem;
   font-size: 0.9rem;
 }
-
-label:last-child { margin-bottom: 0; }
 
 select, input {
   display: block;
   margin-top: 0.25rem;
   padding: 0.45rem 0.5rem;
-  width: 100%;
+  min-width: 12rem;
   border: 1px solid var(--rand);
   border-radius: 4px;
   font: inherit;
   background: #fff;
 }
 
+.raster-schuif { overflow-x: auto; }
+
+table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th, td {
+  border: 1px solid var(--rand);
+  text-align: center;
+}
+
+thead th, tbody th {
+  padding: 0.35rem 0.5rem;
+  background: var(--grijs-vlak);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vakje { padding: 0; }
+
+.vakje button {
+  display: block;
+  padding: 0.4rem 0.3rem;
+  width: 100%;
+  min-width: 3.1rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.vakje.ja { background: var(--groen-vlak); color: var(--groen); }
+.vakje.mits { background: var(--geel-vlak); color: var(--geel); }
+.vakje.nee { background: var(--rood-vlak); color: var(--rood); }
+.vakje.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
+.vakje.leeg { background: repeating-linear-gradient(45deg, #fff, #fff 4px, #f4f4f4 4px, #f4f4f4 8px); }
+
+.vakje.gekozen { outline: 3px solid #1a1a1a; outline-offset: -3px; }
+
+.legenda {
+  margin: 0.6rem 0 0;
+  color: var(--grijs);
+  font-size: 0.8rem;
+}
+
+.legenda span {
+  margin-left: 0.9rem;
+  margin-right: 0.15rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.legenda span:first-child { margin-left: 0; }
+.legenda .ja { background: var(--groen-vlak); color: var(--groen); }
+.legenda .mits { background: var(--geel-vlak); color: var(--geel); }
+.legenda .nee { background: var(--rood-vlak); color: var(--rood); }
+.legenda .buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
+
+.voetnoot, .buiten-scope-melding {
+  margin: 0.75rem 0 0;
+  color: var(--grijs);
+  font-size: 0.85rem;
+}
+
+.buiten-scope-melding {
+  padding: 0.9rem 1.1rem;
+  border-left: 5px solid var(--grijs);
+  border-radius: 4px;
+  background: var(--grijs-vlak);
+  color: #1a1a1a;
+  font-size: 1rem;
+}
+
+.geboorte { margin-bottom: 1rem; }
+
 #resultaat {
-  margin-top: 1.5rem;
   padding: 1rem 1.25rem;
   border-left: 5px solid var(--grijs);
   border-radius: 4px;
@@ -1350,10 +1698,6 @@ footer {
   color: var(--grijs);
   font-size: 0.85rem;
 }
-
-@media (max-width: 34rem) {
-  form { grid-template-columns: 1fr; }
-}
 ```
 
 - [ ] **Step 4: Maak .nojekyll**
@@ -1362,41 +1706,46 @@ footer {
 touch .nojekyll
 ```
 
-- [ ] **Step 5: Bekijk de pagina in de browser**
+- [ ] **Step 5: Controleer dat de pagina laadt zonder fouten**
 
-Run: `python3 -m http.server 8000`
-Open `http://localhost:8000/` en controleer:
-- De keuzelijsten zijn gevuld en de klassen veranderen mee met de categorie.
-- O14 4e klasse naar O14 5e klasse geeft groen zonder voorwaarden.
-- O14 subtop naar O14 1e klasse geeft groen met de vier voorwaarden van 5.3.5.2.
-- O18 landelijk naar O18 1e klasse geeft de melding over categorie I en geen kleur.
-- Een geboortedatum van 2013-05-01 bij O14 naar O11 maakt het rood.
-- Het uitklappen van een artikel toont de letterlijke tekst met opsommingstekens.
-- Op een smal scherm staan de twee blokken onder elkaar.
+Start een server: `python3 -m http.server 8000`
 
-Stop de server daarna met Ctrl-C.
+Controleer met curl dat de bestanden geserveerd worden en dat de modules bestaan:
+
+```bash
+curl -sf http://localhost:8000/ > /dev/null && echo "index ok"
+curl -sf http://localhost:8000/app.js > /dev/null && echo "app ok"
+curl -sf http://localhost:8000/rules.js > /dev/null && echo "rules ok"
+curl -sf http://localhost:8000/data.js > /dev/null && echo "data ok"
+curl -sf http://localhost:8000/articles.js > /dev/null && echo "articles ok"
+curl -sf http://localhost:8000/bronnen/bondsreglement-2026.pdf > /dev/null && echo "pdf ok"
+```
+
+Alle zes moeten "ok" melden. Stop de server daarna.
+
+Controleer daarnaast dat `app.js` alleen dingen importeert die ook echt bestaan:
+
+```bash
+node -e 'import("./rules.js").then(m => console.log(["assess","overzicht","categorieIMelding"].map(n => n + ": " + typeof m[n]).join(", ")))'
+node -e 'import("./data.js").then(m => console.log(["CATEGORIEEN","KLASSEN","KOLOMMEN","SEIZOEN","TAK"].map(n => n + ": " + (m[n] === undefined ? "ONTBREEKT" : "ok")).join(", ")))'
+```
+
+Geen enkele mag ONTBREEKT of undefined melden.
 
 - [ ] **Step 6: Draai alle tests nog een keer**
 
 Run: `node --test test/`
-Expected: PASS, 38 tests.
+Expected: PASS, alle tests.
 
-- [ ] **Step 7: Commit en push**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add index.html app.js style.css .nojekyll
-git commit -m "feat: de invalcheck-pagina"
-git push
+git commit -m "feat: de pagina met doelteam eerst en een klikbaar overzicht"
 ```
 
-- [ ] **Step 8: Controleer de gepubliceerde pagina**
-
-Open `https://faijdherbe.github.io/invalmatrix/` en herhaal de controles uit stap 5.
-Let vooral op of de bron-PDF's onderaan te openen zijn en of `articles.js` geladen wordt.
-
 ---
-
-### Task 8: README en openstaande punten
+### Task 9: README en openstaande punten
 
 **Files:**
 - Create: `README.md`
@@ -1489,16 +1838,29 @@ git push
 
 | Spec-onderdeel | Taak |
 |---|---|
-| Scope fase 1 en wat erbuiten valt | Task 3, Task 7 (voettekst), Task 8 (README) |
-| Invoer: bron, doel, optionele geboortedatum | Task 7 |
+| Scope fase 1 en wat erbuiten valt | Task 3, Task 8 (voettekst), Task 9 (README) |
+| Invoer: doelteam eerst, dan herkomst, dan optionele geboortedatum | Task 8 |
 | Niveaumapping uit de tabel klassengrenzen | Task 1 |
 | Klassen in de keuzelijst tot en met de 8e klasse | Task 1 |
 | Categorie I, vast en periodegebonden | Task 3 |
 | Regellogica, vijf stappen | Task 2 en Task 5 |
 | Leeftijdstoets, drie controles en het randgeval | Task 4 |
 | Letterlijke artikelteksten met bewakende test | Task 6 |
-| Weergave in vijf blokken | Task 7 |
+| Overzicht van wat er bij een team mag invallen | Task 7 |
+| Weergave: raster, dan oordeel met voorwaarden, redenering, leeftijd en artikelen | Task 8 |
 | Bestandsindeling | alle taken |
 | Tests: build.py-asserts en reglementvoorbeelden | Task 2 |
-| Deploy | Task 7 stap 7 en 8 |
-| Openstaande punten voor de competitieleiding | Task 8 |
+| Deploy | Task 8 en Task 9 |
+| Openstaande punten voor de competitieleiding | Task 9 |
+
+## Wijzigingen ten opzichte van de eerste versie
+
+De interfaceflow is op verzoek van de opdrachtgever omgedraaid. De oorspronkelijke taak 7 vroeg eerst
+de herkomst van de speler en dan het doelteam. Dat sluit niet aan bij de vraag die een teammanager
+werkelijk heeft: hij heeft een gat in een team en zoekt wie dat mag vullen. De nieuwe opzet vraagt
+eerst het doelteam, toont dan een raster met wat daar mag invallen, en pas na een klik op een vakje
+het volledige oordeel.
+
+Daardoor is de oude taak 7 gesplitst. De overzichtslogica is nu taak 7 en heeft eigen tests, zodat
+alle regelkennis in rules.js blijft en app.js niets zelf uitrekent. De pagina is taak 8 geworden en
+README plus de openstaande punten zijn taak 9.
