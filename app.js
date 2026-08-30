@@ -59,10 +59,11 @@ function kolomLabel(kolom) {
   return kolom;
 }
 
-// De vier soorten uit overzicht() vertaald naar wat het vakje toont.
+// De soorten uit overzicht() vertaald naar wat het vakje toont.
 const VAKJE_TEKST = {
   vrij: "ja",
   aantallen: "mits",
+  max2: "max 2",
   leeftijd: "lft",
   nee: "nee",
   "buiten-scope": "?",
@@ -104,6 +105,7 @@ function toonRaster() {
 <p class="legenda">
 <span class="vrij">ja</span> mag altijd
 <span class="aantallen">mits</span> mag alleen bij aantoonbaar te weinig spelers
+<span class="max2">max 2</span> mag altijd, hooguit twee invallers zonder toestemming
 <span class="leeftijd">lft</span> mag, mits de speler de juiste leeftijd heeft
 <span class="nee">nee</span> mag niet
 <span class="buiten-scope">?</span> geen uitspraak

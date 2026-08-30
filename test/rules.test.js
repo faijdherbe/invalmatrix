@@ -432,6 +432,22 @@ test("soort aantallen: een niveau hoger mag alleen onder de voorwaarden van 5.3.
   assert.equal(derde.soort, "aantallen");
 });
 
+test("soort max2: de grond een-hoger blijft aantallen opleveren, ook na de toevoeging van max2", () => {
+  const rijen = overzicht({ categorie: "O16", klasse: "1e" });
+  const o18 = rijen.find((r) => r.categorie === "O18");
+  const eerste = o18.vakjes.find((v) => v.klasse === "1e");
+  assert.equal(eerste.verdict, "toegestaan");
+  assert.equal(eerste.soort, "aantallen");
+});
+
+test("soort max2: de grond vijfde-klasse levert max2 op, niet aantallen", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "6e" });
+  const o14 = rijen.find((r) => r.categorie === "O14");
+  const vijfde = o14.vakjes.find((v) => v.klasse === "5e");
+  assert.equal(vijfde.verdict, "toegestaan");
+  assert.equal(vijfde.soort, "max2");
+});
+
 test("soort leeftijd: O16 speelt vanaf de 5e klasse gelijk aan O14 4e klasse, dan telt alleen de leeftijd", () => {
   const rijen = overzicht({ categorie: "O14", klasse: "4e" });
   const o16 = rijen.find((r) => r.categorie === "O16");
@@ -457,6 +473,22 @@ test("overzicht voor O14 4e klasse geeft het volledige raster zoals de opdrachtg
     O14: ["nee", "nee", "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
     O16: [null, "buiten-scope", "nee", "nee", "nee", "aantallen", "leeftijd", "leeftijd", "leeftijd", "leeftijd"],
     O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "aantallen", "aantallen", "aantallen", "aantallen"],
+  };
+  for (const rij of rijen) {
+    const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));
+    assert.deepEqual(soorten, verwacht[rij.categorie], rij.categorie);
+  }
+});
+
+test("overzicht voor O14 5e klasse geeft max2 voor de vijfde-klasse-uitzondering van 5.3.5.3", () => {
+  const rijen = overzicht({ categorie: "O14", klasse: "5e" });
+  // kolommen: top subtop 1e 2e 3e 4e 5e 6e 7e 8e
+  const verwacht = {
+    O11: [null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O12: [null, null, "nee", "nee", "aantallen", "vrij", "vrij", "vrij", "vrij", "vrij"],
+    O14: ["nee", "nee", "nee", "nee", "nee", "aantallen", "max2", "max2", "max2", "max2"],
+    O16: [null, "buiten-scope", "nee", "nee", "nee", "nee", "aantallen", "aantallen", "aantallen", "aantallen"],
+    O18: [null, "buiten-scope", "nee", "nee", "nee", "nee", "nee", "nee", "nee", "nee"],
   };
   for (const rij of rijen) {
     const soorten = rij.vakjes.map((v) => (v.bestaat ? v.soort : null));

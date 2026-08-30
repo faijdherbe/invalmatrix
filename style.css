@@ -3,6 +3,8 @@
   --groen-vlak: #e4f4e9;
   --geel: #8a6100;
   --geel-vlak: #fdf3d7;
+  --paars: #6b4c8a;
+  --paars-vlak: #efe7f5;
   --blauw: #1b5f8a;
   --blauw-vlak: #e0eff7;
   --rood: #b3261e;
@@ -94,6 +96,7 @@ thead th, tbody th {
 
 .vakje.vrij { background: var(--groen-vlak); color: var(--groen); }
 .vakje.aantallen { background: var(--geel-vlak); color: var(--geel); }
+.vakje.max2 { background: var(--paars-vlak); color: var(--paars); }
 .vakje.leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
 .vakje.nee { background: var(--rood-vlak); color: var(--rood); }
 .vakje.buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }
@@ -118,6 +121,7 @@ thead th, tbody th {
 .legenda span:first-child { margin-left: 0; }
 .legenda .vrij { background: var(--groen-vlak); color: var(--groen); }
 .legenda .aantallen { background: var(--geel-vlak); color: var(--geel); }
+.legenda .max2 { background: var(--paars-vlak); color: var(--paars); }
 .legenda .leeftijd { background: var(--blauw-vlak); color: var(--blauw); }
 .legenda .nee { background: var(--rood-vlak); color: var(--rood); }
 .legenda .buiten-scope { background: var(--grijs-vlak); color: var(--grijs); }

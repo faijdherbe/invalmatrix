@@ -203,16 +203,22 @@ export function assess(bron, doel, geboortedatum) {
   };
 }
 
-// Gronden waarbij de aantallen-eis de zwaarste horde is: artikel 5.3.5.2 (een niveau hoger) en
-// artikel 5.3.5.3 (de uitzondering in de 5e klasse of lager). Een eventuele leeftijdsvoorwaarde
-// telt dan niet mee voor het vakje, die komt in het detailscherm aan bod.
-const AANTALLEN_GRONDEN = ["een-hoger", "vijfde-klasse"];
+// Grond waarbij de aantallen-eis de zwaarste horde is: artikel 5.3.5.2, een niveau hoger.
+// Een eventuele leeftijdsvoorwaarde telt dan niet mee voor het vakje, die komt in het
+// detailscherm aan bod.
+const AANTALLEN_GRONDEN = ["een-hoger"];
+
+// Grond waarbij artikel 5.3.5.3 geldt: de uitzondering vanaf de 5e klasse binnen dezelfde
+// leeftijdscategorie. Daar geldt de aantallen-eis juist niet, alleen een maximum van twee
+// invallers zonder toestemming van de competitieleiding.
+const MAX2_GRONDEN = ["vijfde-klasse"];
 
 // Bepaalt hoe een vakje in het overzichtsraster getekend moet worden.
 function soortVanVakje(uitkomst) {
   if (uitkomst.verdict === "buiten-scope") return "buiten-scope";
   if (uitkomst.verdict === "niet-toegestaan") return "nee";
   if (AANTALLEN_GRONDEN.includes(uitkomst.grond)) return "aantallen";
+  if (MAX2_GRONDEN.includes(uitkomst.grond)) return "max2";
   if (uitkomst.voorwaarden.length > 0) return "leeftijd";
   return "vrij";
 }
