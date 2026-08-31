@@ -1,8 +1,11 @@
-import { AGE_CATEGORIES, CLASSES, COLUMNS, CATEGORY_I, SEASON, DISCIPLINE } from "./data.js";
-import { assess, overview, categoryINotice } from "./rules.js";
+import { AGE_CATEGORIES, CLASSES, COLUMNS, CATEGORY_I, PERIODS, SEASON, DISCIPLINE } from "./data.js";
+import { assess, overview, categoryINotice, periodCategoryIClasses } from "./rules.js";
+import { listWithAnd, missingChoicesSentence } from "./selection.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
 
+const period = document.getElementById("period");
+const missingChoices = document.getElementById("missing-choices");
 const borrowerCategory = document.getElementById("borrower-category");
 const borrowerClass = document.getElementById("borrower-class");
 const grid = document.getElementById("grid");
@@ -16,7 +19,7 @@ const result = document.getElementById("result");
 
 let selectedLender = null;
 
-document.getElementById("context").textContent = `Seizoen ${SEASON}, ${DISCIPLINE}, categorie II`;
+document.getElementById("context").textContent = `${DISCIPLINE}, categorie II`;
 
 // Also safe inside an attribute (title, data-*): innerHTML already escapes angle brackets and
 // the ampersand, but not the quote character that always surrounds the attributes here.
@@ -31,19 +34,46 @@ function label(category, classId) {
   return found ? found.label : classId;
 }
 
+// The empty option that every choice starts on. Its value is the empty string, so
+// missingChoicesSentence sees it as not chosen.
+function addPlaceholder(select, text) {
+  const option = document.createElement("option");
+  option.value = "";
+  option.textContent = text;
+  select.append(option);
+}
+
+function fillPeriods() {
+  addPlaceholder(period, "Kies een periode");
+  for (const item of PERIODS) {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = `${SEASON}, ${item.label}`;
+    period.append(option);
+  }
+}
+
 function fillCategories() {
+  addPlaceholder(borrowerCategory, "Kies een leeftijdscategorie");
   for (const category of AGE_CATEGORIES) {
     const option = document.createElement("option");
     option.value = category;
     option.textContent = category;
     borrowerCategory.append(option);
   }
-  borrowerCategory.value = "O14";
 }
 
+// The class choice depends on the age category, so it stays disabled until there is one.
 function fillClasses() {
   const current = borrowerClass.value;
   borrowerClass.innerHTML = "";
+  if (!borrowerCategory.value) {
+    addPlaceholder(borrowerClass, "Kies eerst een leeftijdscategorie");
+    borrowerClass.disabled = true;
+    return;
+  }
+  borrowerClass.disabled = false;
+  addPlaceholder(borrowerClass, "Kies een klasse");
   for (const classItem of CLASSES[borrowerCategory.value]) {
     const option = document.createElement("option");
     option.value = classItem.id;
@@ -51,7 +81,17 @@ function fillClasses() {
     borrowerClass.append(option);
   }
   const exists = CLASSES[borrowerCategory.value].some((c) => c.id === current);
-  borrowerClass.value = exists ? current : "4e";
+  borrowerClass.value = exists ? current : "";
+}
+
+function currentSelection() {
+  return { period: period.value, category: borrowerCategory.value, classId: borrowerClass.value };
+}
+
+// rules.js expects null for "no period chosen", while an unchosen select yields the empty string.
+// Everything that goes into rules.js passes through here.
+function currentPeriod() {
+  return period.value || null;
 }
 
 function currentBorrower() {
@@ -165,12 +205,6 @@ function cellHtml(cell) {
   return `${escape(text)}${srOnlyRequirementsHtml(cell.requirements)}${caveat}`;
 }
 
-// Dutch enumeration: "a, b en c". With one item or none no commas or "en" are needed.
-function listWithAnd(items) {
-  if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} en ${items[items.length - 1]}`;
-}
-
 // Sums up which classes fall under category I, for the footnote under the grid. Generated from
 // CATEGORY_I and CLASSES, so the text follows along automatically when that data changes.
 function categoryIList() {
@@ -180,6 +214,16 @@ function categoryIList() {
       return `${category}: ${listWithAnd(labels)}`;
     })
     .join("; ");
+}
+
+// The switching classes that are category I in the chosen period. Those do have a column in the
+// grid, unlike the fixed category I classes, so the footnote names them separately.
+function periodCategoryIText(periodId) {
+  const classes = periodCategoryIClasses(periodId);
+  if (classes.length === 0) return "";
+  const names = classes.map((item) => `${item.category} ${label(item.category, item.classId)}`);
+  const periodName = PERIODS.find((p) => p.id === periodId).label;
+  return ` In de ${periodName} valt ${listWithAnd(names)} daar ook onder.`;
 }
 
 // Builds the table for wide screens from the same rows as the mobile view.
@@ -261,8 +305,19 @@ function mobileCategoryHtml(row) {
 }
 
 function showGrid() {
+  const selection = currentSelection();
+  const missing = missingChoicesSentence(selection);
+  missingChoices.textContent = missing;
+  if (missing) {
+    grid.innerHTML = "";
+    mobileOverview.innerHTML = "";
+    gridFootnote.textContent = "";
+    hideDetail();
+    return;
+  }
+
   const borrower = currentBorrower();
-  const notice = categoryINotice(borrower);
+  const notice = categoryINotice(borrower, currentPeriod());
   if (notice) {
     grid.innerHTML = `<p class="out-of-scope-notice">${escape(notice)}</p>`;
     mobileOverview.innerHTML = "";
@@ -271,13 +326,13 @@ function showGrid() {
     return;
   }
 
-  const rows = overview(borrower);
+  const rows = overview(borrower, currentPeriod());
   grid.innerHTML = gridTableHtml(rows);
   mobileOverview.innerHTML =
     rows.map(mobileCategoryHtml).join("") + `<p class="mobile-explanation">${mobileExplanationHtml()}</p>`;
 
   gridFootnote.textContent =
-    `De klassen die onder categorie I vallen (${categoryIList()}) staan niet in dit raster. Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
+    `De klassen die onder categorie I vallen (${categoryIList()}) staan niet in dit raster.${periodCategoryIText(currentPeriod())} Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
 
   for (const button of [...grid.querySelectorAll("button[data-category]"), ...mobileOverview.querySelectorAll("button[data-category]")]) {
     button.addEventListener("click", () => {
@@ -370,14 +425,14 @@ function showDetail() {
 
   const entered = birthDate.value;
   const date = entered ? new Date(`${entered}T00:00:00Z`) : null;
-  const outcome = assess(selectedLender, borrower, date);
+  const outcome = assess(selectedLender, borrower, date, currentPeriod());
 
   // Whether the date of birth still matters is independent of the date that was entered: without a
   // date assess() can only return "allowed" when the class itself permits it (age is null then, so
   // it cannot block the outcome, see assess() in rules.js). Is that outcome already not-allowed or
   // out-of-scope, then no date changes anything about it and we hide the field. This calculates
   // nothing about substitution rules itself, it only reuses assess() with an empty date.
-  const withoutDate = assess(selectedLender, borrower, null);
+  const withoutDate = assess(selectedLender, borrower, null, currentPeriod());
   birthDateField.hidden = withoutDate.verdict !== "allowed";
 
   result.className = outcome.verdict;
@@ -391,10 +446,12 @@ function showDetail() {
   ].join("");
 }
 
+fillPeriods();
 fillCategories();
 fillClasses();
 showGrid();
 
+period.addEventListener("change", showGrid);
 borrowerCategory.addEventListener("change", () => {
   fillClasses();
   showGrid();

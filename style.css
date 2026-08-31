@@ -377,3 +377,7 @@ footer {
   padding-left: 0.9rem;
   color: #3a3a3a;
 }
+
+.missing-choices:empty {
+  display: none;
+}

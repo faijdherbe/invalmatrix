@@ -15,6 +15,15 @@
 
 <main>
   <section class="step">
+    <h2>Wanneer wordt de wedstrijd gespeeld?</h2>
+    <div class="choices">
+      <label>Periode
+        <select id="period"></select>
+      </label>
+    </div>
+  </section>
+
+  <section class="step">
     <h2>Bij welk team moet er worden ingevallen?</h2>
     <div class="choices">
       <label>Leeftijdscategorie
@@ -28,6 +37,7 @@
 
   <section class="step">
     <h2>Wie mag daar invallen?</h2>
+    <p class="missing-choices" id="missing-choices" aria-live="polite"></p>
     <div id="grid" class="grid-view" aria-live="polite"></div>
     <div id="mobile-overview" class="mobile-view" aria-live="polite"></div>
     <p class="footnote" id="grid-footnote"></p>
