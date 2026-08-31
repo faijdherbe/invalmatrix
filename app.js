@@ -223,7 +223,9 @@ function periodCategoryIText(periodId) {
   if (classes.length === 0) return "";
   const names = classes.map((item) => `${item.category} ${label(item.category, item.classId)}`);
   const periodName = PERIODS.find((p) => p.id === periodId).label;
-  return ` In de ${periodName} valt ${listWithAnd(names)} daar ook onder.`;
+  // Verb agrees with the number of classes: valt (singular) or vallen (plural).
+  const verb = names.length === 1 ? "valt" : "vallen";
+  return ` In de ${periodName} ${verb} ${listWithAnd(names)} daar ook onder.`;
 }
 
 // Builds the table for wide screens from the same rows as the mobile view.
