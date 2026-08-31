@@ -4,6 +4,16 @@ import { listWithAnd, missingChoicesSentence } from "./selection.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
 import { uncertaintyHeading, uncertaintyLines, cellMarkers } from "./uncertainty-text.js";
+import {
+  COMBINATION_EXPLANATION,
+  REQUIREMENTS,
+  REQUIREMENT_ORDER,
+  STATUSES,
+  STATUS_ORDER,
+  cellColor,
+  requirementsLabel,
+  visibleRequirements,
+} from "./cell-text.js";
 
 const period = document.getElementById("period");
 const missingChoices = document.getElementById("missing-choices");
@@ -104,57 +114,6 @@ function columnLabel(column) {
   if (column === "top") return "Top";
   if (column === "subtop") return "Subtop";
   return column;
-}
-
-// One place for both views to draw from: the short text in a grid cell and the description that
-// both the legend under the grid and the group headings in the mobile view use. A cell consists
-// of a status (allowed, not allowed, no verdict) and a list of requirements, see cellFromOutcome()
-// in rules.js.
-//
-// Order of the statuses: first what is allowed, then what is not, then what there is no verdict
-// about. That is also the order in which the groups appear in the mobile view, because the user
-// is looking for who is allowed to fill in. The group "mag" also holds the conditional cases, so
-// the heading is "mag" and not "mag altijd": which conditions apply is shown per class behind the
-// label.
-const STATUS_ORDER = ["free", "no", "out-of-scope"];
-
-const STATUSES = {
-  free: { short: "ja", description: "mag altijd", groupHeading: "mag" },
-  no: { short: "nee", description: "mag niet", groupHeading: "mag niet" },
-  "out-of-scope": { short: "?", description: "geen uitspraak", groupHeading: "geen uitspraak" },
-};
-
-// The requirements with a short label of their own in the cell, in the order in which rules.js
-// returns them. The requirement max-two (article 5.3.5.3) is not in here: it gets no text but the
-// triangle in the top right of the cell, see corner-triangle in style.css and SR_ONLY_CAVEAT below.
-const REQUIREMENT_ORDER = ["player-count", "age", "first-team"];
-
-const REQUIREMENTS = {
-  "player-count": { short: "mits", description: "mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)" },
-  age: { short: "lft", description: "mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)" },
-  "first-team": { short: "team", description: "mag niet voor spelers uit het eerste team, zonder toestemming van de competitieleiding (artikel 5.3.5.4)" },
-};
-
-// Explanation of the combined labels, to go under the legend.
-const COMBINATION_EXPLANATION = "Staan er twee labels met een + ertussen, dan gelden beide voorwaarden.";
-
-// The requirements that get a visible label, in the fixed order of rules.js. max-two drops out here.
-function visibleRequirements(requirements) {
-  return requirements.filter((requirement) => REQUIREMENTS[requirement]);
-}
-
-// The short labels of a cell strung together with a plus, for example "mits+lft". Empty when there
-// is no visible requirement; the cell then shows the text of its status.
-function requirementsLabel(requirements) {
-  return visibleRequirements(requirements).map((requirement) => REQUIREMENTS[requirement].short).join("+");
-}
-
-// The color of a cell or class button: green when there is nothing to arrange (no requirement, or
-// only max-two), yellow as soon as a condition applies. The color says whether there are
-// conditions, the text says which. For status no and out-of-scope the status itself is the color.
-function cellColor(cell) {
-  if (cell.status !== "free") return cell.status;
-  return visibleRequirements(cell.requirements).length > 0 ? "conditional" : "free";
 }
 
 // Text that is not on screen but is read aloud: the triangle marker itself is purely visual
