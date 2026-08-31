@@ -123,7 +123,7 @@ export function assessLevel(lender, borrower) {
 
   // Three caveats about articles that can reverse the verdict, but on which this tool cannot make
   // a statement: it does not know the match day, the round, the club or the matches played. They
-  // do not change the verdict, just like the caveat above.
+  // do not change the verdict.
 
   // Article 5.3.4 has two halves. The first: a player who within the club appears as often or
   // more often for a higher playing team than for her own team gets that higher level as her level

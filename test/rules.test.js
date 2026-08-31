@@ -14,6 +14,7 @@ import {
   overview,
   cellFromOutcome,
 } from "../rules.js";
+import { UNCERTAINTIES } from "../uncertainties.js";
 
 const d = (s) => new Date(`${s}T00:00:00Z`);
 
@@ -1729,4 +1730,39 @@ test("every combination of period, category and class yields a working list of u
       }
     }
   }
+});
+
+// The context the predicates in uncertainties.js read is built in two places: test/uncertainties
+// .test.js makes its own copy, and uncertaintyContext() in rules.js builds the real one. Those two
+// can drift apart without a single test noticing, so this walks every uncertainty through assess()
+// once. A field uncertaintyContext forgets to fill shows up here as a ticket that never fires.
+const TICKET_THROUGH_ASSESS = [
+  { ticket: 11, lender: { category: "O11", classId: "1e" }, borrower: { category: "O12", classId: "1e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 12, lender: { category: "O18", classId: "3e" }, borrower: { category: "O14", classId: "1e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 13, lender: { category: "O14", classId: "5e" }, borrower: { category: "O14", classId: "6e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 14, lender: { category: "O16", classId: "5e" }, borrower: { category: "O14", classId: "6e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 15, lender: { category: "O14", classId: "1e" }, borrower: { category: "O18", classId: "3e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 16, lender: { category: "O14", classId: "3e" }, borrower: { category: "O14", classId: "4e" }, periodId: "mid", dateOfBirth: d("2012-05-01") },
+  { ticket: 17, lender: { category: "O12", classId: "1e" }, borrower: { category: "O11", classId: "1e" }, periodId: "mid", dateOfBirth: d("2015-05-01") },
+  { ticket: 18, lender: { category: "O14", classId: "top" }, borrower: { category: "O14", classId: "2e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 19, lender: { category: "O14", classId: "idc" }, borrower: { category: "O14", classId: "2e" }, periodId: "early", dateOfBirth: null },
+  { ticket: 27, lender: { category: "O14", classId: "super" }, borrower: { category: "O14", classId: "2e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 28, lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 29, lender: { category: "O18", classId: "subtop" }, borrower: { category: "O18", classId: "2e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 30, lender: { category: "O18", classId: "landelijk" }, borrower: { category: "O18", classId: "2e" }, periodId: "mid", dateOfBirth: null },
+  { ticket: 32, lender: { category: "O18", classId: "subtop" }, borrower: { category: "O18", classId: "2e" }, periodId: "early", dateOfBirth: null },
+];
+
+test("every uncertainty is reachable through assess, so the real context matches the predicates", () => {
+  for (const row of TICKET_THROUGH_ASSESS) {
+    const outcome = assess(row.lender, row.borrower, row.dateOfBirth, row.periodId);
+    const found = outcome.uncertainties.map((u) => u.ticket);
+    const where = `${row.lender.category} ${row.lender.classId} to ${row.borrower.category} ${row.borrower.classId} in ${row.periodId}`;
+    assert.ok(found.includes(row.ticket), `ticket ${row.ticket} not reachable at ${where}, got ${found}`);
+  }
+});
+
+test("the walk-through above covers every uncertainty there is", () => {
+  const walked = [...new Set(TICKET_THROUGH_ASSESS.map((row) => row.ticket))].sort((a, b) => a - b);
+  assert.deepEqual(walked, UNCERTAINTIES.map((u) => u.ticket));
 });
