@@ -424,10 +424,16 @@ function uncertaintyContext(lender, borrower, periodId, ground, age) {
       (lender.category === category && lender.classId === classId) ||
       (borrower.category === category && borrower.classId === classId),
     bothFifthOrLower: isFifthOrLower(lender.classId) && isFifthOrLower(borrower.classId),
-    // Whether the player is exactly one year over the upper limit of her own age category. That is
-    // the situation article 5.2.4 is about, and uncertainty #16 needs it directly: rules.js only
-    // reaches for that article from the 2nd class down, while the ticket covers the 1st class too.
-    oneYearOverLenderLimit: age !== null && age.age === AGE_LIMITS[lender.category].max + 1,
+    // Whether the player is exactly one year over the upper limit of her own age category, in a
+    // category where article 5.2.4 applies at all. That article is titled "O12 tot en met O18" and
+    // names those categories in its first sentence, so O11 falls outside it: there article 5.2.5
+    // applies instead, which says a dispensation request is explicitly not needed. Uncertainty #16
+    // needs this directly because rules.js only reaches for 5.2.4 from the 2nd class down, while
+    // ticket #16 covers the higher classes too.
+    oneYearOverLenderLimit:
+      age !== null &&
+      OLDER_PLAYER_EXCEPTION.categories.includes(lender.category) &&
+      age.age === AGE_LIMITS[lender.category].max + 1,
   };
 }
 

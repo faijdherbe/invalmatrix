@@ -354,9 +354,6 @@ function mobileCategoryHtml(row) {
             srOnlyRequirementsHtml(cell.requirements),
             ...markers.map((marker) => MARKERS[marker].srOnly),
           ].join("");
-          // The mobile list uses class names of its own for the markers (see .mobile-class.caveat
-          // and .mobile-class.uncertain in style.css): a corner on a fully round pill floats loose
-          // from the shape, so there they are borders instead of corners.
           const className = [
             "mobile-class",
             escape(cellColor(cell)),

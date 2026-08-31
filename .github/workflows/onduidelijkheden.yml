@@ -10,10 +10,11 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    # Het script roept `gh issue list` aan, en de repo geeft workflows standaard alleen leesrechten
-    # op contents. Dit werkt nu alleen omdat de repo publiek is; zonder dit blok breekt het zodra
-    # de repo privaat wordt.
+    # Het script roept `gh issue list` aan, dus het token heeft leesrechten op issues nodig. Een
+    # permissions-blok is uitputtend: alles wat er niet in staat wordt none, dus contents moet er
+    # ook bij, anders kan actions/checkout zich niet meer authenticeren.
     permissions:
+      contents: read
       issues: read
     steps:
       - uses: actions/checkout@v4

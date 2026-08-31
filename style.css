@@ -427,8 +427,8 @@ footer {
    with the yellow of a condition or the red of a rejection: this says nothing about the verdict
    itself, only that the verdict rests on a choice the reglement does not make. Collapsed by
    default, because a combination can carry four uncertainties at once. This is a `details`
-   element, so the generic `details` rule below would otherwise also give it a full border; the
-   `border: 0` here cancels that inherited border so only the border-left remains. */
+   element, so the generic `details` rule above would otherwise also give it a full border; the
+   `border: 0` here overrides that cascaded border so only the border-left remains. */
 .uncertainty {
   border: 0;
   margin: 0.75rem 0;

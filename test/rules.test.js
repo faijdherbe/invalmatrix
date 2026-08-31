@@ -1855,3 +1855,12 @@ test("a player one year over the limit from a 1st class team must name uncertain
   const r = assess({ category: "O14", classId: "1e" }, { category: "O16", classId: "2e" }, d("2012-05-01"), "mid");
   assert.ok(r.uncertainties.map((u) => u.ticket).includes(16), JSON.stringify(r.uncertainties));
 });
+
+// Article 5.2.4 is titled "O12 tot en met O18" and names those categories in its first sentence,
+// so it does not reach O11 at all: there article 5.2.5 applies, which says a dispensation request
+// is explicitly not needed. A warning that cites 5.2.4 over an O11 player would claim the opposite
+// of what the reglement says, which is worse than saying nothing.
+test("an O11 lender with an eleven year old does not get uncertainty #16", () => {
+  const r = assess({ category: "O11", classId: "1e" }, { category: "O12", classId: "1e" }, d("2015-05-01"), "mid");
+  assert.ok(!r.uncertainties.map((u) => u.ticket).includes(16), JSON.stringify(r.uncertainties));
+});
