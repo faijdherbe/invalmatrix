@@ -160,7 +160,8 @@ De periodes komen erbij:
 // Periods within the season. The two boundaries are the ones chapter 2 names: the herfstvakantie
 // and the winterstop. The labels voorcompetitie and lentecompetitie come from articles 4.3.8,
 // 4.3.9 and 5.3.5.4. The reglement does not say where the boundary between voorcompetitie and
-// lentecompetitie lies; this tool puts it at the winterstop, see ticket #N.
+// lentecompetitie lies; this tool puts it at the winterstop, see ticket #3 below (the real
+// number goes in here once the ticket exists).
 export const PERIODS = [
   { id: "early", label: "voorcompetitie tot de herfstvakantie" },
   { id: "mid", label: "voorcompetitie na de herfstvakantie" },
@@ -171,8 +172,10 @@ export const PERIODS = [
 `CATEGORY_I` blijft zoals hij is: de klassen die het hele seizoen categorie I zijn.
 
 `CATEGORY_I_PERIOD` wordt vervangen door `CATEGORY_I_UNTIL`. De waarde is de laatste periode
-waarin de klasse nog categorie I is; vanaf de periode daarna is hij categorie II. De letterlijke
-zin uit het reglement gaat als commentaar mee, zodat de regel naast zijn bron staat.
+waarin de klasse nog categorie I is; vanaf de periode daarna is hij categorie II. Of een periode
+voor of na die grens ligt volgt uit de plek in `PERIODS`, dus die array is de enige plaats waar de
+volgorde van het seizoen vastligt. De letterlijke zin uit het reglement gaat als commentaar mee,
+zodat de regel naast zijn bron staat.
 
 ```js
 export const CATEGORY_I_UNTIL = {
@@ -207,6 +210,12 @@ eerder, zodat elke bestaande aanroep zonder periode blijft werken en daarmee aut
 keuze precies doet wat hij nu doet.
 
 Verder rekent er niets nieuws. De periode is een filter op de categorie-indeling, meer niet.
+
+De tweede rij van die tabel, geen periode gekozen, is vanuit de pagina niet te bereiken: het raster
+verschijnt pas als alle drie de keuzes gevuld zijn, en het detailblok hangt aan het raster. Die tak
+blijft er toch in, omdat `rules.js` een losse module is die nooit stilzwijgend een periode mag
+aannemen. Hij wordt gedekt door de bestaande testsuite, die `assess` en `overview` overal zonder
+periode aanroept.
 
 ### `app.js`
 
