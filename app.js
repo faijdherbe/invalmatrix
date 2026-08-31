@@ -224,6 +224,10 @@ function categoryIList() {
 // open (contested, see periodCategoryIClasses in rules.js and the design document of 31 August
 // 2026). Each sentence is only rendered when its list is non-empty.
 function periodCategoryIText(periodId) {
+  // Without a chosen period there is no period to name, and showGrid does not draw the grid then
+  // either. periodCategoryIClasses does return every switching class for a null period, so this
+  // guard has to come first.
+  if (periodId === null) return "";
   const classes = periodCategoryIClasses(periodId);
   if (classes.length === 0) return "";
   const periodName = periodLabel(periodId);

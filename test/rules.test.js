@@ -6,6 +6,7 @@ import {
   assessLevel,
   categoryINotice,
   periodCategoryIClasses,
+  periodLabel,
   ageOnReferenceDate,
   assessAge,
   formatDateDutch,
@@ -408,6 +409,12 @@ test("periodCategoryIClasses names the switching classes that are category I in 
 // periodIndex return -1, which sorts before every real period index and silently turns a category
 // I class into category II in every period. periodIndex now throws instead, and this is the guard
 // against a silent regression on that.
+test("periodLabel throws on an unknown period id instead of echoing it into the text", () => {
+  assert.equal(periodLabel("early"), "voorcompetitie tot en met de herfstvakantie");
+  assert.throws(() => periodLabel("nonsense"), /unknown period id/);
+  assert.throws(() => periodLabel(null), /unknown period id/);
+});
+
 test("every until value in CATEGORY_I_UNTIL is a real period id in PERIODS", () => {
   const ids = PERIODS.map((p) => p.id);
   for (const category of Object.keys(CATEGORY_I_UNTIL)) {

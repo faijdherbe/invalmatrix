@@ -272,9 +272,12 @@ function periodIndex(periodId) {
   return index;
 }
 
+// Throws on an unknown id for the same reason periodIndex does: a label that quietly falls back to
+// the raw id ends up in a sentence the user reads, and "in de null" is worse than a stack trace.
 export function periodLabel(periodId) {
   const found = PERIODS.find((p) => p.id === periodId);
-  return found ? found.label : periodId;
+  if (!found) throw new Error(`unknown period id: ${periodId}`);
+  return found.label;
 }
 
 // Returns an explanation when the team falls outside category II, otherwise null. periodId is null
