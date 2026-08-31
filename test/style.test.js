@@ -31,3 +31,19 @@ test("the small example in the legend has a name that does not name the old mark
   assert.ok(!/\.caveat-example/.test(css));
   assert.ok(rule(".marker-example"), "no .marker-example rule found");
 });
+
+// The caution block belongs to no marker and shows up at every allowed verdict. In yellow it read
+// as the counterpart of the yellow corner marker, which is exactly the confusion of ticket #36.
+// Grey, so yellow means one thing on this page: a condition applies.
+test("the caution block is grey, not yellow", () => {
+  const block = rule(".caution");
+  assert.ok(block, "no .caution rule found");
+  assert.ok(!/--yellow/.test(block), ".caution may not use the yellow of a condition");
+  assert.match(block, /--grey/);
+});
+
+test("the heading inside the caution block is grey too", () => {
+  const heading = rule("#result .caution h3");
+  assert.ok(heading, "no #result .caution h3 rule found");
+  assert.ok(!/--yellow/.test(heading), "the heading may not use the yellow of a condition");
+});

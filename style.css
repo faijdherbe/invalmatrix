@@ -292,21 +292,22 @@ thead th, tbody th {
 
 .verdict { margin: 0; font-size: 1.15rem; font-weight: 600; }
 
-/* Block for outcome.caveats: not a condition to meet, but a warning that the rule itself is
-   contested. Sits directly under the summary, above the conditions (see cautionBlockHtml in
-   app.js). Same yellow/orange palette as the cells with a condition, but this is a different block
-   for a different concept: it belongs to the detail view, not to the overview grid. */
+/* Block for outcome.caveats: not a condition to meet, but a warning that this tool cannot judge
+   the match day, the round, the club or the matches played. It sits directly under the summary,
+   above the conditions (see cautionBlockHtml in app.js). Grey, because it belongs to no marker in
+   the grid and shows up at every allowed verdict: in yellow it read as the counterpart of a yellow
+   marker, and that was ticket #36. Yellow now means one thing on this page: a condition applies. */
 .caution {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;
-  border-left: 5px solid var(--yellow);
+  border-left: 5px solid var(--grey);
   border-radius: 4px;
-  background: var(--yellow-surface);
+  background: var(--grey-surface);
 }
 
 #result .caution h3 {
   margin: 0 0 0.4rem;
-  color: var(--yellow);
+  color: var(--grey);
 }
 
 #result h3 {
