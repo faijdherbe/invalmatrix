@@ -96,7 +96,7 @@ export const CATEGORY_I = {
 // Periods within the season. The two boundaries are the ones chapter 2 of the Bondsreglement
 // names: the herfstvakantie and the winterstop. The labels voorcompetitie and lentecompetitie come
 // from articles 4.3.8, 4.3.9 and 5.3.5.4. The reglement does not say where the boundary between
-// voorcompetitie and lentecompetitie lies; this tool puts it at the winterstop.
+// voorcompetitie and lentecompetitie lies; this tool puts it at the winterstop. See ticket #29.
 // The order of this array is the order of the season, and it is the only place where that order is
 // recorded.
 export const PERIODS = [
