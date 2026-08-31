@@ -93,11 +93,33 @@ export const CATEGORY_I = {
   O18: ["landelijk", "super"],
 };
 
-// Classes that switch category during the season.
-export const CATEGORY_I_PERIOD = {
-  O14: { idc: "tot de winterstop" },
-  O16: { subtop: "tot en met de winterstop" },
-  O18: { subtop: "tot en met de herfstvakantie" },
+// Periods within the season. The two boundaries are the ones chapter 2 of the Bondsreglement
+// names: the herfstvakantie and the winterstop. The labels voorcompetitie and lentecompetitie come
+// from articles 4.3.8, 4.3.9 and 5.3.5.4. The reglement does not say where the boundary between
+// voorcompetitie and lentecompetitie lies; this tool puts it at the winterstop.
+// The order of this array is the order of the season, and it is the only place where that order is
+// recorded.
+export const PERIODS = [
+  { id: "early", label: "voorcompetitie tot de herfstvakantie" },
+  { id: "mid", label: "voorcompetitie na de herfstvakantie" },
+  { id: "late", label: "lentecompetitie" },
+];
+
+// Classes that are category I during only part of the season. until is the last period in which
+// the class is still category I; from the period after that it is category II. phrase is the
+// wording chapter 2 itself uses, so the rule stands next to its source.
+// contested marks a class about which the reglement does not settle the category before the
+// boundary. The notice for such a class claims no category at all, see the design document of
+// 31 August 2026.
+export const CATEGORY_I_UNTIL = {
+  // Chapter 2: "de Landelijke Subtopklasse O18 vanaf de herfstvakantie".
+  O18: { subtop: { until: "early", phrase: "tot en met de herfstvakantie" } },
+  // Chapter 2: "de Landelijke Subtopklasse O16 vanaf de winterstop".
+  O16: { subtop: { until: "mid", phrase: "tot en met de winterstop" } },
+  // Chapter 2 names IDC-O14 nowhere under category I and only says that it falls under category II
+  // from the winter break. What holds before that, and whether it is played at all then, articles
+  // 4.3.9 and 5.3.5.4 leave open.
+  O14: { idc: { until: "mid", phrase: "voor de winterstop", contested: true } },
 };
 
 // Age on the reference date, articles 3.1.1, 5.2.4 and 5.2.5 of the Bondsreglement 2026.
