@@ -292,7 +292,7 @@ export function categoryINotice(team, periodId = null) {
     : `In de ${periodLabel(periodId)} doet deze pagina hier geen uitspraak over.`;
 
   if (switching.contested) {
-    return `Het reglement zet ${describe(team)} vanaf de winterstop in categorie II, maar laat in het midden wat er ${switching.phrase} geldt en of er dan wordt gespeeld (hoofdstuk 2 van het Bondsreglement, en de artikelen 4.3.9 en 5.3.5.4). ${scope}`;
+    return `Het reglement zet ${describe(team)} vanaf de winterstop onder categorie II, maar laat in het midden wat er ${switching.phrase} geldt en of er dan wordt gespeeld (hoofdstuk 2 van het Bondsreglement, en de artikelen 4.3.9 en 5.3.5.4). ${scope}`;
   }
   return `${describe(team)} valt ${switching.phrase} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. ${scope}`;
 }

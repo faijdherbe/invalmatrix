@@ -318,7 +318,8 @@ test("IDC-O14 gets no verdict without a chosen period, and the notice claims no 
   const notice = categoryINotice({ category: "O14", classId: "idc" });
   assert.match(notice, /vanaf de winterstop/);
   assert.match(notice, /geen uitspraak/);
-  assert.doesNotMatch(notice, /onder categorie I/);
+  // Use negative lookahead to avoid matching "onder categorie II" when testing for category I.
+  assert.doesNotMatch(notice, /onder categorie I(?!I)/);
 });
 
 test("Super O14 stays, apart from IDC-O14, unconditionally under category I", () => {
@@ -373,7 +374,7 @@ test("the notice of IDC-O14 claims no category, because the reglement does not s
     const notice = categoryINotice({ category: "O14", classId: "idc" }, periodId);
     assert.match(notice, /vanaf de winterstop/);
     assert.match(notice, /geen uitspraak/);
-    assert.doesNotMatch(notice, /onder categorie I/);
+    assert.doesNotMatch(notice, /onder categorie I(?!I)/);
   }
 });
 
