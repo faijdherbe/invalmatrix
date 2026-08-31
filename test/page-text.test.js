@@ -61,5 +61,7 @@ test("there is a place for the message about an incomplete choice", () => {
 });
 
 test("the page holds no hard preselected age category or class", () => {
-  assert.ok(!/borrowerCategory\.value = "/.test(readFileSync(new URL("../app.js", import.meta.url), "utf8")));
+  const appJs = readFileSync(new URL("../app.js", import.meta.url), "utf8");
+  assert.ok(!/borrowerCategory\.value = "/.test(appJs));
+  assert.ok(!/borrowerClass\.value = "/.test(appJs));
 });

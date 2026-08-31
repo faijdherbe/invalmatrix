@@ -257,6 +257,16 @@ thead th, tbody th {
   font-size: 0.85rem;
 }
 
+/* The footnote can now be empty (see periodCategoryIText in app.js), and without this rule its
+   top margin still leaves a gap under the grid. */
+.footnote:empty {
+  display: none;
+}
+
+.missing-choices:empty {
+  display: none;
+}
+
 .out-of-scope-notice {
   padding: 0.9rem 1.1rem;
   border-left: 5px solid var(--grey);
@@ -376,8 +386,4 @@ footer {
   border-left: 3px solid var(--border);
   padding-left: 0.9rem;
   color: #3a3a3a;
-}
-
-.missing-choices:empty {
-  display: none;
 }

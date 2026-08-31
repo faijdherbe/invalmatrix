@@ -29,7 +29,8 @@ Een vakje heeft een grondslag en daarbinnen nul of meer eisen. De grondslag:
 
 - **ja** (groen): mag altijd
 - **nee**: mag niet
-- **?**: geen uitspraak (categorie I)
+- **?**: geen uitspraak (categorie I, of een klasse waarvan het reglement de categorie niet
+  vastlegt, zoals IDC-O14 voor de winterstop)
 
 Geldt er wel een voorwaarde, dan is het vakje geel en staan de korte labels van de eisen erin,
 aan elkaar met een `+` als er meerdere gelden (bijvoorbeeld `mits+lft`):

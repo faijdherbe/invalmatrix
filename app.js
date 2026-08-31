@@ -1,5 +1,5 @@
 import { AGE_CATEGORIES, CLASSES, COLUMNS, CATEGORY_I, PERIODS, SEASON, DISCIPLINE } from "./data.js";
-import { assess, overview, categoryINotice, periodCategoryIClasses } from "./rules.js";
+import { assess, overview, categoryINotice, periodCategoryIClasses, periodLabel } from "./rules.js";
 import { listWithAnd, missingChoicesSentence } from "./selection.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
@@ -44,7 +44,7 @@ function addPlaceholder(select, text) {
 }
 
 function fillPeriods() {
-  addPlaceholder(period, "Kies een periode");
+  addPlaceholder(period, `Kies een periode in ${SEASON}`);
   for (const item of PERIODS) {
     const option = document.createElement("option");
     option.value = item.id;
@@ -217,15 +217,38 @@ function categoryIList() {
 }
 
 // The switching classes that are category I in the chosen period. Those do have a column in the
-// grid, unlike the fixed category I classes, so the footnote names them separately.
+// grid, unlike the fixed category I classes, so the footnote names them separately, and never
+// claims they are missing from the grid: they are right there, they just show "?" instead of a
+// verdict. Two different sentences for two different reasons: chapter 2 itself puts some classes
+// under category I in this period (settled), while for IDC-O14 the reglement leaves the category
+// open (contested, see periodCategoryIClasses in rules.js and the design document of 31 August
+// 2026). Each sentence is only rendered when its list is non-empty.
 function periodCategoryIText(periodId) {
   const classes = periodCategoryIClasses(periodId);
   if (classes.length === 0) return "";
-  const names = classes.map((item) => `${item.category} ${label(item.category, item.classId)}`);
-  const periodName = PERIODS.find((p) => p.id === periodId).label;
-  // Verb agrees with the number of classes: valt (singular) or vallen (plural).
-  const verb = names.length === 1 ? "valt" : "vallen";
-  return ` In de ${periodName} ${verb} ${listWithAnd(names)} daar ook onder.`;
+  const periodName = periodLabel(periodId);
+  const names = (items) => listWithAnd(items.map((item) => `${item.category} ${label(item.category, item.classId)}`));
+
+  const settled = classes.filter((item) => !item.contested);
+  const contested = classes.filter((item) => item.contested);
+
+  const sentences = [];
+  if (settled.length > 0) {
+    // Verb and column noun agree with the number of classes: valt/geeft (singular) or
+    // vallen/geven (plural).
+    const plural = settled.length > 1;
+    const verb = plural ? "vallen" : "valt";
+    const give = plural ? "geven" : "geeft";
+    const column = plural ? "kolommen" : "kolom";
+    sentences.push(` Volgens hoofdstuk 2 ${verb} ${names(settled)} in de ${periodName} ook onder categorie I, dus ${give} die ${column} daar geen oordeel.`);
+  }
+  if (contested.length > 0) {
+    const plural = contested.length > 1;
+    const give = plural ? "geven" : "geeft";
+    const column = plural ? "kolommen" : "kolom";
+    sentences.push(` Wat er in de ${periodName} voor ${names(contested)} geldt, laat het reglement in het midden, dus ${give} die ${column} ook daar geen oordeel.`);
+  }
+  return sentences.join("");
 }
 
 // Builds the table for wide screens from the same rows as the mobile view.
@@ -334,7 +357,7 @@ function showGrid() {
     rows.map(mobileCategoryHtml).join("") + `<p class="mobile-explanation">${mobileExplanationHtml()}</p>`;
 
   gridFootnote.textContent =
-    `De klassen die onder categorie I vallen (${categoryIList()}) staan niet in dit raster.${periodCategoryIText(currentPeriod())} Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
+    `De klassen die onder categorie I vallen (${categoryIList()}) staan niet in dit raster; daar doet deze pagina geen uitspraak over.${periodCategoryIText(currentPeriod())} Klik op een vakje voor de onderbouwing.`;
 
   for (const button of [...grid.querySelectorAll("button[data-category]"), ...mobileOverview.querySelectorAll("button[data-category]")]) {
     button.addEventListener("click", () => {
