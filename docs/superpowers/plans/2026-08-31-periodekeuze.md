@@ -121,6 +121,13 @@ test("assess passes the period on: O18 Subtopklasse gets a verdict from the mid 
   assert.notEqual(assess(lender, borrower, null, "mid").verdict, "out-of-scope");
 });
 
+test("assess passes the period on with the switching class as the borrower too", () => {
+  const lender = { category: "O16", classId: "1e" };
+  const borrower = { category: "O16", classId: "subtop" };
+  assert.equal(assess(lender, borrower, null, "mid").verdict, "out-of-scope");
+  assert.notEqual(assess(lender, borrower, null, "late").verdict, "out-of-scope");
+});
+
 test("overview passes the period on: the Subtopklasse column of O16 fills up in the lentecompetitie", () => {
   const borrower = { category: "O16", classId: "1e" };
   const early = overview(borrower, "early").find((r) => r.category === "O16");
@@ -654,12 +661,18 @@ function currentSelection() {
   return { period: period.value, category: borrowerCategory.value, classId: borrowerClass.value };
 }
 
+// rules.js expects null for "no period chosen", while an unchosen select yields the empty string.
+// Everything that goes into rules.js passes through here.
+function currentPeriod() {
+  return period.value || null;
+}
+
 function currentBorrower() {
   return { category: borrowerCategory.value, classId: borrowerClass.value };
 }
 ```
 
-Vervang in `categoryIList` niets, maar voeg eronder de tweede zin van de voetnoot toe:
+Laat `categoryIList` ongewijzigd en voeg er direct onder de tweede zin van de voetnoot bij:
 
 ```js
 // The switching classes that are category I in the chosen period. Those do have a column in the
@@ -689,7 +702,7 @@ function showGrid() {
   }
 
   const borrower = currentBorrower();
-  const notice = categoryINotice(borrower, selection.period);
+  const notice = categoryINotice(borrower, currentPeriod());
   if (notice) {
     grid.innerHTML = `<p class="out-of-scope-notice">${escape(notice)}</p>`;
     mobileOverview.innerHTML = "";
@@ -698,13 +711,13 @@ function showGrid() {
     return;
   }
 
-  const rows = overview(borrower, selection.period);
+  const rows = overview(borrower, currentPeriod());
   grid.innerHTML = gridTableHtml(rows);
   mobileOverview.innerHTML =
     rows.map(mobileCategoryHtml).join("") + `<p class="mobile-explanation">${mobileExplanationHtml()}</p>`;
 
   gridFootnote.textContent =
-    `De klassen die onder categorie I vallen (${categoryIList()}) staan niet in dit raster.${periodCategoryIText(selection.period)} Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
+    `De klassen die onder categorie I vallen (${categoryIList()}) staan niet in dit raster.${periodCategoryIText(currentPeriod())} Daar doet deze pagina geen uitspraak over. Klik op een vakje voor de onderbouwing.`;
 ```
 
 De rest van `showGrid` blijft ongewijzigd.
@@ -712,11 +725,11 @@ De rest van `showGrid` blijft ongewijzigd.
 Geef in `showDetail` de periode door aan beide aanroepen van `assess` (regel 373 en 380):
 
 ```js
-  const outcome = assess(selectedLender, borrower, date, period.value);
+  const outcome = assess(selectedLender, borrower, date, currentPeriod());
 ```
 
 ```js
-  const withoutDate = assess(selectedLender, borrower, null, period.value);
+  const withoutDate = assess(selectedLender, borrower, null, currentPeriod());
 ```
 
 Vervang tot slot de opstartregels onderaan `app.js`:
@@ -836,10 +849,26 @@ Alles wat per seizoen wijzigt staat in `data.js`: `SEASON`, `REFERENCE_DATE`, `P
 PDF's in `bronnen/` en draai de artikelextractie opnieuw (zie hierboven).
 ```
 
-4. Onder "Bestanden": voeg `selection.js` toe en zet op beide plekken het aantal tests uit stap 1.
+4. Onder "Bestanden": voeg `selection.js` toe, direct onder de regel over `data.js`.
 
 ```
 - `selection.js`: de tekst die de pagina toont zolang de keuze onvolledig is.
+```
+
+5. Zet het aantal tests uit stap 1 op beide plekken waar het nu staat. Onder "Tests" luidt de zin
+   nu "Er zijn 158 tests, voor de regellogica (`rules.js`), ..."; noem daar ook `selection.js` en
+   het nieuwe aantal:
+
+```
+Er zijn <aantal uit stap 1> tests, voor de regellogica (`rules.js`), de artikeltekst-parser
+(`article-text.js`), de artikeltekst-extractie (`articles.js`), de tekst voor een onvolledige
+keuze (`selection.js`) en de tekst op de pagina zelf (`test/page-text.test.js`):
+```
+
+   En onder "Bestanden" staat nu "- `test/`: de 154 tests." Zet daar hetzelfde getal neer:
+
+```
+- `test/`: de <aantal uit stap 1> tests.
 ```
 
 - [ ] **Step 3: Commit de README**
