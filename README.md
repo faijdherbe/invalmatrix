@@ -13,9 +13,11 @@ Niet: zaalhockey, senioren, O25, 30+, 45+, reserveteams, combiteams en categorie
 Landelijke Competitie en de Super- en Topklasse van O16 en O18, en de Super Competitie van
 O14). Voor die gevallen doet de pagina bewust geen uitspraak.
 
-Drie klassen wisselen halverwege het seizoen van categorie: de Subtopklasse van O18 (vanaf de
-herfstvakantie), de Subtopklasse van O16 en de IDC-O14 (beide vanaf de winterstop). Daarom
-vraagt de pagina eerst in welke periode van het seizoen de wedstrijd valt.
+Twee klassen wisselen halverwege het seizoen van categorie: de Subtopklasse van O18 (vanaf de
+herfstvakantie) en de Subtopklasse van O16 (vanaf de winterstop). Bij de IDC-O14 laat het
+reglement de categorie tot de winterstop in het midden; vanaf de winterstop valt die klasse
+onder categorie II. Daarom vraagt de pagina eerst in welke periode van het seizoen de wedstrijd
+valt.
 
 ## Hoe de pagina werkt
 
