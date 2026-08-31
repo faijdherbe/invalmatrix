@@ -8,13 +8,36 @@ import { UNCERTAINTIES } from "../uncertainties.js";
 
 const REPO = "faijdherbe/invalmatrix";
 
+// The ceiling on what gh hands back. It is a lot more than this repo will realistically have, but
+// gh stays silent when it truncates, so issues() checks below whether the ceiling was reached.
+const LIMIT = 200;
+
 function issues(state) {
-  const output = execFileSync(
-    "gh",
-    ["issue", "list", "--repo", REPO, "--state", state, "--limit", "200", "--json", "number,title,state"],
-    { encoding: "utf8" },
-  );
-  return JSON.parse(output);
+  let output;
+  try {
+    output = execFileSync(
+      "gh",
+      ["issue", "list", "--repo", REPO, "--state", state, "--limit", String(LIMIT), "--json", "number,title,state"],
+      { encoding: "utf8" },
+    );
+  } catch (error) {
+    // Without this the script dies on a raw Node stack trace, which tells whoever runs it nothing.
+    // The two ways this fails in practice are gh not being installed and gh not being logged in,
+    // so the message names both and then shows what gh itself said.
+    console.error("Kan 'gh issue list' niet draaien. Is gh geinstalleerd, en ben je ingelogd?");
+    const detail = String(error.stderr || error.message || "").trim();
+    if (detail) console.error(`  ${detail}`);
+    process.exit(1);
+  }
+
+  const parsed = JSON.parse(output);
+  // gh truncates silently. Without this check the script could report "in orde" while a ticket
+  // just outside the window has no warning at all.
+  if (parsed.length >= LIMIT) {
+    console.error(`Er zijn minstens ${LIMIT} tickets met de status ${state}, en dat is de limiet van dit script. Verhoog LIMIT in tools/check-uncertainties.mjs.`);
+    process.exit(1);
+  }
+  return parsed;
 }
 
 // An uncertainty ticket is recognised by its title, the wording CLAUDE.md prescribes for these.
