@@ -71,10 +71,10 @@ moet op een plek staan waar hij per ticket te vinden en te verwijderen is.
 | #18 | Topklasse O14 aan een van beide kanten |
 | #19 | IDC-O14 aan een van beide kanten, periode `early` of `mid` |
 | #27 | Super O14 aan een van beide kanten |
-| #28 | Subtopklasse O16 aan een van beide kanten, periode `mid` of `late` |
+| #28 | Subtopklasse O16 aan een van beide kanten, periode `mid` of nog niet gekozen |
 | #29 | een klasse betrokken die in `CATEGORY_I_UNTIL` of `O14_LEVEL_GROUPS` voorkomt |
 | #30 | een klasse betrokken die niet genummerd is (landelijk, super, top, subtop, idc) |
-| #32 | Subtopklasse O18 in periode `early`, of Subtopklasse O16 in periode `mid` |
+| #32 | Subtopklasse O18 in periode `early`, of Subtopklasse O16 in periode `mid`, bij beide ook zonder gekozen periode |
 
 De predicaten worden afgeleid uit `data.js` waar dat kan, zodat ze meebewegen als de
 seizoensgegevens wijzigen. #29 leest `CATEGORY_I_UNTIL` en `O14_LEVEL_GROUPS`: dat zijn precies de

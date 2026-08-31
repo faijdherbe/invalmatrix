@@ -223,11 +223,21 @@ test("#27 applies to the Super O14", () => {
   assert.ok(!tickets(context({ lender: { category: "O16", classId: "super" }, borrower: { category: "O16", classId: "2e" } })).includes(27));
 });
 
-test("#28 applies to the Subtopklasse O16 around the winterstop, not before the herfstvakantie", () => {
+test("#28 applies to the Subtopklasse O16 up to and including the winterstop", () => {
   const teams = { lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } };
   assert.ok(tickets(context({ ...teams, periodId: "mid" })).includes(28));
-  assert.ok(tickets(context({ ...teams, periodId: "late" })).includes(28));
   assert.ok(!tickets(context({ ...teams, periodId: "early" })).includes(28));
+});
+
+// In the lentecompetitie both readings, "vanaf de winterstop" and "vanaf na de winterstop", come
+// out at category II, so there is nothing left to warn about there.
+test("#28 falls silent in the lentecompetitie, where both readings agree", () => {
+  const teams = { lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } };
+  assert.ok(!tickets(context({ ...teams, periodId: "late" })).includes(28));
+});
+
+test("#28 applies without a chosen period too", () => {
+  assert.ok(tickets(context({ lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } })).includes(28));
 });
 
 test("#29 applies to a class whose category or level shifts with the period", () => {
@@ -240,6 +250,13 @@ test("#30 applies as soon as a class above the numbered classes is involved", ()
   assert.ok(tickets(context({ lender: { category: "O18", classId: "landelijk" }, borrower: { category: "O18", classId: "2e" } })).includes(30));
   assert.ok(tickets(context({ lender: { category: "O14", classId: "1e" }, borrower: { category: "O14", classId: "idc" } })).includes(30));
   assert.ok(!tickets(context({ lender: { category: "O14", classId: "1e" }, borrower: { category: "O14", classId: "8e" } })).includes(30));
+});
+
+// Same reason as #19 and #28: without a chosen period every period is still possible, and the
+// conservative side is the one that warns.
+test("#32 applies without a chosen period too, for both Subtopklassen", () => {
+  assert.ok(tickets(context({ lender: { category: "O18", classId: "subtop" }, borrower: { category: "O18", classId: "2e" } })).includes(32));
+  assert.ok(tickets(context({ lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } })).includes(32));
 });
 
 test("#32 applies to the Subtopklasse O18 in the early period and to the O16 one in the mid period", () => {
@@ -396,7 +413,10 @@ export const UNCERTAINTIES = [
     explanation:
       "Dezelfde zin staat twee keer in het reglement en niet gelijk overgetypt: hoofdstuk 2 zegt 'vanaf de winterstop', hoofdstuk 5 zegt 'vanaf na de winterstop'. Dat scheelt een week. Deze tool houdt de winterstopweek zelf bij categorie I.",
     needsDateOfBirth: false,
-    applies: (c) => c.involves("O16", "subtop") && c.periodId !== "early",
+    // Only in the period up to and including the winterstop, and as long as no period has been
+    // chosen. In the lentecompetitie the winterstop is behind us and both readings come out at
+    // category II, so there the warning would be noise.
+    applies: (c) => c.involves("O16", "subtop") && (c.periodId === "mid" || c.periodId === null),
   },
   {
     ticket: 29,
@@ -420,9 +440,11 @@ export const UNCERTAINTIES = [
     explanation:
       "Hoofdstuk 2 claimt die week twee keer: 'tot en met de herfstvakantie' onder categorie I en 'vanaf de herfstvakantie' onder categorie II, en bij de winterstop gebeurt hetzelfde. Deze tool zet die week bij categorie I, de kant die nooit ten onrechte ja zegt.",
     needsDateOfBirth: false,
+    // Without a chosen period every period is still possible, so then this warns too, the same way
+    // #19 and #28 do. rules.js must never silently assume a period, see categoryINotice there.
     applies: (c) =>
-      (c.involves("O18", "subtop") && c.periodId === "early") ||
-      (c.involves("O16", "subtop") && c.periodId === "mid"),
+      (c.involves("O18", "subtop") && (c.periodId === "early" || c.periodId === null)) ||
+      (c.involves("O16", "subtop") && (c.periodId === "mid" || c.periodId === null)),
   },
 ];
 
