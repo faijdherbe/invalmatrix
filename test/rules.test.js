@@ -415,12 +415,21 @@ test("periodLabel throws on an unknown period id instead of echoing it into the 
   assert.throws(() => periodLabel(null), /unknown period id/);
 });
 
-test("every until value in CATEGORY_I_UNTIL is a real period id in PERIODS", () => {
+test("every entry in CATEGORY_I_UNTIL has a real until, a phrase, and a fromPhrase when contested", () => {
   const ids = PERIODS.map((p) => p.id);
   for (const category of Object.keys(CATEGORY_I_UNTIL)) {
     for (const classId of Object.keys(CATEGORY_I_UNTIL[category])) {
-      const until = CATEGORY_I_UNTIL[category][classId].until;
-      assert.ok(ids.includes(until), `${category} ${classId} has until "${until}", not a PERIODS id`);
+      const entry = CATEGORY_I_UNTIL[category][classId];
+      assert.ok(ids.includes(entry.until), `${category} ${classId} has until "${entry.until}", not a PERIODS id`);
+      assert.equal(typeof entry.phrase, "string", `${category} ${classId} has no string phrase`);
+      assert.ok(entry.phrase.length > 0, `${category} ${classId} has an empty phrase`);
+      // Without this, a contested entry with no fromPhrase would render "undefined" straight into
+      // the sentence categoryINotice builds for it (rules.js), the same species of bug periodLabel
+      // above was hardened against.
+      if (entry.contested) {
+        assert.equal(typeof entry.fromPhrase, "string", `${category} ${classId} is contested but has no string fromPhrase`);
+        assert.ok(entry.fromPhrase.length > 0, `${category} ${classId} is contested but has an empty fromPhrase`);
+      }
     }
   }
 });
