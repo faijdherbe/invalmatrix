@@ -296,7 +296,9 @@ thead th, tbody th {
    the match day, the round, the club or the matches played. It sits directly under the summary,
    above the conditions (see cautionBlockHtml in app.js). Grey, because it belongs to no marker in
    the grid and shows up at every allowed verdict: in yellow it read as the counterpart of a yellow
-   marker, and that was ticket #36. Yellow now means one thing on this page: a condition applies. */
+   marker, and that was ticket #36. Yellow now means one thing on this page: a condition applies.
+   Since rules.js hands over caveats only for allowed verdicts, the block always sits on the green
+   surface of #result.allowed, where the grey stands out. */
 .caution {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;

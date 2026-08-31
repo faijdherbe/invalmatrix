@@ -46,4 +46,5 @@ test("the heading inside the caution block is grey too", () => {
   const heading = rule("#result .caution h3");
   assert.ok(heading, "no #result .caution h3 rule found");
   assert.ok(!/--yellow/.test(heading), "the heading may not use the yellow of a condition");
+  assert.match(heading, /--grey/);
 });
