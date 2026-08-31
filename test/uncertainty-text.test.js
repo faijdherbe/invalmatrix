@@ -1,20 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ISSUE_URL, uncertaintyHeading, uncertaintyLines, cellMarkers } from "../uncertainty-text.js";
+import { ISSUE_URL, uncertaintyHeading, uncertaintyLines } from "../uncertainty-text.js";
 
 const two = [
   { ticket: 19, heading: "Kop van negentien", explanation: "Uitleg van negentien.", needsDateOfBirth: false },
   { ticket: 30, heading: "Kop van dertig", explanation: "Uitleg van dertig.", needsDateOfBirth: false },
 ];
 
-test("the heading counts the uncertainties and uses the singular for one", () => {
-  assert.equal(uncertaintyHeading(1), "Het reglement is hier op 1 punt onduidelijk");
+// The heading and the legend line of the corner marker have to open with the same word, otherwise
+// a reader cannot tell which marker points at which note (ticket #36). Was: "Het reglement is hier
+// op 1 punt onduidelijk", which shared no word with the legend line at all.
+test("the heading opens with the word of the marker and uses the singular for one", () => {
+  assert.equal(uncertaintyHeading(1), "Onduidelijk: het reglement laat hier 1 punt open");
 });
 
 test("the heading uses the plural from two upwards", () => {
-  assert.equal(uncertaintyHeading(2), "Het reglement is hier op 2 punten onduidelijk");
-  assert.equal(uncertaintyHeading(4), "Het reglement is hier op 4 punten onduidelijk");
+  assert.equal(uncertaintyHeading(2), "Onduidelijk: het reglement laat hier 2 punten open");
+  assert.equal(uncertaintyHeading(4), "Onduidelijk: het reglement laat hier 4 punten open");
 });
 
 // Nothing to warn about means no block at all, so the screen stays as it was.
@@ -48,25 +51,11 @@ test("the module carries no reference to the document", () => {
   assert.ok(!/\bdocument\b/.test(source), "uncertainty-text.js must stay free of the DOM");
 });
 
-// The markers a cell carries in the grid: the yellow triangle for the max-two caveat of article
-// 5.3.5.3, and the purple corner for an open uncertainty. Which of the two a cell gets is a
-// decision, so it is tested here rather than buried in the HTML of app.js.
-test("a cell without markers yields an empty list", () => {
-  assert.deepEqual(cellMarkers({ requirements: [], uncertain: false }), []);
-});
-
-test("the max-two requirement yields the caveat marker", () => {
-  assert.deepEqual(cellMarkers({ requirements: ["max-two"], uncertain: false }), ["max-two"]);
-});
-
-test("an uncertain cell yields the uncertainty marker", () => {
-  assert.deepEqual(cellMarkers({ requirements: [], uncertain: true }), ["uncertain"]);
-});
-
-test("a cell can carry both markers, always in the same order", () => {
-  assert.deepEqual(cellMarkers({ requirements: ["max-two", "age"], uncertain: true }), ["max-two", "uncertain"]);
-});
-
-test("another requirement yields no marker of its own", () => {
-  assert.deepEqual(cellMarkers({ requirements: ["player-count", "age"], uncertain: false }), []);
+// Was: five tests on cellMarkers(), which put the yellow max-two marker and the purple uncertainty
+// marker in a fixed order. That expectation is stale: max-two is a condition with a label of its
+// own now (see cell-text.js) and there is only one marker left, so a list of markers has nothing
+// left to order. app.js reads cell.uncertain directly.
+test("the module no longer hands out markers", async () => {
+  const module = await import("../uncertainty-text.js");
+  assert.equal(module.cellMarkers, undefined);
 });

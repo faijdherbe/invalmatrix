@@ -133,50 +133,29 @@ thead th, tbody th {
   border: 0;
 }
 
-/* Small triangle in the top right of the cell (max-two, article 5.3.5.3): a CSS-only marker with
-   the classic border trick, no image or character. Color from the same yellow/orange palette as
-   the cells with a condition (var(--yellow)), so that it stands out clearly against the green
-   surface but still fits the rest of the colors. The marker is purely visual; see SR_ONLY_CAVEAT
-   in app.js for the textual counterpart. */
-.corner-triangle {
+/* Small triangle in the top right of the cell: the verdict here rests on a point the
+   Bondsreglement leaves open (see uncertainties.js). It is the only marker in the grid, so it sits
+   in the corner where the eye lands. Purple, so it stands out against the green, yellow, red and
+   grey cell backgrounds alike, and the same purple as the block it points at in the detail view.
+   The marker is purely visual; see SR_ONLY_UNCERTAIN in app.js for the textual counterpart. */
+.uncertain-corner {
   position: relative;
 }
 
-.corner-triangle::after {
+.uncertain-corner::after {
   content: "";
   position: absolute;
   top: 0;
   right: 0;
   width: 0;
   height: 0;
-  border-top: 0.6rem solid var(--yellow);
+  border-top: 0.6rem solid var(--purple);
   border-left: 0.6rem solid transparent;
 }
 
-/* Small triangle in the bottom left of the cell: the verdict here rests on a point the
-   Bondsreglement leaves open (see uncertainties.js). Deliberately a different corner and a
-   different color than the yellow triangle above, because a cell can carry both. It uses ::before
-   where the yellow one uses ::after, for the same reason. Purple, so it stands out against the
-   green, yellow, red and grey cell backgrounds alike. The marker is purely visual; see
-   SR_ONLY_UNCERTAIN in app.js for the textual counterpart. */
-.uncertain-corner {
-  position: relative;
-}
-
-.uncertain-corner::before {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 0;
-  border-bottom: 0.6rem solid var(--purple);
-  border-right: 0.6rem solid transparent;
-}
-
-/* Small example of the triangle itself, used in the explanation line of the legend and under the
+/* Small example of the marker itself, used in the explanation line of the legend and under the
    mobile view. */
-.caveat-example {
+.marker-example {
   display: inline-block;
   min-width: 1.7rem;
   margin-right: 0.3rem;
@@ -256,22 +235,10 @@ thead th, tbody th {
   font-weight: 600;
 }
 
-/* The same caveat as the triangle in the grid (max-two, article 5.3.5.3), but as a ring around
-   the pill: a corner in the border of a fully round pill would look like it floats loose from the
-   shape, a border around it reads more clearly in this list form. Same yellow/orange color. */
-.mobile-class.caveat {
-  box-shadow: inset 0 0 0 2px var(--yellow);
-}
-
-/* In the mobile list the same reason as for .mobile-class.caveat above: a corner on a fully round
-   pill floats loose from the shape, so this is a border too. Carries a cell both markers, then the
-   purple ring sits inside the yellow one. */
+/* In the mobile list a corner on a fully round pill would float loose from the shape, so there the
+   same marker is a ring around the pill. */
 .mobile-class.uncertain {
   box-shadow: inset 0 0 0 2px var(--purple);
-}
-
-.mobile-class.caveat.uncertain {
-  box-shadow: inset 0 0 0 2px var(--yellow), inset 0 0 0 4px var(--purple);
 }
 
 /* Explanation under the mobile view: a line per requirement with the short label, plus the
@@ -327,9 +294,8 @@ thead th, tbody th {
 
 /* Block for outcome.caveats: not a condition to meet, but a warning that the rule itself is
    contested. Sits directly under the summary, above the conditions (see cautionBlockHtml in
-   app.js). Same yellow/orange palette as the cells with a condition and the caveat triangles for
-   max-two, but this is a different block for a different concept: the triangles belong to the
-   overview grid, this block to the detail view. */
+   app.js). Same yellow/orange palette as the cells with a condition, but this is a different block
+   for a different concept: it belongs to the detail view, not to the overview grid. */
 .caution {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;

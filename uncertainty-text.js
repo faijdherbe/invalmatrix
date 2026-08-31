@@ -3,11 +3,13 @@
 // article-text.js and selection.js, which keep their text apart for the same reason.
 export const ISSUE_URL = "https://github.com/faijdherbe/invalmatrix/issues";
 
-// The heading above the collapsed block. An empty string when there is nothing to warn about; the
-// caller then draws no block at all and the screen stays as it was.
+// The heading above the collapsed block. It opens with the same word as the legend line of the
+// corner marker in the grid, so that a reader sees which marker points here (ticket #36). An empty
+// string when there is nothing to warn about; the caller then draws no block at all and the screen
+// stays as it was.
 export function uncertaintyHeading(count) {
   if (count === 0) return "";
-  return `Het reglement is hier op ${count} punt${count === 1 ? "" : "en"} onduidelijk`;
+  return `Onduidelijk: het reglement laat hier ${count} punt${count === 1 ? "" : "en"} open`;
 }
 
 // One line per uncertainty, in the order they come in, with the link to its ticket alongside. The
@@ -21,15 +23,4 @@ export function uncertaintyLines(uncertainties) {
     linkText: `ticket #${uncertainty.ticket}`,
     url: `${ISSUE_URL}/${uncertainty.ticket}`,
   }));
-}
-
-// The markers a cell in the overview grid carries, in a fixed order so the classes on the button
-// are predictable. max-two is the caveat of article 5.3.5.3, which already had its own marker;
-// uncertain is new and says that the verdict in this cell rests on an open point of the
-// Bondsreglement. A cell can carry both.
-export function cellMarkers(cell) {
-  const markers = [];
-  if (cell.requirements.includes("max-two")) markers.push("max-two");
-  if (cell.uncertain) markers.push("uncertain");
-  return markers;
 }
