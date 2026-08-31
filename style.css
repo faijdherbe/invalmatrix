@@ -5,6 +5,8 @@
   --yellow-surface: #fdf3d7;
   --red: #b3261e;
   --red-surface: #fbe9e7;
+  --purple: #5b3d8f;
+  --purple-surface: #f0eaf8;
   --grey: #5b5b5b;
   --grey-surface: #eeeeee;
   --border: #cfcfcf;
@@ -387,4 +389,38 @@ footer {
   border-left: 3px solid var(--border);
   padding-left: 0.9rem;
   color: #3a3a3a;
+}
+
+/* The block with the open uncertainties, directly under the verdict. Purple, so it is not confused
+   with the yellow of a condition or the red of a rejection: this says nothing about the verdict
+   itself, only that the verdict rests on a choice the reglement does not make. Collapsed by
+   default, because a combination can carry four uncertainties at once. */
+.uncertainty {
+  margin: 0.75rem 0;
+  border-left: 5px solid var(--purple);
+  background: var(--purple-surface);
+  padding: 0.5rem 0.75rem;
+  border-radius: 3px;
+}
+
+.uncertainty > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--purple);
+}
+
+/* The warning sign before the heading. A character rather than an image, and aria-hidden is not
+   needed: the text right after it says the same thing in words. */
+.uncertainty > summary::before {
+  content: "/!\\  ";
+  white-space: pre;
+}
+
+.uncertainty ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.uncertainty li + li {
+  margin-top: 0.5rem;
 }

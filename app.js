@@ -3,6 +3,7 @@ import { assess, overview, categoryINotice, periodCategoryIClasses, periodLabel 
 import { listWithAnd, missingChoicesSentence } from "./selection.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
+import { uncertaintyHeading, uncertaintyLines } from "./uncertainty-text.js";
 
 const period = document.getElementById("period");
 const missingChoices = document.getElementById("missing-choices");
@@ -416,6 +417,22 @@ function list(title, lines) {
   return `<h3>${title}</h3><ul>${items}</ul>`;
 }
 
+// The open uncertainties about the Bondsreglement that apply to this combination, from
+// uncertainties.js through assess(). Collapsed, because a combination can carry four of them at
+// once and the verdict must stay readable. It sits directly under the verdict and above "Let op",
+// so the answer stays where the eye lands and the warning is still the first thing after it. The
+// texts themselves come from uncertainty-text.js, so they can be tested; here only the HTML.
+function uncertaintyBlockHtml(uncertainties) {
+  if (uncertainties.length === 0) return "";
+  const items = uncertaintyLines(uncertainties)
+    .map((line) => {
+      const link = `<a href="${escape(line.url)}" target="_blank" rel="noopener">${escape(line.linkText)}</a>`;
+      return `<li><strong>${escape(line.heading)}</strong><br>${escape(line.explanation)} (${link})</li>`;
+    })
+    .join("");
+  return `<details class="uncertainty"><summary>${escape(uncertaintyHeading(uncertainties.length))}</summary><ul>${items}</ul></details>`;
+}
+
 // Shows the caveats that assess() hands over: not a condition the user can meet, but a warning
 // that the rule itself is contested (for example borrowing from a younger age category, which
 // article 5.3.5.1 gives an example of, while article 3.1.3 and the class boundaries table always
@@ -473,6 +490,7 @@ function showDetail() {
   result.className = outcome.verdict;
   result.innerHTML = [
     `<p class="verdict">${escape(outcome.summary)}</p>`,
+    uncertaintyBlockHtml(outcome.uncertainties),
     cautionBlockHtml(outcome.caveats),
     list("Voorwaarden", outcome.conditions),
     outcome.age ? list("Leeftijd", outcome.age.messages) : "",
