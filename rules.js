@@ -525,8 +525,11 @@ const MAX_TWO_GROUNDS = ["fifth-class"];
 // The order of the requirements is fixed, so that the labels in the grid are predictable.
 // Caveats (outcome.caveats) are not conditions and therefore yield no requirement.
 export function cellFromOutcome(outcome) {
-  if (outcome.verdict === "out-of-scope") return { status: "out-of-scope", requirements: [] };
-  if (outcome.verdict === "not-allowed") return { status: "no", requirements: [] };
+  // A cell rests on an open uncertainty regardless of its status: a "nee" or a "geen uitspraak"
+  // that follows from a choice the reglement does not make is exactly what a coach must see.
+  const uncertain = outcome.uncertainties.length > 0;
+  if (outcome.verdict === "out-of-scope") return { status: "out-of-scope", requirements: [], uncertain };
+  if (outcome.verdict === "not-allowed") return { status: "no", requirements: [], uncertain };
 
   const requirements = [];
   // Article 5.3.5.2: borrowing from a team that plays one level higher is only allowed with
@@ -543,7 +546,7 @@ export function cellFromOutcome(outcome) {
   // substitute without permission from the competition management.
   if (MAX_TWO_GROUNDS.includes(outcome.ground)) requirements.push("max-two");
 
-  return { status: "free", requirements };
+  return { status: "free", requirements, uncertain };
 }
 
 // Builds the data for the overview grid: one row per age category, one cell per column.
@@ -563,6 +566,7 @@ export function overview(borrower, periodId = null) {
         verdict: outcome.verdict,
         status: cell.status,
         requirements: cell.requirements,
+        uncertain: cell.uncertain,
       };
     }),
   }));

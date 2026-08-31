@@ -1471,6 +1471,62 @@ test("cellFromOutcome: the requirements are always in the fixed order player-cou
   }
 });
 
+test("cellFromOutcome marks a cell as uncertain when the outcome carries an uncertainty", () => {
+  const outcome = assess({ category: "O14", classId: "idc" }, { category: "O14", classId: "2e" }, null, "early");
+  assert.equal(cellFromOutcome(outcome).uncertain, true);
+});
+
+test("cellFromOutcome leaves an ordinary cell alone", () => {
+  const outcome = assess({ category: "O16", classId: "3e" }, { category: "O16", classId: "2e" }, null, "mid");
+  assert.equal(cellFromOutcome(outcome).uncertain, false);
+});
+
+// A "nee" that rests on a choice the reglement does not make is exactly what a coach needs to
+// know, so the marker must survive on that status too.
+test("a cell with status no or out-of-scope can be uncertain as well", () => {
+  const no = assess({ category: "O14", classId: "top" }, { category: "O14", classId: "8e" }, null, "mid");
+  assert.equal(cellFromOutcome(no).status, "no");
+  assert.equal(cellFromOutcome(no).uncertain, true);
+
+  const outOfScope = assess({ category: "O14", classId: "super" }, { category: "O14", classId: "2e" }, null, "mid");
+  assert.equal(cellFromOutcome(outOfScope).status, "out-of-scope");
+  assert.equal(cellFromOutcome(outOfScope).uncertain, true);
+});
+
+test("overview passes the marker on for every cell that exists", () => {
+  const rows = overview({ category: "O14", classId: "2e" }, "early");
+  const idc = rows.find((row) => row.category === "O14").cells.find((cell) => cell.classId === "idc");
+  assert.equal(idc.uncertain, true);
+  for (const row of rows) {
+    for (const cell of row.cells) {
+      if (!cell.exists) continue;
+      assert.equal(typeof cell.uncertain, "boolean", `${row.category} ${cell.classId}`);
+    }
+  }
+});
+
+// The grid calculates without a date of birth, so an uncertainty about an age rule can never run
+// there. This guards that a new uncertainty with needsDateOfBirth does not sneak into the grid.
+test("no uncertainty that needs a date of birth ever reaches the grid", () => {
+  const needing = new Set(UNCERTAINTIES.filter((u) => u.needsDateOfBirth).map((u) => u.ticket));
+  for (const period of PERIODS) {
+    for (const borrowerCategory of AGE_CATEGORIES) {
+      for (const borrowerClass of CLASSES[borrowerCategory]) {
+        const borrower = { category: borrowerCategory, classId: borrowerClass.id };
+        for (const row of overview(borrower, period.id)) {
+          for (const cell of row.cells) {
+            if (!cell.exists) continue;
+            const outcome = assess({ category: row.category, classId: cell.classId }, borrower, null, period.id);
+            for (const uncertainty of outcome.uncertainties) {
+              assert.ok(!needing.has(uncertainty.ticket), `ticket ${uncertainty.ticket} in the grid at ${row.category} ${cell.classId}`);
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
 test("article 5.3.5.1 is named when the verdict is no across an age category boundary", () => {
   // Ticket #21: article 5.3.5.2 says "at most one class higher" but does not say how to count a
   // class across an age category boundary. That counting rule lives in article 5.3.5.1, so it
