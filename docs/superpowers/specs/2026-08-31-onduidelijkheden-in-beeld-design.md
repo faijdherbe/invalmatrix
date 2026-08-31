@@ -61,15 +61,15 @@ moet op een plek staan waar hij per ticket te vinden en te verwijderen is.
 
 | ticket | geldt bij |
 |---|---|
-| #11 | uitlener en inlener zijn O11 en O12, in welke volgorde dan ook |
+| #11 | O11 aan precies een kant, dus ook O11 tegenover O14, O16 of O18 |
 | #12 | uitlener staat twee of meer leeftijdscategorieen hoger |
 | #13 | grond `fifth-class` |
 | #14 | beide 5e klasse of lager, verschillende leeftijdscategorie |
 | #15 | uitlener uit een jongere leeftijdscategorie |
-| #16 | speler precies een jaar te oud, uitlener in de 2e klasse of lager |
+| #16 | speler precies een jaar boven de grens van haar eigen categorie, in elke klasse |
 | #17 | inlener O11, speler elf jaar |
 | #18 | Topklasse O14 aan een van beide kanten |
-| #19 | IDC-O14 aan een van beide kanten, periode `early` of `mid` |
+| #19 | IDC-O14 aan een van beide kanten, periode `early` of `mid`, of nog niet gekozen |
 | #27 | Super O14 aan een van beide kanten |
 | #28 | Subtopklasse O16 aan een van beide kanten, periode `mid` of nog niet gekozen |
 | #29 | een klasse betrokken die in `CATEGORY_I_UNTIL` of `O14_LEVEL_GROUPS` voorkomt |
@@ -81,6 +81,14 @@ seizoensgegevens wijzigen. #29 leest `CATEGORY_I_UNTIL` en `O14_LEVEL_GROUPS`: d
 plekken waar de periodegrens het oordeel bepaalt. #30 gaat over de klassen die de artikelen 4.3.8
 en 5.3.5.4 per periode opsommen, en herkent die aan hun id: elke klasse-id die niet een genummerde
 klasse is (`1e` tot en met `8e`), dus landelijk, super, top, subtop en idc.
+
+De reikwijdte van #11 en #16 is na de eindreview verbreed. #11 stond eerst op O11 tegenover O12,
+maar de vraag of die twee een niveau of twee categorieen zijn verschuift elke afstand vanaf O11,
+dus ook O11 tegenover O14 en ouder: `O11 1e klasse` naar `O14 4e klasse` gaf een kale "Nee" terwijl
+ticket #11 dat geval zelf noemt. #16 stond op de klassen waar artikel 5.2.4 geldt, maar ticket #16
+noemt ook de andere helft: speelt de uitlener hoger, dan zegt de tool niets over een speler die
+daar alleen met dispensatie kan staan. Beide predicaten kijken nu naar wat de vraag werkelijk
+raakt, niet naar waar de tool toevallig al iets deed.
 
 #16 en #17 dragen `needsDateOfBirth: true`. Die verschijnen alleen in de detailuitleg zodra er een
 geboortedatum is ingevuld, en nooit in het raster: het raster rekent zonder geboortedatum, en een
