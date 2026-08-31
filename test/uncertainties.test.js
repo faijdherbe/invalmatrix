@@ -150,11 +150,21 @@ test("#27 applies to the Super O14", () => {
   assert.ok(!tickets(context({ lender: { category: "O16", classId: "super" }, borrower: { category: "O16", classId: "2e" } })).includes(27));
 });
 
-test("#28 applies to the Subtopklasse O16 around the winterstop, not before the herfstvakantie", () => {
+test("#28 applies to the Subtopklasse O16 up to and including the winterstop", () => {
   const teams = { lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } };
   assert.ok(tickets(context({ ...teams, periodId: "mid" })).includes(28));
-  assert.ok(tickets(context({ ...teams, periodId: "late" })).includes(28));
   assert.ok(!tickets(context({ ...teams, periodId: "early" })).includes(28));
+});
+
+// In the lentecompetitie both readings, "vanaf de winterstop" and "vanaf na de winterstop", come
+// out at category II, so there is nothing left to warn about there.
+test("#28 falls silent in the lentecompetitie, where both readings agree", () => {
+  const teams = { lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } };
+  assert.ok(!tickets(context({ ...teams, periodId: "late" })).includes(28));
+});
+
+test("#28 applies without a chosen period too", () => {
+  assert.ok(tickets(context({ lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } })).includes(28));
 });
 
 test("#29 applies to a class whose category or level shifts with the period", () => {
@@ -167,6 +177,13 @@ test("#30 applies as soon as a class above the numbered classes is involved", ()
   assert.ok(tickets(context({ lender: { category: "O18", classId: "landelijk" }, borrower: { category: "O18", classId: "2e" } })).includes(30));
   assert.ok(tickets(context({ lender: { category: "O14", classId: "1e" }, borrower: { category: "O14", classId: "idc" } })).includes(30));
   assert.ok(!tickets(context({ lender: { category: "O14", classId: "1e" }, borrower: { category: "O14", classId: "8e" } })).includes(30));
+});
+
+// Same reason as #19 and #28: without a chosen period every period is still possible, and the
+// conservative side is the one that warns.
+test("#32 applies without a chosen period too, for both Subtopklassen", () => {
+  assert.ok(tickets(context({ lender: { category: "O18", classId: "subtop" }, borrower: { category: "O18", classId: "2e" } })).includes(32));
+  assert.ok(tickets(context({ lender: { category: "O16", classId: "subtop" }, borrower: { category: "O16", classId: "2e" } })).includes(32));
 });
 
 test("#32 applies to the Subtopklasse O18 in the early period and to the O16 one in the mid period", () => {

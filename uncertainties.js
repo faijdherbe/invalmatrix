@@ -124,7 +124,10 @@ export const UNCERTAINTIES = [
     explanation:
       "Dezelfde zin staat twee keer in het reglement en niet gelijk overgetypt: hoofdstuk 2 zegt 'vanaf de winterstop', hoofdstuk 5 zegt 'vanaf na de winterstop'. Dat scheelt een week. Deze tool houdt de winterstopweek zelf bij categorie I.",
     needsDateOfBirth: false,
-    applies: (c) => c.involves("O16", "subtop") && c.periodId !== "early",
+    // Only in the period up to and including the winterstop, and as long as no period has been
+    // chosen. In the lentecompetitie the winterstop is behind us and both readings come out at
+    // category II, so there the warning would be noise.
+    applies: (c) => c.involves("O16", "subtop") && (c.periodId === "mid" || c.periodId === null),
   },
   {
     ticket: 29,
@@ -148,9 +151,11 @@ export const UNCERTAINTIES = [
     explanation:
       "Hoofdstuk 2 claimt die week twee keer: 'tot en met de herfstvakantie' onder categorie I en 'vanaf de herfstvakantie' onder categorie II, en bij de winterstop gebeurt hetzelfde. Deze tool zet die week bij categorie I, de kant die nooit ten onrechte ja zegt.",
     needsDateOfBirth: false,
+    // Without a chosen period every period is still possible, so then this warns too, the same way
+    // #19 and #28 do. rules.js must never silently assume a period, see categoryINotice there.
     applies: (c) =>
-      (c.involves("O18", "subtop") && c.periodId === "early") ||
-      (c.involves("O16", "subtop") && c.periodId === "mid"),
+      (c.involves("O18", "subtop") && (c.periodId === "early" || c.periodId === null)) ||
+      (c.involves("O16", "subtop") && (c.periodId === "mid" || c.periodId === null)),
   },
 ];
 
