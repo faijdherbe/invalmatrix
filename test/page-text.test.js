@@ -65,3 +65,14 @@ test("the page holds no hard preselected age category or class", () => {
   assert.ok(!/borrowerCategory\.value = "/.test(appJs));
   assert.ok(!/borrowerClass\.value = "/.test(appJs));
 });
+
+// Ticket #36: the page carries one corner marker now, and max-two is a label like the others. The
+// README described two corners, so it would send a reader looking for something that is not there.
+test("the README describes max-two as a label, not as a corner", () => {
+  assert.match(readme, /\*\*max 2\*\*/);
+  assert.ok(!/driehoekje/.test(readme), "the README may not describe a triangle any more");
+});
+
+test("the README puts the one remaining corner in the top right", () => {
+  assert.match(readme, /paars hoekje rechtsboven/);
+});

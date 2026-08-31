@@ -3,7 +3,17 @@ import { assess, overview, categoryINotice, periodCategoryIClasses, periodLabel 
 import { listWithAnd, missingChoicesSentence } from "./selection.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
-import { uncertaintyHeading, uncertaintyLines, cellMarkers } from "./uncertainty-text.js";
+import { uncertaintyHeading, uncertaintyLines, UNCERTAINTY_SR_ONLY, UNCERTAINTY_LEGEND } from "./uncertainty-text.js";
+import {
+  COMBINATION_EXPLANATION,
+  REQUIREMENTS,
+  REQUIREMENT_ORDER,
+  STATUSES,
+  STATUS_ORDER,
+  cellColor,
+  requirementsLabel,
+  visibleRequirements,
+} from "./cell-text.js";
 
 const period = document.getElementById("period");
 const missingChoices = document.getElementById("missing-choices");
@@ -106,74 +116,11 @@ function columnLabel(column) {
   return column;
 }
 
-// One place for both views to draw from: the short text in a grid cell and the description that
-// both the legend under the grid and the group headings in the mobile view use. A cell consists
-// of a status (allowed, not allowed, no verdict) and a list of requirements, see cellFromOutcome()
-// in rules.js.
-//
-// Order of the statuses: first what is allowed, then what is not, then what there is no verdict
-// about. That is also the order in which the groups appear in the mobile view, because the user
-// is looking for who is allowed to fill in. The group "mag" also holds the conditional cases, so
-// the heading is "mag" and not "mag altijd": which conditions apply is shown per class behind the
-// label.
-const STATUS_ORDER = ["free", "no", "out-of-scope"];
-
-const STATUSES = {
-  free: { short: "ja", description: "mag altijd", groupHeading: "mag" },
-  no: { short: "nee", description: "mag niet", groupHeading: "mag niet" },
-  "out-of-scope": { short: "?", description: "geen uitspraak", groupHeading: "geen uitspraak" },
-};
-
-// The requirements with a short label of their own in the cell, in the order in which rules.js
-// returns them. The requirement max-two (article 5.3.5.3) is not in here: it gets no text but the
-// triangle in the top right of the cell, see corner-triangle in style.css and SR_ONLY_CAVEAT below.
-const REQUIREMENT_ORDER = ["player-count", "age", "first-team"];
-
-const REQUIREMENTS = {
-  "player-count": { short: "mits", description: "mag alleen bij aantoonbaar te weinig spelers (artikel 5.3.5.2)" },
-  age: { short: "lft", description: "mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)" },
-  "first-team": { short: "team", description: "mag niet voor spelers uit het eerste team, zonder toestemming van de competitieleiding (artikel 5.3.5.4)" },
-};
-
-// Explanation of the combined labels, to go under the legend.
-const COMBINATION_EXPLANATION = "Staan er twee labels met een + ertussen, dan gelden beide voorwaarden.";
-
-// The requirements that get a visible label, in the fixed order of rules.js. max-two drops out here.
-function visibleRequirements(requirements) {
-  return requirements.filter((requirement) => REQUIREMENTS[requirement]);
-}
-
-// The short labels of a cell strung together with a plus, for example "mits+lft". Empty when there
-// is no visible requirement; the cell then shows the text of its status.
-function requirementsLabel(requirements) {
-  return visibleRequirements(requirements).map((requirement) => REQUIREMENTS[requirement].short).join("+");
-}
-
-// The color of a cell or class button: green when there is nothing to arrange (no requirement, or
-// only max-two), yellow as soon as a condition applies. The color says whether there are
-// conditions, the text says which. For status no and out-of-scope the status itself is the color.
-function cellColor(cell) {
-  if (cell.status !== "free") return cell.status;
-  return visibleRequirements(cell.requirements).length > 0 ? "conditional" : "free";
-}
-
-// Text that is not on screen but is read aloud: the triangle marker itself is purely visual
-// (color), so this is how screen reader users and people who do not see color can still know that
-// this cell carries a caveat.
-const SR_ONLY_CAVEAT = '<span class="sr-only"> (met een kanttekening)</span>';
-
-// Same approach as SR_ONLY_CAVEAT above: the purple corner is purely visual, so this is how
-// someone who does not see color still learns that this cell rests on an open uncertainty.
-const SR_ONLY_UNCERTAIN = '<span class="sr-only"> (met een openstaande onduidelijkheid)</span>';
-
-// The CSS class per marker from cellMarkers(), the text that is read aloud for it, and the class
-// name the mobile list uses instead (see .mobile-class.caveat and .mobile-class.uncertain in
-// style.css: a corner on a fully round pill floats loose from the shape, so there it is a border
-// instead of a corner).
-const MARKERS = {
-  "max-two": { className: "corner-triangle", srOnly: SR_ONLY_CAVEAT, mobileClassName: "caveat" },
-  uncertain: { className: "uncertain-corner", srOnly: SR_ONLY_UNCERTAIN, mobileClassName: "uncertain" },
-};
+// Text that is not on screen but is read aloud: the corner marker is purely visual (color), so
+// this is how someone who does not see it still learns that this cell rests on an open point of
+// the reglement. Same word as the legend line and as the heading of the block in the detail view;
+// the text itself lives in uncertainty-text.js, so it can be tested. Here only the HTML around it.
+const SR_ONLY_UNCERTAIN = `<span class="sr-only">${UNCERTAINTY_SR_ONLY}</span>`;
 
 // The full description of every requirement, for screen readers too. The title attribute of the
 // button keeps naming the team, so this explanation goes through the same sr-only approach as above.
@@ -184,27 +131,17 @@ function srOnlyRequirementsHtml(requirements) {
   return `<span class="sr-only"> (${escape(texts)})</span>`;
 }
 
-// A small example of the triangle marker itself, for the explanation line. aria-hidden because the
-// accompanying text ("mag, met een kanttekening...") already tells what it means.
-function caveatExampleHtml() {
-  return `<span class="caveat-example corner-triangle" aria-hidden="true">${escape(STATUSES.free.short)}</span>`;
+// A small example of the corner marker itself, for the explanation line. aria-hidden because the
+// text next to it already says what it means.
+function markerExampleHtml() {
+  return `<span class="marker-example uncertain-corner" aria-hidden="true">${escape(STATUSES.free.short)}</span>`;
 }
 
-// Refers to the triangle marker for the max-two exception (article 5.3.5.3): it is allowed, but
-// there is a caveat that only shows up in the detail view.
-function caveatExplanationHtml() {
-  return `${caveatExampleHtml()} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
-}
-
-// A small example of the purple corner, for the explanation line, next to the yellow one.
-function uncertaintyExampleHtml() {
-  return `<span class="caveat-example uncertain-corner" aria-hidden="true">${escape(STATUSES.free.short)}</span>`;
-}
-
-// Refers to the purple corner: the verdict in this cell rests on a point the Bondsreglement leaves
-// open, and the detail view says which one.
+// Refers to the corner marker: the verdict in this cell rests on a point the Bondsreglement leaves
+// open, and the detail view says which one. Opens with the same word as that block; the sentence
+// itself lives in uncertainty-text.js, so it can be tested. Here only the HTML around it.
 function uncertaintyExplanationHtml() {
-  return `${uncertaintyExampleHtml()} betekent: het reglement is hier onduidelijk over, klik op het vakje om te zien waarover.`;
+  return `${markerExampleHtml()} ${escape(UNCERTAINTY_LEGEND)}`;
 }
 
 // A line in the legend: a colored badge with the short label, followed by the description.
@@ -217,7 +154,6 @@ function legendLineHtml(color, short, description) {
 function mobileExplanationHtml() {
   return [
     ...REQUIREMENT_ORDER.map((requirement) => legendLineHtml("conditional", REQUIREMENTS[requirement].short, REQUIREMENTS[requirement].description)),
-    caveatExplanationHtml(),
     uncertaintyExplanationHtml(),
     escape(COMBINATION_EXPLANATION),
   ].join("<br>");
@@ -227,7 +163,7 @@ function mobileExplanationHtml() {
 // there is no visible requirement. Behind that the explanation for screen readers.
 function cellHtml(cell) {
   const text = requirementsLabel(cell.requirements) || STATUSES[cell.status].short;
-  const srOnly = cellMarkers(cell).map((marker) => MARKERS[marker].srOnly).join("");
+  const srOnly = cell.uncertain ? SR_ONLY_UNCERTAIN : "";
   return `${escape(text)}${srOnlyRequirementsHtml(cell.requirements)}${srOnly}`;
 }
 
@@ -296,8 +232,7 @@ function gridTableHtml(rows) {
         .map((cell) => {
           if (!cell.exists) return `<td class="cell empty"></td>`;
           const title = `${row.category} ${cell.label}`;
-          const markers = cellMarkers(cell).map((marker) => MARKERS[marker].className);
-          const buttonClass = markers.length > 0 ? ` class="${markers.join(" ")}"` : "";
+          const buttonClass = cell.uncertain ? ` class="uncertain-corner"` : "";
           return `<td class="cell ${escape(cellColor(cell))}"><button type="button"${buttonClass} data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${cellHtml(cell)}</button></td>`;
         })
         .join("");
@@ -312,7 +247,6 @@ function gridTableHtml(rows) {
     ...REQUIREMENT_ORDER.map((requirement) => legendLineHtml("conditional", REQUIREMENTS[requirement].short, REQUIREMENTS[requirement].description)),
     legendLineHtml("no", STATUSES.no.short, STATUSES.no.description),
     legendLineHtml("out-of-scope", STATUSES["out-of-scope"].short, STATUSES["out-of-scope"].description),
-    caveatExplanationHtml(),
     uncertaintyExplanationHtml(),
     escape(COMBINATION_EXPLANATION),
   ].join("\n");
@@ -346,18 +280,17 @@ function mobileCategoryHtml(row) {
       const buttons = group.cells
         .map((cell) => {
           const title = `${row.category} ${cell.label}`;
-          const markers = cellMarkers(cell);
           const requirements = requirementsLabel(cell.requirements);
           const labelHtml = [
             escape(cell.label),
             requirements ? ` <span class="mobile-requirements">${escape(requirements)}</span>` : "",
             srOnlyRequirementsHtml(cell.requirements),
-            ...markers.map((marker) => MARKERS[marker].srOnly),
+            cell.uncertain ? SR_ONLY_UNCERTAIN : "",
           ].join("");
           const className = [
             "mobile-class",
             escape(cellColor(cell)),
-            ...markers.map((marker) => MARKERS[marker].mobileClassName),
+            cell.uncertain ? "uncertain" : "",
           ].filter(Boolean).join(" ");
           return `<button type="button" class="${className}" data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${labelHtml}</button>`;
         })
@@ -467,8 +400,8 @@ function uncertaintyBlockHtml(uncertainties) {
 // Shows the caveats that assess() hands over: not a condition the user can meet, but a warning
 // that the rule itself is contested (for example borrowing from a younger age category, which
 // article 5.3.5.1 gives an example of, while article 3.1.3 and the class boundaries table always
-// let the age limits decide). This is something different from the caveat triangles for max-two in
-// the overview (see caveatExampleHtml and SR_ONLY_CAVEAT above); that is why this block is called
+// let the age limits decide). This is something different from the max-two label of article
+// 5.3.5.3 in the overview (see REQUIREMENTS in cell-text.js); that is why this block is called
 // "let op" and not "kanttekening", so the two are not mixed up. It sits directly under the summary,
 // above the conditions, so that someone who only reads the verdict cannot miss this warning.
 function cautionBlockHtml(caveats) {

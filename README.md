@@ -41,13 +41,13 @@ aan elkaar met een `+` als er meerdere gelden (bijvoorbeeld `mits+lft`):
 - **lft**: mag, mits de speler de juiste leeftijd heeft (artikel 5.3.5.1)
 - **team**: mag niet voor spelers uit het eerste team, zonder toestemming van de
   competitieleiding (artikel 5.3.5.4)
-
-De uitzondering van artikel 5.3.5.3 (maximaal twee invallers zonder toestemming) krijgt geen
-label maar een driehoekje rechtsboven in het vakje.
+- **max 2**: er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding
+  (artikel 5.3.5.3)
 
 Waar het Bondsreglement iets in het midden laat, zegt de pagina dat erbij. Onder het oordeel staat
-dan een dichtgeklapte regel die vertelt op hoeveel punten het reglement hier onduidelijk is, met
-per punt de uitleg en een link naar het ticket. In het raster dragen die vakjes een paars hoekje.
+dan een dichtgeklapte regel die vertelt hoeveel punten het reglement hier openlaat, met per punt de
+uitleg en een link naar het ticket. In het raster dragen die vakjes een paars hoekje rechtsboven,
+en dat hoekje en die regel beginnen allebei met het woord "Onduidelijk".
 
 ## Taal in deze repo
 

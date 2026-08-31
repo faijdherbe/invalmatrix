@@ -109,7 +109,7 @@ thead th, tbody th {
 
 /* The color of a cell says whether conditions apply, the text in it says which. Green is
    therefore "without further ado", yellow is "allowed, but one or more requirements apply"
-   (mits, lft, team or a combination of those). See cellColor() in app.js. */
+   (mits, lft, team, max 2, or a combination of those). See cellColor() in cell-text.js. */
 .cell.free { background: var(--green-surface); color: var(--green); }
 .cell.conditional { background: var(--yellow-surface); color: var(--yellow); }
 .cell.no { background: var(--red-surface); color: var(--red); }
@@ -133,50 +133,29 @@ thead th, tbody th {
   border: 0;
 }
 
-/* Small triangle in the top right of the cell (max-two, article 5.3.5.3): a CSS-only marker with
-   the classic border trick, no image or character. Color from the same yellow/orange palette as
-   the cells with a condition (var(--yellow)), so that it stands out clearly against the green
-   surface but still fits the rest of the colors. The marker is purely visual; see SR_ONLY_CAVEAT
-   in app.js for the textual counterpart. */
-.corner-triangle {
+/* Small triangle in the top right of the cell: the verdict here rests on a point the
+   Bondsreglement leaves open (see uncertainties.js). It is the only marker in the grid, so it sits
+   in the corner where the eye lands. Purple, so it stands out against the green, yellow, red and
+   grey cell backgrounds alike, and the same purple as the block it points at in the detail view.
+   The marker is purely visual; see SR_ONLY_UNCERTAIN in app.js for the textual counterpart. */
+.uncertain-corner {
   position: relative;
 }
 
-.corner-triangle::after {
+.uncertain-corner::after {
   content: "";
   position: absolute;
   top: 0;
   right: 0;
   width: 0;
   height: 0;
-  border-top: 0.6rem solid var(--yellow);
+  border-top: 0.6rem solid var(--purple);
   border-left: 0.6rem solid transparent;
 }
 
-/* Small triangle in the bottom left of the cell: the verdict here rests on a point the
-   Bondsreglement leaves open (see uncertainties.js). Deliberately a different corner and a
-   different color than the yellow triangle above, because a cell can carry both. It uses ::before
-   where the yellow one uses ::after, for the same reason. Purple, so it stands out against the
-   green, yellow, red and grey cell backgrounds alike. The marker is purely visual; see
-   SR_ONLY_UNCERTAIN in app.js for the textual counterpart. */
-.uncertain-corner {
-  position: relative;
-}
-
-.uncertain-corner::before {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 0;
-  border-bottom: 0.6rem solid var(--purple);
-  border-right: 0.6rem solid transparent;
-}
-
-/* Small example of the triangle itself, used in the explanation line of the legend and under the
+/* Small example of the marker itself, used in the explanation line of the legend and under the
    mobile view. */
-.caveat-example {
+.marker-example {
   display: inline-block;
   min-width: 1.7rem;
   margin-right: 0.3rem;
@@ -256,26 +235,14 @@ thead th, tbody th {
   font-weight: 600;
 }
 
-/* The same caveat as the triangle in the grid (max-two, article 5.3.5.3), but as a ring around
-   the pill: a corner in the border of a fully round pill would look like it floats loose from the
-   shape, a border around it reads more clearly in this list form. Same yellow/orange color. */
-.mobile-class.caveat {
-  box-shadow: inset 0 0 0 2px var(--yellow);
-}
-
-/* In the mobile list the same reason as for .mobile-class.caveat above: a corner on a fully round
-   pill floats loose from the shape, so this is a border too. Carries a cell both markers, then the
-   purple ring sits inside the yellow one. */
+/* In the mobile list a corner on a fully round pill would float loose from the shape, so there the
+   same marker is a ring around the pill. */
 .mobile-class.uncertain {
   box-shadow: inset 0 0 0 2px var(--purple);
 }
 
-.mobile-class.caveat.uncertain {
-  box-shadow: inset 0 0 0 2px var(--yellow), inset 0 0 0 4px var(--purple);
-}
-
 /* Explanation under the mobile view: a line per requirement with the short label, plus the
-   explanation of the triangle and of the combined labels. The lines are stacked here instead of
+   explanation of the ring and of the combined labels. The lines are stacked here instead of
    running on like in the legend under the grid, so without the indentation of the badge. */
 .mobile-explanation {
   margin: 0.75rem 0 0;
@@ -325,22 +292,24 @@ thead th, tbody th {
 
 .verdict { margin: 0; font-size: 1.15rem; font-weight: 600; }
 
-/* Block for outcome.caveats: not a condition to meet, but a warning that the rule itself is
-   contested. Sits directly under the summary, above the conditions (see cautionBlockHtml in
-   app.js). Same yellow/orange palette as the cells with a condition and the caveat triangles for
-   max-two, but this is a different block for a different concept: the triangles belong to the
-   overview grid, this block to the detail view. */
+/* Block for outcome.caveats: not a condition to meet, but a warning that this tool cannot judge
+   the match day, the round, the club or the matches played. It sits directly under the summary,
+   above the conditions (see cautionBlockHtml in app.js). Grey, because it belongs to no marker in
+   the grid and shows up at every allowed verdict: in yellow it read as the counterpart of a yellow
+   marker, and that was ticket #36. Yellow now means one thing on this page: a condition applies.
+   Since rules.js hands over caveats only for allowed verdicts, the block always sits on the green
+   surface of #result.allowed, where the grey stands out. */
 .caution {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;
-  border-left: 5px solid var(--yellow);
+  border-left: 5px solid var(--grey);
   border-radius: 4px;
-  background: var(--yellow-surface);
+  background: var(--grey-surface);
 }
 
 #result .caution h3 {
   margin: 0 0 0.4rem;
-  color: var(--yellow);
+  color: var(--grey);
 }
 
 #result h3 {
