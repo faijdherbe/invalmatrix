@@ -1087,9 +1087,18 @@ Voeg onder `.mobile-class.caveat` toe:
 - [ ] **Step 2: Check it in the browser**
 
 Run: `python3 -m http.server 8000`
-Open `http://localhost:8000`, kies periode "voorcompetitie tot en met de herfstvakantie", categorie O14, klasse 2e klasse.
-Expected: de kolommen IDC-O14, Top en Subtop dragen een paars hoekje linksonder. De legenda onder het raster noemt het paarse hoekje. Maak het venster smal.
-Expected: de mobiele lijst toont dezelfde klassen met een paarse binnenrand, en de uitleg eronder noemt het hoekje.
+Open `http://localhost:8000`, kies periode "voorcompetitie na de herfstvakantie tot en met de winterstop", categorie O16, klasse 2e klasse. Dit zijn de vakjes zoals het dan moet staan:
+
+- De kolommen IDC-O14, Top en Subtop dragen overal een paars hoekje linksonder.
+- De rijen O16 en O18 blijven in de genummerde kolommen schoon: daar is niets onduidelijk.
+- De rijen O11, O12 en O14 dragen in de genummerde kolommen wel een hoekje, want daar leent een jongere leeftijdscategorie uit en dat is onduidelijkheid #15.
+- De legenda onder het raster noemt het paarse hoekje, onder de regel over het gele driehoekje.
+
+Klik het vakje O16 Subtop aan.
+Expected: de accordion zegt "op 4 punten onduidelijk" en noemt de tickets #28, #29, #30 en #32.
+
+Maak het venster smal.
+Expected: de mobiele lijst toont dezelfde klassen met een paarse binnenrand, en de uitleg eronder noemt het hoekje. Een klasse die zowel de gele als de paarse markering draagt toont de paarse ring binnen de gele.
 
 - [ ] **Step 3: Run the tests**
 
