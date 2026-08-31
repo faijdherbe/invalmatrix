@@ -19,11 +19,11 @@ voorschrijft.
 
 Dat raakt drie klassen, uit `data.js:97`:
 
-| klasse | categorie I volgens hoofdstuk 2 |
-|---|---|
-| Subtopklasse O18 | tot en met de herfstvakantie |
-| Subtopklasse O16 | tot en met de winterstop |
-| IDC-O14 | tot de winterstop |
+| klasse           | categorie I volgens hoofdstuk 2 |
+|------------------|---------------------------------|
+| Subtopklasse O18 | tot en met de herfstvakantie    |
+| Subtopklasse O16 | tot en met de winterstop        |
+| IDC-O14          | tot de winterstop               |
 
 Een volledige doorloop van het raster telt 2250 cellen. Daarvan blijven er 261 leeg om uitsluitend
 deze reden. Los daarvan zijn er 225 cellen die echt buiten scope vallen omdat een van beide teams
