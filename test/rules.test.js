@@ -5,6 +5,7 @@ import {
   level,
   assessLevel,
   categoryINotice,
+  periodCategoryIClasses,
   ageOnReferenceDate,
   assessAge,
   formatDateDutch,
@@ -388,6 +389,28 @@ test("without a chosen period a switching class keeps giving no verdict", () => 
   assert.ok(categoryINotice({ category: "O18", classId: "subtop" }));
   assert.ok(categoryINotice({ category: "O16", classId: "subtop" }));
   assert.ok(categoryINotice({ category: "O14", classId: "idc" }));
+});
+
+test("periodCategoryIClasses names the switching classes that are category I in that period", () => {
+  assert.deepEqual(periodCategoryIClasses("early"), [
+    { category: "O14", classId: "idc" },
+    { category: "O16", classId: "subtop" },
+    { category: "O18", classId: "subtop" },
+  ]);
+  assert.deepEqual(periodCategoryIClasses("mid"), [
+    { category: "O14", classId: "idc" },
+    { category: "O16", classId: "subtop" },
+  ]);
+  assert.deepEqual(periodCategoryIClasses("late"), []);
+});
+
+test("periodCategoryIClasses names them all without a chosen period, because every period is still possible", () => {
+  assert.equal(periodCategoryIClasses(null).length, 3);
+});
+
+test("periodCategoryIClasses does not name the fixed category I classes, those are not switching", () => {
+  const all = ["early", "mid", "late", null].flatMap((p) => periodCategoryIClasses(p));
+  assert.ok(!all.some((c) => c.classId === "super" || c.classId === "landelijk"));
 });
 
 test("assess passes the period on: O18 Subtopklasse gets a verdict from the mid period on", () => {

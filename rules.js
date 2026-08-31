@@ -297,6 +297,16 @@ export function categoryINotice(team, periodId = null) {
   return `${describe(team)} valt ${switching.phrase} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. ${scope}`;
 }
 
+export function periodCategoryIClasses(periodId) {
+  const found = [];
+  for (const category of AGE_CATEGORIES) {
+    for (const classId of Object.keys(CATEGORY_I_UNTIL[category] || {})) {
+      if (categoryINotice({ category, classId }, periodId)) found.push({ category, classId });
+    }
+  }
+  return found;
+}
+
 export function ageOnReferenceDate(dateOfBirth) {
   if (Number.isNaN(dateOfBirth.getTime())) {
     throw new Error("ageOnReferenceDate needs a valid date of birth, this is an invalid date");
