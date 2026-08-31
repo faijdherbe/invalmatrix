@@ -73,11 +73,14 @@ moet op een plek staan waar hij per ticket te vinden en te verwijderen is.
 | #27 | Super O14 aan een van beide kanten |
 | #28 | Subtopklasse O16 aan een van beide kanten, periode `mid` of `late` |
 | #29 | een klasse betrokken die in `CATEGORY_I_UNTIL` of `O14_LEVEL_GROUPS` voorkomt |
-| #30 | een klasse betrokken boven de 1e klasse (landelijk, super, top, subtop, idc) |
+| #30 | een klasse betrokken die niet genummerd is (landelijk, super, top, subtop, idc) |
 | #32 | Subtopklasse O18 in periode `early`, of Subtopklasse O16 in periode `mid` |
 
-De predicaten worden afgeleid uit `data.js` waar dat kan (#29 en #30 lezen `CATEGORY_I_UNTIL`,
-`O14_LEVEL_GROUPS` en `LEVELS`), zodat ze meebewegen als de seizoensgegevens wijzigen.
+De predicaten worden afgeleid uit `data.js` waar dat kan, zodat ze meebewegen als de
+seizoensgegevens wijzigen. #29 leest `CATEGORY_I_UNTIL` en `O14_LEVEL_GROUPS`: dat zijn precies de
+plekken waar de periodegrens het oordeel bepaalt. #30 gaat over de klassen die de artikelen 4.3.8
+en 5.3.5.4 per periode opsommen, en herkent die aan hun id: elke klasse-id die niet een genummerde
+klasse is (`1e` tot en met `8e`), dus landelijk, super, top, subtop en idc.
 
 #16 en #17 dragen `needsDateOfBirth: true`. Die verschijnen alleen in de detailuitleg zodra er een
 geboortedatum is ingevuld, en nooit in het raster: het raster rekent zonder geboortedatum, en een
@@ -95,6 +98,9 @@ Direct onder het oordeel, boven het blok "Let op", een dichtgeklapte accordion. 
 Uitgeklapt per punt: de kop, de uitleg, en een link `ticket #19` naar
 `https://github.com/faijdherbe/invalmatrix/issues/19`. Bij een punt de tekst in enkelvoud
 ("op 1 punt onduidelijk").
+
+Raakt de combinatie geen enkele onzekerheid, dan verschijnt er geen accordion en verandert er
+niets aan het scherm.
 
 De accordion staat onder het oordeel en niet erboven, zodat het antwoord bovenaan blijft staan
 waar de coach het zoekt. Dichtgeklapt, omdat een cel tot vier onduidelijkheden kan dragen en het
