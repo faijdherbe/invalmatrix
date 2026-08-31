@@ -109,7 +109,7 @@ thead th, tbody th {
 
 /* The color of a cell says whether conditions apply, the text in it says which. Green is
    therefore "without further ado", yellow is "allowed, but one or more requirements apply"
-   (mits, lft, team or a combination of those). See cellColor() in app.js. */
+   (mits, lft, team, max 2, or a combination of those). See cellColor() in cell-text.js. */
 .cell.free { background: var(--green-surface); color: var(--green); }
 .cell.conditional { background: var(--yellow-surface); color: var(--yellow); }
 .cell.no { background: var(--red-surface); color: var(--red); }
@@ -242,7 +242,7 @@ thead th, tbody th {
 }
 
 /* Explanation under the mobile view: a line per requirement with the short label, plus the
-   explanation of the triangle and of the combined labels. The lines are stacked here instead of
+   explanation of the ring and of the combined labels. The lines are stacked here instead of
    running on like in the legend under the grid, so without the indentation of the badge. */
 .mobile-explanation {
   margin: 0.75rem 0 0;

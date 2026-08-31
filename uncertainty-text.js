@@ -3,6 +3,16 @@
 // article-text.js and selection.js, which keep their text apart for the same reason.
 export const ISSUE_URL = "https://github.com/faijdherbe/invalmatrix/issues";
 
+// The screen-reader text of the corner marker, opening with the same word as the heading below, so
+// that someone who does not see the marker still learns that this cell rests on an open point of
+// the reglement. app.js wraps this in the <span class="sr-only"> itself.
+export const UNCERTAINTY_SR_ONLY = " (onduidelijk: het reglement laat hier iets open)";
+
+// The legend line under the grid (and, unindented, under the mobile list), opening with the same
+// word as the heading above. "vakje" would be wrong in the mobile view, where there are pills
+// instead, so the closing sentence stays true of both.
+export const UNCERTAINTY_LEGEND = "Onduidelijk: het reglement laat hier iets open. Klik erop om te zien wat.";
+
 // The heading above the collapsed block. It opens with the same word as the legend line of the
 // corner marker in the grid, so that a reader sees which marker points here (ticket #36). An empty
 // string when there is nothing to warn about; the caller then draws no block at all and the screen

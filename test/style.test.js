@@ -19,8 +19,10 @@ test("the grid carries only one corner marker", () => {
 test("the uncertainty corner sits in the top right", () => {
   const marker = rule(".uncertain-corner::after");
   assert.ok(marker, "no .uncertain-corner::after rule found");
-  assert.match(marker, /top:\s*0/);
-  assert.match(marker, /right:\s*0/);
+  // Anchored to the start of a declaration, so this does not also match the "top" inside
+  // "border-top: 0.6rem solid var(--purple)" further down in the same rule.
+  assert.match(marker, /(^|[;{])\s*top:\s*0/m);
+  assert.match(marker, /(^|[;{])\s*right:\s*0/m);
 });
 
 test("the mobile list carries no yellow ring", () => {
@@ -47,4 +49,17 @@ test("the heading inside the caution block is grey too", () => {
   assert.ok(heading, "no #result .caution h3 rule found");
   assert.ok(!/--yellow/.test(heading), "the heading may not use the yellow of a condition");
   assert.match(heading, /--grey/);
+});
+
+// The corner marker and the block it points at have to share their color, otherwise a reader
+// cannot tell that they belong together (ticket #36, decision 3). Nothing else in this file
+// guards that link, so either rule could drift to another color without a test noticing.
+test("the corner marker and the uncertainty block share the purple", () => {
+  const marker = rule(".uncertain-corner::after");
+  assert.ok(marker, "no .uncertain-corner::after rule found");
+  assert.match(marker, /var\(--purple\)/);
+
+  const block = rule(".uncertainty");
+  assert.ok(block, "no .uncertainty rule found");
+  assert.match(block, /var\(--purple\)/);
 });

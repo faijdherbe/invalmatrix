@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ISSUE_URL, uncertaintyHeading, uncertaintyLines } from "../uncertainty-text.js";
+import { ISSUE_URL, UNCERTAINTY_SR_ONLY, UNCERTAINTY_LEGEND, uncertaintyHeading, uncertaintyLines } from "../uncertainty-text.js";
 
 const two = [
   { ticket: 19, heading: "Kop van negentien", explanation: "Uitleg van negentien.", needsDateOfBirth: false },
@@ -58,4 +58,14 @@ test("the module carries no reference to the document", () => {
 test("the module no longer hands out markers", async () => {
   const module = await import("../uncertainty-text.js");
   assert.equal(module.cellMarkers, undefined);
+});
+
+// The heading of the block, the legend line under the grid and the screen-reader text of the
+// corner marker all have to open with the same word, otherwise a reader cannot tell which marker
+// points at which note (ticket #36). uncertaintyHeading() already carries a test for this; these
+// two texts used to live in app.js, which no test can load (ticket #33), so nothing guarded them.
+test("the screen-reader text and the legend line open with the same word as the heading", () => {
+  assert.match(UNCERTAINTY_SR_ONLY, /^ \(onduidelijk:/);
+  assert.match(UNCERTAINTY_LEGEND, /^Onduidelijk:/);
+  assert.match(uncertaintyHeading(1), /^Onduidelijk:/);
 });

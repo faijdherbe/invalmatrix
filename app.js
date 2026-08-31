@@ -3,7 +3,7 @@ import { assess, overview, categoryINotice, periodCategoryIClasses, periodLabel 
 import { listWithAnd, missingChoicesSentence } from "./selection.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
-import { uncertaintyHeading, uncertaintyLines } from "./uncertainty-text.js";
+import { uncertaintyHeading, uncertaintyLines, UNCERTAINTY_SR_ONLY, UNCERTAINTY_LEGEND } from "./uncertainty-text.js";
 import {
   COMBINATION_EXPLANATION,
   REQUIREMENTS,
@@ -118,8 +118,9 @@ function columnLabel(column) {
 
 // Text that is not on screen but is read aloud: the corner marker is purely visual (color), so
 // this is how someone who does not see it still learns that this cell rests on an open point of
-// the reglement. Same word as the legend line and as the heading of the block in the detail view.
-const SR_ONLY_UNCERTAIN = '<span class="sr-only"> (onduidelijk: het reglement laat hier iets open)</span>';
+// the reglement. Same word as the legend line and as the heading of the block in the detail view;
+// the text itself lives in uncertainty-text.js, so it can be tested. Here only the HTML around it.
+const SR_ONLY_UNCERTAIN = `<span class="sr-only">${UNCERTAINTY_SR_ONLY}</span>`;
 
 // The full description of every requirement, for screen readers too. The title attribute of the
 // button keeps naming the team, so this explanation goes through the same sr-only approach as above.
@@ -137,9 +138,10 @@ function markerExampleHtml() {
 }
 
 // Refers to the corner marker: the verdict in this cell rests on a point the Bondsreglement leaves
-// open, and the detail view says which one. Opens with the same word as that block.
+// open, and the detail view says which one. Opens with the same word as that block; the sentence
+// itself lives in uncertainty-text.js, so it can be tested. Here only the HTML around it.
 function uncertaintyExplanationHtml() {
-  return `${markerExampleHtml()} Onduidelijk: het reglement laat hier iets open. Klik op het vakje om te zien wat.`;
+  return `${markerExampleHtml()} ${escape(UNCERTAINTY_LEGEND)}`;
 }
 
 // A line in the legend: a colored badge with the short label, followed by the description.
