@@ -1,0 +1,19 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # test/articles.test.js draait de artikelextractie opnieuw en vergelijkt de uitkomst met
+      # articles.js. Dat is de test die bewaakt dat niemand articles.js met de hand bewerkt, dus
+      # die moet hier echt draaien, en daarvoor is pdftotext nodig.
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: npm test

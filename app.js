@@ -3,6 +3,7 @@ import { assess, overview, categoryINotice, periodCategoryIClasses, periodLabel 
 import { listWithAnd, missingChoicesSentence } from "./selection.js";
 import { ARTICLES } from "./articles.js";
 import { toBlocks } from "./article-text.js";
+import { uncertaintyHeading, uncertaintyLines, cellMarkers } from "./uncertainty-text.js";
 
 const period = document.getElementById("period");
 const missingChoices = document.getElementById("missing-choices");
@@ -161,6 +162,19 @@ function cellColor(cell) {
 // this cell carries a caveat.
 const SR_ONLY_CAVEAT = '<span class="sr-only"> (met een kanttekening)</span>';
 
+// Same approach as SR_ONLY_CAVEAT above: the purple corner is purely visual, so this is how
+// someone who does not see color still learns that this cell rests on an open uncertainty.
+const SR_ONLY_UNCERTAIN = '<span class="sr-only"> (met een openstaande onduidelijkheid)</span>';
+
+// The CSS class per marker from cellMarkers(), the text that is read aloud for it, and the class
+// name the mobile list uses instead (see .mobile-class.caveat and .mobile-class.uncertain in
+// style.css: a corner on a fully round pill floats loose from the shape, so there it is a border
+// instead of a corner).
+const MARKERS = {
+  "max-two": { className: "corner-triangle", srOnly: SR_ONLY_CAVEAT, mobileClassName: "caveat" },
+  uncertain: { className: "uncertain-corner", srOnly: SR_ONLY_UNCERTAIN, mobileClassName: "uncertain" },
+};
+
 // The full description of every requirement, for screen readers too. The title attribute of the
 // button keeps naming the team, so this explanation goes through the same sr-only approach as above.
 function srOnlyRequirementsHtml(requirements) {
@@ -182,6 +196,17 @@ function caveatExplanationHtml() {
   return `${caveatExampleHtml()} betekent: mag, met een kanttekening die je ziet zodra je op het vakje klikt.`;
 }
 
+// A small example of the purple corner, for the explanation line, next to the yellow one.
+function uncertaintyExampleHtml() {
+  return `<span class="caveat-example uncertain-corner" aria-hidden="true">${escape(STATUSES.free.short)}</span>`;
+}
+
+// Refers to the purple corner: the verdict in this cell rests on a point the Bondsreglement leaves
+// open, and the detail view says which one.
+function uncertaintyExplanationHtml() {
+  return `${uncertaintyExampleHtml()} betekent: het reglement is hier onduidelijk over, klik op het vakje om te zien waarover.`;
+}
+
 // A line in the legend: a colored badge with the short label, followed by the description.
 function legendLineHtml(color, short, description) {
   return `<span class="legend-badge ${escape(color)}">${escape(short)}</span> ${escape(description)}`;
@@ -193,6 +218,7 @@ function mobileExplanationHtml() {
   return [
     ...REQUIREMENT_ORDER.map((requirement) => legendLineHtml("conditional", REQUIREMENTS[requirement].short, REQUIREMENTS[requirement].description)),
     caveatExplanationHtml(),
+    uncertaintyExplanationHtml(),
     escape(COMBINATION_EXPLANATION),
   ].join("<br>");
 }
@@ -201,8 +227,8 @@ function mobileExplanationHtml() {
 // there is no visible requirement. Behind that the explanation for screen readers.
 function cellHtml(cell) {
   const text = requirementsLabel(cell.requirements) || STATUSES[cell.status].short;
-  const caveat = cell.requirements.includes("max-two") ? SR_ONLY_CAVEAT : "";
-  return `${escape(text)}${srOnlyRequirementsHtml(cell.requirements)}${caveat}`;
+  const srOnly = cellMarkers(cell).map((marker) => MARKERS[marker].srOnly).join("");
+  return `${escape(text)}${srOnlyRequirementsHtml(cell.requirements)}${srOnly}`;
 }
 
 // Sums up which classes fall under category I, for the footnote under the grid. Generated from
@@ -270,7 +296,8 @@ function gridTableHtml(rows) {
         .map((cell) => {
           if (!cell.exists) return `<td class="cell empty"></td>`;
           const title = `${row.category} ${cell.label}`;
-          const buttonClass = cell.requirements.includes("max-two") ? ' class="corner-triangle"' : "";
+          const markers = cellMarkers(cell).map((marker) => MARKERS[marker].className);
+          const buttonClass = markers.length > 0 ? ` class="${markers.join(" ")}"` : "";
           return `<td class="cell ${escape(cellColor(cell))}"><button type="button"${buttonClass} data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${cellHtml(cell)}</button></td>`;
         })
         .join("");
@@ -286,6 +313,7 @@ function gridTableHtml(rows) {
     legendLineHtml("no", STATUSES.no.short, STATUSES.no.description),
     legendLineHtml("out-of-scope", STATUSES["out-of-scope"].short, STATUSES["out-of-scope"].description),
     caveatExplanationHtml(),
+    uncertaintyExplanationHtml(),
     escape(COMBINATION_EXPLANATION),
   ].join("\n");
 
@@ -318,15 +346,19 @@ function mobileCategoryHtml(row) {
       const buttons = group.cells
         .map((cell) => {
           const title = `${row.category} ${cell.label}`;
-          const caveat = cell.requirements.includes("max-two");
+          const markers = cellMarkers(cell);
           const requirements = requirementsLabel(cell.requirements);
           const labelHtml = [
             escape(cell.label),
             requirements ? ` <span class="mobile-requirements">${escape(requirements)}</span>` : "",
             srOnlyRequirementsHtml(cell.requirements),
-            caveat ? SR_ONLY_CAVEAT : "",
+            ...markers.map((marker) => MARKERS[marker].srOnly),
           ].join("");
-          const className = `mobile-class ${escape(cellColor(cell))}${caveat ? " caveat" : ""}`;
+          const className = [
+            "mobile-class",
+            escape(cellColor(cell)),
+            ...markers.map((marker) => MARKERS[marker].mobileClassName),
+          ].filter(Boolean).join(" ");
           return `<button type="button" class="${className}" data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${labelHtml}</button>`;
         })
         .join("");
@@ -416,6 +448,22 @@ function list(title, lines) {
   return `<h3>${title}</h3><ul>${items}</ul>`;
 }
 
+// The open uncertainties about the Bondsreglement that apply to this combination, from
+// uncertainties.js through assess(). Collapsed, because a combination can carry four of them at
+// once and the verdict must stay readable. It sits directly under the verdict and above "Let op",
+// so the answer stays where the eye lands and the warning is still the first thing after it. The
+// texts themselves come from uncertainty-text.js, so they can be tested; here only the HTML.
+function uncertaintyBlockHtml(uncertainties) {
+  if (uncertainties.length === 0) return "";
+  const items = uncertaintyLines(uncertainties)
+    .map((line) => {
+      const link = `<a href="${escape(line.url)}" target="_blank" rel="noopener">${escape(line.linkText)}</a>`;
+      return `<li><strong>${escape(line.heading)}</strong><br>${escape(line.explanation)} (${link})</li>`;
+    })
+    .join("");
+  return `<details class="uncertainty"><summary>${escape(uncertaintyHeading(uncertainties.length))}</summary><ul>${items}</ul></details>`;
+}
+
 // Shows the caveats that assess() hands over: not a condition the user can meet, but a warning
 // that the rule itself is contested (for example borrowing from a younger age category, which
 // article 5.3.5.1 gives an example of, while article 3.1.3 and the class boundaries table always
@@ -473,6 +521,7 @@ function showDetail() {
   result.className = outcome.verdict;
   result.innerHTML = [
     `<p class="verdict">${escape(outcome.summary)}</p>`,
+    uncertaintyBlockHtml(outcome.uncertainties),
     cautionBlockHtml(outcome.caveats),
     list("Voorwaarden", outcome.conditions),
     outcome.age ? list("Leeftijd", outcome.age.messages) : "",

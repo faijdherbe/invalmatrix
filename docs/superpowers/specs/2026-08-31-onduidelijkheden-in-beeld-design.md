@@ -2,7 +2,7 @@
 
 Datum: 31 augustus 2026. Branch: `onduidelijkheden`.
 
-Er staan dertien tickets open waarin het Bondsreglement iets in het midden laat of zichzelf
+Er staan veertien tickets open waarin het Bondsreglement iets in het midden laat of zichzelf
 tegenspreekt. `CLAUDE.md` schrijft voor dat de tool dan de behoudende kant kiest en er een ticket
 van maakt. Dat gebeurt ook, maar de gebruiker ziet er niets van: het oordeel op het scherm ziet
 eruit als een vaststaand antwoord, ook waar het op een keuze rust die het reglement niet uitspreekt.
@@ -61,26 +61,34 @@ moet op een plek staan waar hij per ticket te vinden en te verwijderen is.
 
 | ticket | geldt bij |
 |---|---|
-| #11 | uitlener en inlener zijn O11 en O12, in welke volgorde dan ook |
+| #11 | O11 aan precies een kant, dus ook O11 tegenover O14, O16 of O18 |
 | #12 | uitlener staat twee of meer leeftijdscategorieen hoger |
 | #13 | grond `fifth-class` |
 | #14 | beide 5e klasse of lager, verschillende leeftijdscategorie |
 | #15 | uitlener uit een jongere leeftijdscategorie |
-| #16 | speler precies een jaar te oud, uitlener in de 2e klasse of lager |
+| #16 | speler precies een jaar boven de grens van haar eigen categorie, in elke klasse |
 | #17 | inlener O11, speler elf jaar |
 | #18 | Topklasse O14 aan een van beide kanten |
-| #19 | IDC-O14 aan een van beide kanten, periode `early` of `mid` |
+| #19 | IDC-O14 aan een van beide kanten, periode `early` of `mid`, of nog niet gekozen |
 | #27 | Super O14 aan een van beide kanten |
-| #28 | Subtopklasse O16 aan een van beide kanten, periode `mid` of `late` |
+| #28 | Subtopklasse O16 aan een van beide kanten, periode `mid` of nog niet gekozen |
 | #29 | een klasse betrokken die in `CATEGORY_I_UNTIL` of `O14_LEVEL_GROUPS` voorkomt |
 | #30 | een klasse betrokken die niet genummerd is (landelijk, super, top, subtop, idc) |
-| #32 | Subtopklasse O18 in periode `early`, of Subtopklasse O16 in periode `mid` |
+| #32 | Subtopklasse O18 in periode `early`, of Subtopklasse O16 in periode `mid`, bij beide ook zonder gekozen periode |
 
 De predicaten worden afgeleid uit `data.js` waar dat kan, zodat ze meebewegen als de
 seizoensgegevens wijzigen. #29 leest `CATEGORY_I_UNTIL` en `O14_LEVEL_GROUPS`: dat zijn precies de
 plekken waar de periodegrens het oordeel bepaalt. #30 gaat over de klassen die de artikelen 4.3.8
 en 5.3.5.4 per periode opsommen, en herkent die aan hun id: elke klasse-id die niet een genummerde
 klasse is (`1e` tot en met `8e`), dus landelijk, super, top, subtop en idc.
+
+De reikwijdte van #11 en #16 is na de eindreview verbreed. #11 stond eerst op O11 tegenover O12,
+maar de vraag of die twee een niveau of twee categorieen zijn verschuift elke afstand vanaf O11,
+dus ook O11 tegenover O14 en ouder: `O11 1e klasse` naar `O14 4e klasse` gaf een kale "Nee" terwijl
+ticket #11 dat geval zelf noemt. #16 stond op de klassen waar artikel 5.2.4 geldt, maar ticket #16
+noemt ook de andere helft: speelt de uitlener hoger, dan zegt de tool niets over een speler die
+daar alleen met dispensatie kan staan. Beide predicaten kijken nu naar wat de vraag werkelijk
+raakt, niet naar waar de tool toevallig al iets deed.
 
 #16 en #17 dragen `needsDateOfBirth: true`. Die verschijnen alleen in de detailuitleg zodra er een
 geboortedatum is ingevuld, en nooit in het raster: het raster rekent zonder geboortedatum, en een
@@ -168,7 +176,7 @@ draaien.
 ## Tests
 
 - Per onzekerheid: een test die aantoont welke combinaties hij raakt en dat een aangrenzende
-  combinatie hem niet raakt. Dertien tickets, dus dertien paren.
+  combinatie hem niet raakt. Veertien tickets, dus veertien paren.
 - Een test die de hele ruimte doorloopt en vaststelt dat elke `applies` zonder fout draait voor
   alle combinaties van periode, categorie en klasse.
 - Een test dat elk `ticket` uniek is, elke `heading` en `explanation` gevuld, en dat geen tekst een
