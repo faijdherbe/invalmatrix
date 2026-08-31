@@ -114,7 +114,7 @@ export const UNCERTAINTIES = [
     ticket: 27,
     heading: "Hoofdstuk 2 en hoofdstuk 4 noemen de Super O14 verschillend",
     explanation:
-      "Hoofdstuk 2 zet de Super Competitie O14 zonder voorbehoud onder categorie I, hoofdstuk 4 zet er 'vanaf de winterstop' bij. Deze tool volgt hoofdstuk 2 en houdt de Super O14 het hele seizoen buiten beeld.",
+      "Hoofdstuk 2 zet de Super Competitie O14 zonder voorbehoud onder categorie I, hoofdstuk 4 zet er 'vanaf de winterstop' bij. Onder beide lezingen valt Super O14 het hele seizoen onder categorie I, dus dit verschil verandert niets aan het oordeel van deze tool.",
     needsDateOfBirth: false,
     applies: (c) => c.involves("O14", "super"),
   },
@@ -122,7 +122,7 @@ export const UNCERTAINTIES = [
     ticket: 28,
     heading: "Vanaf de winterstop of vanaf na de winterstop bij de Subtopklasse O16?",
     explanation:
-      "Dezelfde zin staat twee keer in het reglement en niet gelijk overgetypt: hoofdstuk 2 zegt 'vanaf de winterstop', hoofdstuk 5 zegt 'vanaf na de winterstop'. Dat scheelt een week. Deze tool houdt de winterstopweek zelf bij categorie I.",
+      "Dezelfde zin staat twee keer in het reglement en niet gelijk overgetypt: hoofdstuk 2 zegt 'vanaf de winterstop', hoofdstuk 5 zegt 'vanaf na de winterstop'. Dat wijst in de praktijk waarschijnlijk op hetzelfde omslagpunt, maar zeker is dat niet. Deze tool houdt de winterstopweek zelf bij categorie I.",
     needsDateOfBirth: false,
     // Only in the period up to and including the winterstop, and as long as no period has been
     // chosen. In the lentecompetitie the winterstop is behind us and both readings come out at
@@ -141,7 +141,7 @@ export const UNCERTAINTIES = [
     ticket: 30,
     heading: "Verschilt het klassenaanbod aan de top per periode?",
     explanation:
-      "De artikelen 4.3.8 en 5.3.5.4 sommen per periode andere klassen op, wat erop wijst dat teams aan de top halverwege het seizoen van klasse wisselen. Deze tool laat je in elke periode elke klasse kiezen en gaat ervan uit dat jij weet in welke klasse je team op de speeldag zelf uitkomt.",
+      "De artikelen 4.3.8, 4.3.9 en 5.3.5.4 sommen per periode andere klassen op, wat erop wijst dat teams aan de top halverwege het seizoen van klasse wisselen. Deze tool laat je in elke periode elke klasse kiezen en gaat ervan uit dat jij weet in welke klasse je team op de speeldag zelf uitkomt.",
     needsDateOfBirth: false,
     applies: (c) => hasNamedClass(c.lender) || hasNamedClass(c.borrower),
   },

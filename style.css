@@ -426,8 +426,11 @@ footer {
 /* The block with the open uncertainties, directly under the verdict. Purple, so it is not confused
    with the yellow of a condition or the red of a rejection: this says nothing about the verdict
    itself, only that the verdict rests on a choice the reglement does not make. Collapsed by
-   default, because a combination can carry four uncertainties at once. */
+   default, because a combination can carry four uncertainties at once. This is a `details`
+   element, so the generic `details` rule below would otherwise also give it a full border; the
+   `border: 0` here cancels that inherited border so only the border-left remains. */
 .uncertainty {
+  border: 0;
   margin: 0.75rem 0;
   border-left: 5px solid var(--purple);
   background: var(--purple-surface);
@@ -448,7 +451,7 @@ footer {
   white-space: pre;
 }
 
-.uncertainty ul {
+#result .uncertainty ul {
   margin: 0.5rem 0 0;
   padding-left: 1.2rem;
 }

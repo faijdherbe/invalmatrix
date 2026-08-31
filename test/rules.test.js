@@ -1703,7 +1703,7 @@ test("a player within the limits gets no dispensation note", () => {
   assert.ok(!outcome.messages.some((v) => /3\.1\.3/.test(v)));
 });
 
-// Ticket #26 group: the open uncertainties of the Bondsreglement must reach the page, so a coach
+// Ticket #34 group: the open uncertainties of the Bondsreglement must reach the page, so a coach
 // can see that a verdict rests on a choice the reglement does not make. uncertainties.js holds the
 // list; these tests check that assess() hands it over on every kind of verdict.
 

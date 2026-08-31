@@ -47,13 +47,18 @@ function isUncertaintyTicket(issue) {
 
 const listed = new Set(UNCERTAINTIES.map((uncertainty) => uncertainty.ticket));
 const open = issues("open");
+const closed = issues("closed");
 const openNumbers = new Set(open.map((issue) => issue.number));
+const closedNumbers = new Set(closed.map((issue) => issue.number));
 
 const problems = [];
 
 for (const ticket of [...listed].sort((a, b) => a - b)) {
-  if (!openNumbers.has(ticket)) {
+  if (openNumbers.has(ticket)) continue;
+  if (closedNumbers.has(ticket)) {
     problems.push(`ticket #${ticket} staat in uncertainties.js maar is niet meer open. Haal de waarschuwing weg, samen met de tests erbij.`);
+  } else {
+    problems.push(`ticket #${ticket} staat in uncertainties.js maar bestaat niet op GitHub. Controleer of het ticketnummer klopt.`);
   }
 }
 

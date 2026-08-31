@@ -166,10 +166,13 @@ const SR_ONLY_CAVEAT = '<span class="sr-only"> (met een kanttekening)</span>';
 // someone who does not see color still learns that this cell rests on an open uncertainty.
 const SR_ONLY_UNCERTAIN = '<span class="sr-only"> (met een openstaande onduidelijkheid)</span>';
 
-// The CSS class per marker from cellMarkers(), and the text that is read aloud for it.
+// The CSS class per marker from cellMarkers(), the text that is read aloud for it, and the class
+// name the mobile list uses instead (see .mobile-class.caveat and .mobile-class.uncertain in
+// style.css: a corner on a fully round pill floats loose from the shape, so there it is a border
+// instead of a corner).
 const MARKERS = {
-  "max-two": { className: "corner-triangle", srOnly: SR_ONLY_CAVEAT },
-  uncertain: { className: "uncertain-corner", srOnly: SR_ONLY_UNCERTAIN },
+  "max-two": { className: "corner-triangle", srOnly: SR_ONLY_CAVEAT, mobileClassName: "caveat" },
+  uncertain: { className: "uncertain-corner", srOnly: SR_ONLY_UNCERTAIN, mobileClassName: "uncertain" },
 };
 
 // The full description of every requirement, for screen readers too. The title attribute of the
@@ -357,8 +360,7 @@ function mobileCategoryHtml(row) {
           const className = [
             "mobile-class",
             escape(cellColor(cell)),
-            markers.includes("max-two") ? "caveat" : "",
-            markers.includes("uncertain") ? "uncertain" : "",
+            ...markers.map((marker) => MARKERS[marker].mobileClassName),
           ].filter(Boolean).join(" ");
           return `<button type="button" class="${className}" data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${labelHtml}</button>`;
         })
