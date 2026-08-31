@@ -257,8 +257,9 @@ thead th, tbody th {
   font-size: 0.85rem;
 }
 
-/* The footnote can now be empty (see periodCategoryIText in app.js), and without this rule its
-   top margin still leaves a gap under the grid. */
+/* The footnote can be empty: showGrid in app.js sets gridFootnote.textContent = "" on its early
+   returns, before there is a grid to annotate. Without this rule the empty element's top margin
+   still leaves a gap where the grid would be. */
 .footnote:empty {
   display: none;
 }
