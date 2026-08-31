@@ -10,12 +10,17 @@ Live op https://faijdherbe.github.io/invalmatrix/
 Wel: veldhockey, seizoen 2026-2027, jeugdcategorieen O11 tot en met O18, categorie II.
 
 Niet: zaalhockey, senioren, O25, 30+, 45+, reserveteams, combiteams en categorie I (de
-Landelijke Competitie en de Super- en Topklasse van O16 en O18, en de Super Competitie en
-IDC van O14). Voor die gevallen doet de pagina bewust geen uitspraak.
+Landelijke Competitie en de Super- en Topklasse van O16 en O18, en de Super Competitie van
+O14). Voor die gevallen doet de pagina bewust geen uitspraak.
+
+Drie klassen wisselen halverwege het seizoen van categorie: de Subtopklasse van O18 (vanaf de
+herfstvakantie), de Subtopklasse van O16 en de IDC-O14 (beide vanaf de winterstop). Daarom
+vraagt de pagina eerst in welke periode van het seizoen de wedstrijd valt.
 
 ## Hoe de pagina werkt
 
-Je kiest eerst bij welk team er ingevallen moet worden (leeftijdscategorie en klasse). Daarna
+Je kiest eerst wanneer de wedstrijd gespeeld wordt, en daarna bij welk team er ingevallen moet
+worden (leeftijdscategorie en klasse). Alle drie de keuzes beginnen leeg. Zijn ze gevuld, dan
 verschijnt een raster met per leeftijdscategorie en klasse wat daar mag invallen. Een klik op
 een vakje toont het volledige oordeel, met een optioneel veld voor de geboortedatum van de
 speler en de letterlijke artikelteksten waarop het oordeel is gebaseerd.
@@ -51,8 +56,9 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 ## Tests
 
-Er zijn 158 tests, voor de regellogica (`rules.js`), de artikeltekst-parser (`article-text.js`),
-de artikeltekst-extractie (`articles.js`) en de tekst op de pagina zelf (`test/page-text.test.js`):
+Er zijn 179 tests, voor de regellogica (`rules.js`), de artikeltekst-parser
+(`article-text.js`), de artikeltekst-extractie (`articles.js`), de tekst voor een onvolledige
+keuze (`selection.js`) en de tekst op de pagina zelf (`test/page-text.test.js`):
 
     npm test
 
@@ -76,20 +82,21 @@ alinea's en opsommingsitems voor op de pagina. Het verandert de tekst zelf niet.
 
 ## Nieuw seizoen
 
-Alles wat per seizoen wijzigt staat in `data.js`: `SEASON`, `REFERENCE_DATE`, `LEVELS`,
-`CLASSES`, `AGE_LIMITS`, `CATEGORY_I` en `CATEGORY_I_PERIOD`. Vervang daarnaast de PDF's in
-`bronnen/` en draai de artikelextractie opnieuw (zie hierboven).
+Alles wat per seizoen wijzigt staat in `data.js`: `SEASON`, `REFERENCE_DATE`, `PERIODS`,
+`LEVELS`, `CLASSES`, `AGE_LIMITS`, `CATEGORY_I` en `CATEGORY_I_UNTIL`. Vervang daarnaast de
+PDF's in `bronnen/` en draai de artikelextractie opnieuw (zie hierboven).
 
 ## Bestanden
 
 - `index.html`, `app.js`, `style.css`: de pagina zelf.
 - `data.js`: seizoensgegevens (niveaus, klassen, leeftijdsgrenzen, categorie I).
+- `selection.js`: de tekst die de pagina toont zolang de keuze onvolledig is.
 - `rules.js`: alle regellogica, inclusief het overzicht voor het raster. `app.js` rekent zelf
   niets uit.
 - `articles.js`: letterlijke artikelteksten, gegenereerd (zie hierboven, niet met de hand
   bewerken).
 - `article-text.js`: zet de letterlijke tekst uit `articles.js` om in weergeefbare blokken.
 - `tools/extract-articles.mjs`: genereert `articles.js` uit de bron-PDF.
-- `test/`: de 154 tests.
+- `test/`: de 179 tests.
 - `bronnen/`: de twee bron-PDF's van de KNHB.
 - `CLAUDE.md`: de werkafspraken, waaronder de taalregel hieronder.
