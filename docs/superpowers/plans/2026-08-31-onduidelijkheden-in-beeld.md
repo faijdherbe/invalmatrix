@@ -834,11 +834,7 @@ test("no uncertainty that needs a date of birth ever reaches the grid", () => {
 });
 ```
 
-Voeg `UNCERTAINTIES` toe aan de imports bovenaan `test/rules.test.js`:
-
-```js
-import { UNCERTAINTIES } from "../uncertainties.js";
-```
+`test/rules.test.js` importeert `UNCERTAINTIES` uit `../uncertainties.js` al, sinds de fixronde van taak 2. Voeg die import niet nog een keer toe.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
