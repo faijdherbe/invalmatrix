@@ -672,9 +672,9 @@ function uncertaintyContext(lender, borrower, periodId, ground, age) {
 }
 ```
 
-- [ ] **Step 4: Fix the four tests that now fail for the right reason**
+- [ ] **Step 4: Fix the five tests that now fail for the right reason**
 
-`npm test` meldt nu ook vier bestaande tests in `test/rules.test.js` die op de verhuisde teksten sturen. Pas ze aan, verwijder ze niet.
+`npm test` meldt nu ook vijf bestaande tests in `test/rules.test.js` die op de verhuisde teksten sturen. Pas ze aan, verwijder ze niet.
 
 De test op regel 944, `caveat: with a younger lender the caveat is there without a date of birth too, with article 3.1.3`, wordt:
 
@@ -715,6 +715,28 @@ test("uncertainty #15: an older lender yields nothing about a younger category",
   // goes through assess().
   const r = assess({ category: "O18", classId: "3e" }, { category: "O16", classId: "2e" }, null);
   assert.ok(!r.uncertainties.map((u) => u.ticket).includes(15));
+});
+```
+
+Ook de test `article 5.3.5.3: the conditions name the uncertainty about the number of available players` rond regel 161 stuurt op de verhuisde tekst. Vervang die, inclusief het commentaarblok erboven, door:
+
+```js
+// Was: this test also expected a reference to 5.3.5.1 in the condition text, as a possible
+// fallback with fewer than eleven own players. After ticket #3 that is wrong: at ground
+// fifth-class the lender plays in a higher class than the borrower, so article 5.3.5.1 does not
+// apply there by definition. And since this task the doubt about the maximum is no longer a
+// condition either: it was never something a team could meet, so it moved to uncertainties.js as
+// ticket #13. What stays here is the condition itself and the article; the ticket is checked
+// through assess() below, because check() calls assessLevel and that knows nothing of tickets.
+test("article 5.3.5.3: the conditions name the maximum, and the doubt about it is uncertainty #13", () => {
+  const r = check("O14", "5e", "O14", "6e");
+  assert.equal(r.ground, "fifth-class");
+  assert.ok(!r.conditions.some((v) => /elf of meer eigen spelers/.test(v)), JSON.stringify(r.conditions));
+  assert.ok(r.conditions.some((v) => /competitieleiding/.test(v)));
+  assert.ok(!r.conditions.some((v) => /5\.3\.5\.1/.test(v)));
+
+  const outcome = assess({ category: "O14", classId: "5e" }, { category: "O14", classId: "6e" }, null);
+  assert.ok(outcome.uncertainties.map((u) => u.ticket).includes(13));
 });
 ```
 
