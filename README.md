@@ -59,7 +59,7 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 ## Tests
 
-Er zijn 179 tests, voor de regellogica (`rules.js`), de artikeltekst-parser
+Er zijn 183 tests, voor de regellogica (`rules.js`), de artikeltekst-parser
 (`article-text.js`), de artikeltekst-extractie (`articles.js`), de tekst voor een onvolledige
 keuze (`selection.js`) en de tekst op de pagina zelf (`test/page-text.test.js`):
 
@@ -100,6 +100,6 @@ PDF's in `bronnen/` en draai de artikelextractie opnieuw (zie hierboven).
   bewerken).
 - `article-text.js`: zet de letterlijke tekst uit `articles.js` om in weergeefbare blokken.
 - `tools/extract-articles.mjs`: genereert `articles.js` uit de bron-PDF.
-- `test/`: de 179 tests.
+- `test/`: de 183 tests.
 - `bronnen/`: de twee bron-PDF's van de KNHB.
 - `CLAUDE.md`: de werkafspraken, waaronder de taalregel hieronder.
