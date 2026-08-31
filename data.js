@@ -124,12 +124,14 @@ export const PERIODS = [
 ];
 
 // Classes that are category I during only part of the season. until is the last period in which
-// the class is still category I; from the period after that it is category II. phrase is the
-// wording chapter 2 itself uses for the category I side, so the rule stands next to its source.
-// contested marks a class about which the reglement does not settle the category before the
-// boundary. The notice for such a class claims no category at all. See ticket #19. fromPhrase is
-// only used for a contested class: it is chapter 2's own wording for the category II side, so that
-// wording also stands next to its source instead of being written out again in rules.js.
+// the class is still category I; from the period after that it is category II. For the two
+// Subtopklassen, phrase is the wording chapter 2 itself uses for the category I side, so the rule
+// stands next to its source. contested marks a class about which the reglement does not settle the
+// category before the boundary; for that class (O14.idc) chapter 2 has no category I side at all,
+// so phrase there is this tool's own inversion of chapter 2's category II wording, not a quote. The
+// notice for a contested class claims no category at all. See ticket #19. fromPhrase is only used
+// for a contested class: it is chapter 2's own wording for the category II side, so that wording
+// also stands next to its source instead of being written out again in rules.js.
 export const CATEGORY_I_UNTIL = {
   // Chapter 2: "de Landelijke Subtopklasse O18 vanaf de herfstvakantie".
   O18: { subtop: { until: "early", phrase: "tot en met de herfstvakantie" } },
