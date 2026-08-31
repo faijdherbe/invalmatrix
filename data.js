@@ -107,6 +107,11 @@ export const CATEGORY_I = {
 // match played in the herfstvakantie week has no period the reglement clearly assigns it to. This
 // tool puts that week on the category I side, because that is the side that never wrongly says
 // "ja". See ticket #32.
+// The same self-overlap exists at the winterstop, for the O16 Subtopklasse: chapter 2's category I
+// line says "tot en met de winterstop", its category II line says "vanaf de winterstop", so the
+// winterstop week itself is claimed twice too. The mid period is labeled "tot en met de
+// winterstop" for the same reason as early above, and that week is resolved on the category I side
+// for the same reason: it is the side that never wrongly says "ja". Also ticket #32.
 // This array's ids (early/mid/late) are a vocabulary of their own, separate from the
 // voorcompetitie/lentecompetitie strings O14_LEVEL_GROUPS above uses; see the comment there for why
 // they are not unified.
@@ -114,7 +119,7 @@ export const CATEGORY_I = {
 // recorded.
 export const PERIODS = [
   { id: "early", label: "voorcompetitie tot en met de herfstvakantie" },
-  { id: "mid", label: "voorcompetitie na de herfstvakantie" },
+  { id: "mid", label: "voorcompetitie na de herfstvakantie tot en met de winterstop" },
   { id: "late", label: "lentecompetitie" },
 ];
 
