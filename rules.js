@@ -260,12 +260,19 @@ export function assessLevel(lender, borrower) {
 }
 
 // The place of a period in the season. PERIODS holds that order, so this is the only comparison
-// that knows which period comes first.
+// that knows which period comes first. Throws on an id that is not in PERIODS, rather than
+// returning -1: a silent -1 would sort before every real period index, so a typo in a
+// CATEGORY_I_UNTIL "until" value or a renamed PERIODS id would make categoryINotice below think
+// every period is past the boundary and start handing out ordinary category II verdicts for a
+// category I class. The caller keeps periodId === null out of this function entirely, so that path
+// is unaffected.
 function periodIndex(periodId) {
-  return PERIODS.findIndex((p) => p.id === periodId);
+  const index = PERIODS.findIndex((p) => p.id === periodId);
+  if (index === -1) throw new Error(`unknown period id: ${periodId}`);
+  return index;
 }
 
-function periodLabel(periodId) {
+export function periodLabel(periodId) {
   const found = PERIODS.find((p) => p.id === periodId);
   return found ? found.label : periodId;
 }
@@ -292,18 +299,23 @@ export function categoryINotice(team, periodId = null) {
     : `In de ${periodLabel(periodId)} doet deze pagina hier geen uitspraak over.`;
 
   if (switching.contested) {
-    return `Het reglement zet ${describe(team)} vanaf de winterstop onder categorie II, maar laat in het midden wat er ${switching.phrase} geldt en of er dan wordt gespeeld (hoofdstuk 2 van het Bondsreglement, en de artikelen 4.3.9 en 5.3.5.4). ${scope}`;
+    return `Het reglement zet ${describe(team)} ${switching.fromPhrase} onder categorie II, maar laat in het midden wat er ${switching.phrase} geldt en of er dan wordt gespeeld (hoofdstuk 2 van het Bondsreglement, en de artikelen 4.3.9 en 5.3.5.4). ${scope}`;
   }
   return `${describe(team)} valt ${switching.phrase} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. ${scope}`;
 }
 
 // The switching classes that are category I in this period, for the footnote under the grid. Asks
-// categoryINotice itself, so there is one place that decides when a class is category I.
+// categoryINotice itself, so there is one place that decides when a class is category I. contested
+// is carried along so the footnote can tell apart the classes chapter 2 actually places under
+// category I from the one it leaves open (see the design document of 31 August 2026): both get a
+// column with no verdict, but for a different reason, and the footnote must not blur that.
 export function periodCategoryIClasses(periodId) {
   const found = [];
   for (const category of AGE_CATEGORIES) {
     for (const classId of Object.keys(CATEGORY_I_UNTIL[category] || {})) {
-      if (categoryINotice({ category, classId }, periodId)) found.push({ category, classId });
+      if (categoryINotice({ category, classId }, periodId)) {
+        found.push({ category, classId, contested: Boolean(CATEGORY_I_UNTIL[category][classId].contested) });
+      }
     }
   }
   return found;

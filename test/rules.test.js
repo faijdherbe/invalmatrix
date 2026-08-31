@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CLASSES, REFERENCE_DATE, COLUMNS, AGE_CATEGORIES } from "../data.js";
+import { CLASSES, REFERENCE_DATE, COLUMNS, AGE_CATEGORIES, PERIODS, CATEGORY_I_UNTIL } from "../data.js";
 import {
   level,
   assessLevel,
@@ -391,17 +391,42 @@ test("without a chosen period a switching class keeps giving no verdict", () => 
   assert.ok(categoryINotice({ category: "O14", classId: "idc" }));
 });
 
-test("periodCategoryIClasses names the switching classes that are category I in that period", () => {
+test("periodCategoryIClasses names the switching classes that are category I in that period, and marks IDC-O14 as contested", () => {
   assert.deepEqual(periodCategoryIClasses("early"), [
-    { category: "O14", classId: "idc" },
-    { category: "O16", classId: "subtop" },
-    { category: "O18", classId: "subtop" },
+    { category: "O14", classId: "idc", contested: true },
+    { category: "O16", classId: "subtop", contested: false },
+    { category: "O18", classId: "subtop", contested: false },
   ]);
   assert.deepEqual(periodCategoryIClasses("mid"), [
-    { category: "O14", classId: "idc" },
-    { category: "O16", classId: "subtop" },
+    { category: "O14", classId: "idc", contested: true },
+    { category: "O16", classId: "subtop", contested: false },
   ]);
   assert.deepEqual(periodCategoryIClasses("late"), []);
+});
+
+// Ticket for finding 1 of the whole-branch review: a bad or renamed period id used to make
+// periodIndex return -1, which sorts before every real period index and silently turns a category
+// I class into category II in every period. periodIndex now throws instead, and this is the guard
+// against a silent regression on that.
+test("every until value in CATEGORY_I_UNTIL is a real period id in PERIODS", () => {
+  const ids = PERIODS.map((p) => p.id);
+  for (const category of Object.keys(CATEGORY_I_UNTIL)) {
+    for (const classId of Object.keys(CATEGORY_I_UNTIL[category])) {
+      const until = CATEGORY_I_UNTIL[category][classId].until;
+      assert.ok(ids.includes(until), `${category} ${classId} has until "${until}", not a PERIODS id`);
+    }
+  }
+});
+
+test("categoryINotice throws on an unknown period id instead of silently treating it as past every boundary", () => {
+  const team = { category: "O18", classId: "subtop" };
+  assert.throws(() => categoryINotice(team, "typo-period"));
+});
+
+test("categoryINotice does not throw when no period is chosen", () => {
+  const team = { category: "O18", classId: "subtop" };
+  assert.doesNotThrow(() => categoryINotice(team, null));
+  assert.doesNotThrow(() => categoryINotice(team));
 });
 
 test("periodCategoryIClasses names them all without a chosen period, because every period is still possible", () => {
