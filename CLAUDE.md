@@ -65,6 +65,28 @@ Elke fout en elke onzekerheid wordt een ticket op https://github.com/faijdherbe/
   Die kun je niet zelf beslissen, en een gok die eruitziet als een besluit is erger dan een open
   vraag.
 
+### Onduidelijkheden op de pagina
+
+Elke onzekerheid die het oordeel van de gebruiker raakt staat twee keer vast: als ticket op GitHub
+en als regel in `uncertainties.js`. De pagina toont die regel bij elke combinatie waarvoor hij
+geldt, zodat een coach ziet dat het antwoord op een keuze rust die het reglement niet uitspreekt.
+
+- Vind je een nieuwe onduidelijkheid, maak dan het ticket en zet in dezelfde commit de regel in
+  `uncertainties.js`, met een predicaat dat precies de combinaties raakt die het betreft.
+- Sluit je een ticket, haal dan in dezelfde commit die regel weg, samen met de tests erbij.
+- Los je iets maar gedeeltelijk op, dan blijft de regel staan. Pas wel de tekst aan als er nu iets
+  anders onduidelijk is dan eerst.
+- `node tools/check-uncertainties.mjs` controleert beide richtingen: een gesloten ticket dat nog een
+  waarschuwing heeft, en een openstaand `Onzeker:`-ticket dat er geen heeft. Het script praat met
+  GitHub en zit daarom bewust niet in `npm test`.
+
+### De bewaking
+
+Twee GitHub Actions draaien mee: `tests` draait `npm test` bij elke push, en `onduidelijkheden`
+draait het controlescript bij elke push en elke maandagochtend. Kijk aan het begin van een taak met
+`gh run list --limit 5` of de laatste runs groen staan, en repareer wat rood staat voor je aan iets
+nieuws begint.
+
 ## Huisregels voor de code
 
 - Elke wijziging gaat vergezeld van tests. Sneuvelt een bestaande test, pas hem dan aan en leg uit
@@ -80,9 +102,10 @@ Elke fout en elke onzekerheid wordt een ticket op https://github.com/faijdherbe/
 ## Commando's
 
 ```
-npm test                          # de testsuite, draait node --test test/
-node tools/extract-articles.mjs   # genereert articles.js opnieuw uit de bron-PDF
-python3 -m http.server 8000       # de pagina lokaal bekijken
+npm test                             # de testsuite, draait node --test test/
+node tools/extract-articles.mjs      # genereert articles.js opnieuw uit de bron-PDF
+node tools/check-uncertainties.mjs   # controleert of de waarschuwingen bij de open tickets passen
+python3 -m http.server 8000          # de pagina lokaal bekijken
 ```
 
 ## Nieuw seizoen
