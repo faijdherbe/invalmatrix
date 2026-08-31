@@ -297,6 +297,8 @@ export function categoryINotice(team, periodId = null) {
   return `${describe(team)} valt ${switching.phrase} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. ${scope}`;
 }
 
+// The switching classes that are category I in this period, for the footnote under the grid. Asks
+// categoryINotice itself, so there is one place that decides when a class is category I.
 export function periodCategoryIClasses(periodId) {
   const found = [];
   for (const category of AGE_CATEGORIES) {
