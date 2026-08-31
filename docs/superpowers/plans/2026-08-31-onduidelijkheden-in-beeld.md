@@ -30,7 +30,9 @@
 | `test/uncertainties.test.js` (nieuw) | Test de predicaten los van `rules.js`, op een handgemaakte context. |
 | `rules.js` (wijzigen) | Bouwt de context, geeft `uncertainties` mee in `assess()`, en levert de twee verhuisde teksten niet meer als caveat of conditie. |
 | `test/rules.test.js` (wijzigen) | Tests op de integratie, en de aangepaste bestaande tests. |
-| `app.js` (wijzigen) | De accordion in de uitleg, het hoekje in het raster en de mobiele lijst, de legenda. |
+| `uncertainty-text.js` (nieuw) | De teksten en beslissingen voor de weergave, zonder DOM, in de stijl van `article-text.js`. |
+| `test/uncertainty-text.test.js` (nieuw) | Test die teksten en beslissingen. |
+| `app.js` (wijzigen) | Rendert wat `uncertainty-text.js` teruggeeft: de accordion, het hoekje in het raster en de mobiele lijst, de legenda. |
 | `style.css` (wijzigen) | De paarse kleur, het hoekje linksonder, de mobiele markering, de accordion. |
 | `tools/check-uncertainties.mjs` (nieuw) | Vergelijkt de lijst met GitHub. |
 | `.github/workflows/test.yml` (nieuw) | Draait `npm test`. |
@@ -839,40 +841,154 @@ git commit -m "feat: markeer rastercellen die op een openstaande onduidelijkheid
 
 ---
 
-## Task 4: de accordion in de uitleg
+## Task 4: de teksten van de accordion, en de accordion zelf
 
 **Files:**
+- Create: `uncertainty-text.js`
+- Test: `test/uncertainty-text.test.js`
 - Modify: `app.js` (rond `cautionBlockHtml` op regel 426 en `showDetail` op regel 455)
-- Modify: `style.css` (achteraan)
+- Modify: `style.css` (`:root` bovenaan, en achteraan)
+
+`app.js` pakt de DOM al op moduleniveau en kan daarom niet in een test worden geimporteerd. Dat is
+ticket #33. Het project heeft daar een patroon voor: `selection.js` en `article-text.js` houden de
+tekstlogica apart, zonder DOM, zodat `app.js` alleen nog rendert. Deze taak volgt dat patroon, dus
+elke beslissing over tekst en volgorde is getest en `app.js` houdt alleen het samenstellen van de
+HTML over.
 
 **Interfaces:**
 - Consumes: `outcome.uncertainties` uit Task 2.
-- Produces: niets voor latere taken.
+- Produces:
+  - `ISSUE_URL`: `"https://github.com/faijdherbe/invalmatrix/issues"`.
+  - `uncertaintyHeading(count)`: de kop, bijvoorbeeld `"Het reglement is hier op 3 punten onduidelijk"`. Bij `count === 0` een lege string.
+  - `uncertaintyLines(uncertainties)`: `[{ ticket, heading, explanation, linkText, url }]`, in dezelfde volgorde, met `linkText` gelijk aan `"ticket #19"`.
 
-- [ ] **Step 1: Write the implementation**
+- [ ] **Step 1: Write the failing test**
 
-Er is nog geen DOM-testharnas (ticket #33), dus deze taak heeft geen unit-test. Hij wordt in de browser nagelopen in stap 2.
-
-Voeg in `app.js` boven `cautionBlockHtml` toe:
+Maak `test/uncertainty-text.test.js`:
 
 ```js
-const ISSUE_URL = "https://github.com/faijdherbe/invalmatrix/issues";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { ISSUE_URL, uncertaintyHeading, uncertaintyLines } from "../uncertainty-text.js";
 
+const two = [
+  { ticket: 19, heading: "Kop van negentien", explanation: "Uitleg van negentien.", needsDateOfBirth: false },
+  { ticket: 30, heading: "Kop van dertig", explanation: "Uitleg van dertig.", needsDateOfBirth: false },
+];
+
+test("the heading counts the uncertainties and uses the singular for one", () => {
+  assert.equal(uncertaintyHeading(1), "Het reglement is hier op 1 punt onduidelijk");
+});
+
+test("the heading uses the plural from two upwards", () => {
+  assert.equal(uncertaintyHeading(2), "Het reglement is hier op 2 punten onduidelijk");
+  assert.equal(uncertaintyHeading(4), "Het reglement is hier op 4 punten onduidelijk");
+});
+
+// Nothing to warn about means no block at all, so the screen stays as it was.
+test("no uncertainties yields an empty heading", () => {
+  assert.equal(uncertaintyHeading(0), "");
+});
+
+test("every line carries a link to its own ticket", () => {
+  const lines = uncertaintyLines(two);
+  assert.equal(lines.length, 2);
+  assert.equal(lines[0].url, `${ISSUE_URL}/19`);
+  assert.equal(lines[0].linkText, "ticket #19");
+  assert.equal(lines[1].url, `${ISSUE_URL}/30`);
+  assert.equal(lines[1].linkText, "ticket #30");
+});
+
+test("a line keeps the heading and the explanation of its uncertainty, in the given order", () => {
+  const lines = uncertaintyLines(two);
+  assert.equal(lines[0].heading, "Kop van negentien");
+  assert.equal(lines[0].explanation, "Uitleg van negentien.");
+  assert.deepEqual(lines.map((line) => line.ticket), [19, 30]);
+});
+
+test("an empty list yields no lines", () => {
+  assert.deepEqual(uncertaintyLines([]), []);
+});
+
+// The whole point of this module: it may reach for no DOM, otherwise it cannot be tested.
+test("the module carries no reference to the document", () => {
+  const source = readFileSync(new URL("../uncertainty-text.js", import.meta.url), "utf8");
+  assert.ok(!/\bdocument\b/.test(source), "uncertainty-text.js must stay free of the DOM");
+});
+```
+
+Voeg bovenaan dat testbestand de import toe die de laatste test nodig heeft:
+
+```js
+import { readFileSync } from "node:fs";
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `npm test`
+Expected: FAIL, `Cannot find module ... uncertainty-text.js`
+
+- [ ] **Step 3: Write the implementation**
+
+Maak `uncertainty-text.js`:
+
+```js
+// The texts the page shows for the open uncertainties of uncertainties.js. Purely text based, no
+// DOM use: the result can be rendered by app.js, or checked by tests. Same reason as
+// article-text.js and selection.js, which keep their text apart for the same reason.
+export const ISSUE_URL = "https://github.com/faijdherbe/invalmatrix/issues";
+
+// The heading above the collapsed block. An empty string when there is nothing to warn about; the
+// caller then draws no block at all and the screen stays as it was.
+export function uncertaintyHeading(count) {
+  if (count === 0) return "";
+  return `Het reglement is hier op ${count} punt${count === 1 ? "" : "en"} onduidelijk`;
+}
+
+// One line per uncertainty, in the order they come in, with the link to its ticket alongside. The
+// ticket number is what makes a warning traceable: a coach who wants to know where this comes from
+// can read the question and the answer of the competition management there.
+export function uncertaintyLines(uncertainties) {
+  return uncertainties.map((uncertainty) => ({
+    ticket: uncertainty.ticket,
+    heading: uncertainty.heading,
+    explanation: uncertainty.explanation,
+    linkText: `ticket #${uncertainty.ticket}`,
+    url: `${ISSUE_URL}/${uncertainty.ticket}`,
+  }));
+}
+```
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `npm test`
+Expected: PASS.
+
+- [ ] **Step 5: Render it in app.js**
+
+Voeg de import toe onder de bestaande imports bovenaan `app.js`:
+
+```js
+import { uncertaintyHeading, uncertaintyLines } from "./uncertainty-text.js";
+```
+
+Voeg boven `cautionBlockHtml` toe:
+
+```js
 // The open uncertainties about the Bondsreglement that apply to this combination, from
 // uncertainties.js through assess(). Collapsed, because a combination can carry four of them at
 // once and the verdict must stay readable. It sits directly under the verdict and above "Let op",
-// so the answer stays where the eye lands and the warning is still the first thing after it.
+// so the answer stays where the eye lands and the warning is still the first thing after it. The
+// texts themselves come from uncertainty-text.js, so they can be tested; here only the HTML.
 function uncertaintyBlockHtml(uncertainties) {
   if (uncertainties.length === 0) return "";
-  const count = uncertainties.length;
-  const heading = `Het reglement is hier op ${count} punt${count === 1 ? "" : "en"} onduidelijk`;
-  const items = uncertainties
-    .map((uncertainty) => {
-      const link = `<a href="${ISSUE_URL}/${uncertainty.ticket}" target="_blank" rel="noopener">ticket #${uncertainty.ticket}</a>`;
-      return `<li><strong>${escape(uncertainty.heading)}</strong><br>${escape(uncertainty.explanation)} (${link})</li>`;
+  const items = uncertaintyLines(uncertainties)
+    .map((line) => {
+      const link = `<a href="${escape(line.url)}" target="_blank" rel="noopener">${escape(line.linkText)}</a>`;
+      return `<li><strong>${escape(line.heading)}</strong><br>${escape(line.explanation)} (${link})</li>`;
     })
     .join("");
-  return `<details class="uncertainty"><summary>${escape(heading)}</summary><ul>${items}</ul></details>`;
+  return `<details class="uncertainty"><summary>${escape(uncertaintyHeading(uncertainties.length))}</summary><ul>${items}</ul></details>`;
 }
 ```
 
@@ -888,6 +1004,15 @@ Zet in `showDetail` de aanroep tussen het oordeel en het blok "Let op":
     list("Waarom", outcome.reasoning),
     articleBlock(outcome.articles),
   ].join("");
+```
+
+- [ ] **Step 6: Style it**
+
+Voeg de twee kleuren toe aan `:root` bovenaan `style.css`, onder `--red-surface`:
+
+```css
+  --purple: #5b3d8f;
+  --purple-surface: #f0eaf8;
 ```
 
 Voeg achteraan `style.css` toe:
@@ -928,14 +1053,7 @@ Voeg achteraan `style.css` toe:
 }
 ```
 
-Voeg de twee kleuren toe aan `:root` bovenaan `style.css`, onder `--red-surface`:
-
-```css
-  --purple: #5b3d8f;
-  --purple-surface: #f0eaf8;
-```
-
-- [ ] **Step 2: Check it in the browser**
+- [ ] **Step 7: Check it in the browser**
 
 Run: `python3 -m http.server 8000`
 Open `http://localhost:8000`, kies periode "voorcompetitie tot en met de herfstvakantie", categorie O14, klasse 2e klasse, en klik het vakje van O14 IDC-O14 aan.
@@ -943,10 +1061,17 @@ Expected: onder het oordeel staat een dichtgeklapte regel "/!\ Het reglement is 
 Kies daarna O16 3e klasse en klik O16 4e klasse aan.
 Expected: geen accordion, het scherm ziet eruit als voorheen.
 
-- [ ] **Step 3: Commit**
+Lukt de browser niet, gebruik dan een DOM-stub in de scratchpad om `app.js` te laden, zoals bij de vorige branch is gedaan. Meld in het rapport welke van de twee je hebt gebruikt.
+
+- [ ] **Step 8: Run the tests**
+
+Run: `npm test`
+Expected: PASS.
+
+- [ ] **Step 9: Commit**
 
 ```bash
-git add app.js style.css
+git add uncertainty-text.js test/uncertainty-text.test.js app.js style.css
 git commit -m "feat: toon de openstaande onduidelijkheden onder het oordeel"
 ```
 
@@ -955,21 +1080,93 @@ git commit -m "feat: toon de openstaande onduidelijkheden onder het oordeel"
 ## Task 5: het hoekje in het raster en de mobiele lijst
 
 **Files:**
+- Modify: `uncertainty-text.js`
+- Modify: `test/uncertainty-text.test.js`
 - Modify: `app.js` (rond regel 161 tot 200, `gridTableHtml` op regel 265, `mobileCategoryHtml` op regel 315)
 - Modify: `style.css`
 
 **Interfaces:**
-- Consumes: `cell.uncertain` uit Task 3.
-- Produces: niets voor latere taken.
+- Consumes: `cell.uncertain` uit Task 3, en `uncertaintyHeading` uit Task 4.
+- Produces: `cellMarkers(cell)`: `["max-two"]`, `["uncertain"]`, beide, of een lege array, in die vaste volgorde.
 
-- [ ] **Step 1: Write the implementation**
+- [ ] **Step 1: Write the failing test**
 
-Voeg in `app.js` onder `SR_ONLY_CAVEAT` toe:
+Voeg toe aan `test/uncertainty-text.test.js`:
+
+```js
+// The markers a cell carries in the grid: the yellow triangle for the max-two caveat of article
+// 5.3.5.3, and the purple corner for an open uncertainty. Which of the two a cell gets is a
+// decision, so it is tested here rather than buried in the HTML of app.js.
+test("a cell without markers yields an empty list", () => {
+  assert.deepEqual(cellMarkers({ requirements: [], uncertain: false }), []);
+});
+
+test("the max-two requirement yields the caveat marker", () => {
+  assert.deepEqual(cellMarkers({ requirements: ["max-two"], uncertain: false }), ["max-two"]);
+});
+
+test("an uncertain cell yields the uncertainty marker", () => {
+  assert.deepEqual(cellMarkers({ requirements: [], uncertain: true }), ["uncertain"]);
+});
+
+test("a cell can carry both markers, always in the same order", () => {
+  assert.deepEqual(cellMarkers({ requirements: ["max-two", "age"], uncertain: true }), ["max-two", "uncertain"]);
+});
+
+test("another requirement yields no marker of its own", () => {
+  assert.deepEqual(cellMarkers({ requirements: ["player-count", "age"], uncertain: false }), []);
+});
+```
+
+Breid de import bovenaan dat bestand uit:
+
+```js
+import { ISSUE_URL, uncertaintyHeading, uncertaintyLines, cellMarkers } from "../uncertainty-text.js";
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `npm test`
+Expected: FAIL, `cellMarkers is not a function`.
+
+- [ ] **Step 3: Write the implementation**
+
+Voeg achteraan `uncertainty-text.js` toe:
+
+```js
+// The markers a cell in the overview grid carries, in a fixed order so the classes on the button
+// are predictable. max-two is the caveat of article 5.3.5.3, which already had its own marker;
+// uncertain is new and says that the verdict in this cell rests on an open point of the
+// Bondsreglement. A cell can carry both.
+export function cellMarkers(cell) {
+  const markers = [];
+  if (cell.requirements.includes("max-two")) markers.push("max-two");
+  if (cell.uncertain) markers.push("uncertain");
+  return markers;
+}
+```
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `npm test`
+Expected: PASS.
+
+- [ ] **Step 5: Render it in app.js**
+
+Breid de import uit `./uncertainty-text.js` bovenaan `app.js` uit met `cellMarkers`.
+
+Voeg onder `SR_ONLY_CAVEAT` toe:
 
 ```js
 // Same approach as SR_ONLY_CAVEAT above: the purple corner is purely visual, so this is how
 // someone who does not see color still learns that this cell rests on an open uncertainty.
 const SR_ONLY_UNCERTAIN = '<span class="sr-only"> (met een openstaande onduidelijkheid)</span>';
+
+// The CSS class per marker from cellMarkers(), and the text that is read aloud for it.
+const MARKERS = {
+  "max-two": { className: "corner-triangle", srOnly: SR_ONLY_CAVEAT },
+  uncertain: { className: "uncertain-corner", srOnly: SR_ONLY_UNCERTAIN },
+};
 ```
 
 Voeg onder `caveatExplanationHtml` toe:
@@ -987,24 +1184,20 @@ function uncertaintyExplanationHtml() {
 }
 ```
 
-Breid `cellHtml` uit, zodat de onzichtbare tekst meekomt:
+Vervang `cellHtml` door:
 
 ```js
 function cellHtml(cell) {
   const text = requirementsLabel(cell.requirements) || STATUSES[cell.status].short;
-  const caveat = cell.requirements.includes("max-two") ? SR_ONLY_CAVEAT : "";
-  const uncertain = cell.uncertain ? SR_ONLY_UNCERTAIN : "";
-  return `${escape(text)}${srOnlyRequirementsHtml(cell.requirements)}${caveat}${uncertain}`;
+  const srOnly = cellMarkers(cell).map((marker) => MARKERS[marker].srOnly).join("");
+  return `${escape(text)}${srOnlyRequirementsHtml(cell.requirements)}${srOnly}`;
 }
 ```
 
 Vervang in `gridTableHtml` de regel met `buttonClass` door:
 
 ```js
-          const markers = [
-            cell.requirements.includes("max-two") ? "corner-triangle" : "",
-            cell.uncertain ? "uncertain-corner" : "",
-          ].filter(Boolean);
+          const markers = cellMarkers(cell).map((marker) => MARKERS[marker].className);
           const buttonClass = markers.length > 0 ? ` class="${markers.join(" ")}"` : "";
 ```
 
@@ -1026,23 +1219,27 @@ Vervang in `mobileCategoryHtml` het blok binnen de `map` door:
 
 ```js
           const title = `${row.category} ${cell.label}`;
-          const caveat = cell.requirements.includes("max-two");
+          const markers = cellMarkers(cell);
           const requirements = requirementsLabel(cell.requirements);
           const labelHtml = [
             escape(cell.label),
             requirements ? ` <span class="mobile-requirements">${escape(requirements)}</span>` : "",
             srOnlyRequirementsHtml(cell.requirements),
-            caveat ? SR_ONLY_CAVEAT : "",
-            cell.uncertain ? SR_ONLY_UNCERTAIN : "",
+            ...markers.map((marker) => MARKERS[marker].srOnly),
           ].join("");
+          // The mobile list uses class names of its own for the markers (see .mobile-class.caveat
+          // and .mobile-class.uncertain in style.css): a corner on a fully round pill floats loose
+          // from the shape, so there they are borders instead of corners.
           const className = [
             "mobile-class",
             escape(cellColor(cell)),
-            caveat ? "caveat" : "",
-            cell.uncertain ? "uncertain" : "",
+            markers.includes("max-two") ? "caveat" : "",
+            markers.includes("uncertain") ? "uncertain" : "",
           ].filter(Boolean).join(" ");
           return `<button type="button" class="${className}" data-category="${escape(row.category)}" data-class-id="${escape(cell.classId)}" title="${escape(title)}">${labelHtml}</button>`;
 ```
+
+- [ ] **Step 6: Style it**
 
 Voeg in `style.css` onder het blok `.corner-triangle::after` toe:
 
@@ -1084,7 +1281,7 @@ Voeg onder `.mobile-class.caveat` toe:
 }
 ```
 
-- [ ] **Step 2: Check it in the browser**
+- [ ] **Step 7: Check it in the browser**
 
 Run: `python3 -m http.server 8000`
 Open `http://localhost:8000`, kies periode "voorcompetitie na de herfstvakantie tot en met de winterstop", categorie O16, klasse 2e klasse. Dit zijn de vakjes zoals het dan moet staan:
@@ -1100,15 +1297,17 @@ Expected: de accordion zegt "op 4 punten onduidelijk" en noemt de tickets #28, #
 Maak het venster smal.
 Expected: de mobiele lijst toont dezelfde klassen met een paarse binnenrand, en de uitleg eronder noemt het hoekje. Een klasse die zowel de gele als de paarse markering draagt toont de paarse ring binnen de gele.
 
-- [ ] **Step 3: Run the tests**
+Lukt de browser niet, gebruik dan een DOM-stub in de scratchpad, zoals bij de vorige branch is gedaan. Meld in het rapport welke van de twee je hebt gebruikt.
+
+- [ ] **Step 8: Run the tests**
 
 Run: `npm test`
-Expected: PASS. `app.js` heeft geen tests, maar `test/page-text.test.js` leest de pagina en mag niet sneuvelen.
+Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add app.js style.css
+git add uncertainty-text.js test/uncertainty-text.test.js app.js style.css
 git commit -m "feat: markeer onduidelijke vakjes in het raster en de mobiele lijst"
 ```
 
