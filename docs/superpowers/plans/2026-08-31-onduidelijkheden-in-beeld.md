@@ -1379,13 +1379,36 @@ import { UNCERTAINTIES } from "../uncertainties.js";
 
 const REPO = "faijdherbe/invalmatrix";
 
+// The ceiling on what gh hands back. It is a lot more than this repo will realistically have, but
+// gh stays silent when it truncates, so issues() checks below whether the ceiling was reached.
+const LIMIT = 200;
+
 function issues(state) {
-  const output = execFileSync(
-    "gh",
-    ["issue", "list", "--repo", REPO, "--state", state, "--limit", "200", "--json", "number,title,state"],
-    { encoding: "utf8" },
-  );
-  return JSON.parse(output);
+  let output;
+  try {
+    output = execFileSync(
+      "gh",
+      ["issue", "list", "--repo", REPO, "--state", state, "--limit", String(LIMIT), "--json", "number,title,state"],
+      { encoding: "utf8" },
+    );
+  } catch (error) {
+    // Without this the script dies on a raw Node stack trace, which tells whoever runs it nothing.
+    // The two ways this fails in practice are gh not being installed and gh not being logged in,
+    // so the message names both and then shows what gh itself said.
+    console.error("Kan 'gh issue list' niet draaien. Is gh geinstalleerd, en ben je ingelogd?");
+    const detail = String(error.stderr || error.message || "").trim();
+    if (detail) console.error(`  ${detail}`);
+    process.exit(1);
+  }
+
+  const parsed = JSON.parse(output);
+  // gh truncates silently. Without this check the script could report "in orde" while a ticket
+  // just outside the window has no warning at all.
+  if (parsed.length >= LIMIT) {
+    console.error(`Er zijn minstens ${LIMIT} tickets met de status ${state}, en dat is de limiet van dit script. Verhoog LIMIT in tools/check-uncertainties.mjs.`);
+    process.exit(1);
+  }
+  return parsed;
 }
 
 // An uncertainty ticket is recognised by its title, the wording CLAUDE.md prescribes for these.
@@ -1443,7 +1466,15 @@ Haal daarna tijdelijk het element met `ticket: 32` uit `uncertainties.js`, draai
 Expected: afsluitcode 1 met de regel `ticket #32 staat open maar heeft geen waarschuwing in uncertainties.js`. Zet het element daarna terug en draai het script opnieuw.
 Expected: weer `In orde: 14 waarschuwingen`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Verify it fails readably without gh**
+
+Zoek eerst met `command -v gh` waar `gh` vandaan komt, en draai het script dan met een PATH waarin hij niet zit.
+Expected: de Nederlandse melding `Kan 'gh issue list' niet draaien. Is gh geinstalleerd, en ben je ingelogd?` met de tekst van gh eronder, en afsluitcode 1. Geen stacktrace.
+
+Zet daarna `LIMIT` tijdelijk op 2 en draai het script.
+Expected: de melding over de limiet, met afsluitcode 1. Zet `LIMIT` terug op 200 en controleer met `git diff` dat er niets tijdelijks achterblijft.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add tools/check-uncertainties.mjs
