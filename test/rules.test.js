@@ -1822,3 +1822,36 @@ test("the walk-through above covers every uncertainty there is", () => {
   const walked = [...new Set(TICKET_THROUGH_ASSESS.map((row) => row.ticket))].sort((a, b) => a - b);
   assert.deepEqual(walked, UNCERTAINTIES.map((u) => u.ticket));
 });
+
+// Ticket #16 was open on this: the tool only warned once article 5.2.4 turned up in the age
+// assessment, and rules.js only reaches for that article from the 2nd class down. A lender in
+// the 1st class got no warning at all, even though such a player can only be there with
+// dispensation. oneYearOverLenderLimit in uncertaintyContext() is class-independent on purpose,
+// so the warning now fires regardless of the lender's class.
+test("#16 fires for a player one year over the limit whether the lender plays 1st or 3rd class", () => {
+  const borrower = { category: "O16", classId: "2e" };
+  const overAge = d("2012-05-01");
+  const fromFirstClass = assess({ category: "O14", classId: "1e" }, borrower, overAge, "mid");
+  const fromThirdClass = assess({ category: "O14", classId: "3e" }, borrower, overAge, "mid");
+  assert.ok(fromFirstClass.uncertainties.map((u) => u.ticket).includes(16), JSON.stringify(fromFirstClass.uncertainties));
+  assert.ok(fromThirdClass.uncertainties.map((u) => u.ticket).includes(16), JSON.stringify(fromThirdClass.uncertainties));
+});
+
+test("#16 does not fire for a player who sits neatly within her own category's limits", () => {
+  const r = assess({ category: "O14", classId: "1e" }, { category: "O16", classId: "2e" }, d("2013-05-01"), "mid");
+  assert.ok(!r.uncertainties.map((u) => u.ticket).includes(16), JSON.stringify(r.uncertainties));
+});
+
+// The two gaps the whole-branch review found: a verdict that rests on an open reading of the
+// reglement while the page said nothing at all. A "nee" or an unconditional "ja" without a warning
+// is worse than no promise, because the tickets #11 and #16 name these exact cases themselves.
+test("O11 1e to O14 4e is a nee that must name uncertainty #11", () => {
+  const r = assess({ category: "O11", classId: "1e" }, { category: "O14", classId: "4e" }, null, "mid");
+  assert.equal(r.verdict, "not-allowed");
+  assert.ok(r.uncertainties.map((u) => u.ticket).includes(11), JSON.stringify(r.uncertainties));
+});
+
+test("a player one year over the limit from a 1st class team must name uncertainty #16", () => {
+  const r = assess({ category: "O14", classId: "1e" }, { category: "O16", classId: "2e" }, d("2012-05-01"), "mid");
+  assert.ok(r.uncertainties.map((u) => u.ticket).includes(16), JSON.stringify(r.uncertainties));
+});

@@ -38,10 +38,10 @@ export const UNCERTAINTIES = [
     explanation:
       "Artikel 3.1.1 noemt O11 en O12 twee aparte leeftijdscategorieen, maar de tabel klassengrenzen zet ze in een gedeelde kolom. Deze tool volgt de tabel en rekent dus geen klasse verschil tussen O11 en O12.",
     needsDateOfBirth: false,
-    applies: (c) => {
-      const categories = [c.lender.category, c.borrower.category];
-      return categories.includes("O11") && categories.includes("O12");
-    },
+    // O11 aan precies een kant. Smelten O11 en O12 samen tot een niveau, dan verschuift elke
+    // afstand vanaf O11 met een stap, dus ook O11 tegen O14 en ouder. Twee keer O11 raakt het
+    // niet, en O12 tegen O14 en ouder ook niet: daar telt het in beide lezingen gelijk.
+    applies: (c) => (c.lender.category === "O11") !== (c.borrower.category === "O11"),
   },
   {
     ticket: 12,
@@ -82,9 +82,9 @@ export const UNCERTAINTIES = [
     ticket: 16,
     heading: "Valt elke speler die een jaar te oud is onder artikel 5.2.4?",
     explanation:
-      "Deze tool gaat ervan uit dat een speler die precies een jaar boven de grens van haar eigen categorie zit, een van de twee spelers is die volgens artikel 5.2.4 op de teamlijst mogen staan, en dus nooit mag invallen. Het reglement zegt dat niet met zoveel woorden.",
+      "Speelt het team van de speler in de 2e klasse of lager, dan gaat deze tool ervan uit dat zij een van de twee spelers is die volgens artikel 5.2.4 een jaar ouder mogen zijn, en dus nooit mag invallen. Speelt dat team hoger, dan geldt die uitzondering niet en zegt deze tool er niets over, terwijl zo'n speler daar alleen met dispensatie kan staan. Het reglement wijst geen van beide aan.",
     needsDateOfBirth: true,
-    applies: (c) => c.age !== null && c.age.articles.includes("5.2.4"),
+    applies: (c) => c.oneYearOverLenderLimit,
   },
   {
     ticket: 17,

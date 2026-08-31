@@ -424,6 +424,10 @@ function uncertaintyContext(lender, borrower, periodId, ground, age) {
       (lender.category === category && lender.classId === classId) ||
       (borrower.category === category && borrower.classId === classId),
     bothFifthOrLower: isFifthOrLower(lender.classId) && isFifthOrLower(borrower.classId),
+    // Whether the player is exactly one year over the upper limit of her own age category. That is
+    // the situation article 5.2.4 is about, and uncertainty #16 needs it directly: rules.js only
+    // reaches for that article from the 2nd class down, while the ticket covers the 1st class too.
+    oneYearOverLenderLimit: age !== null && age.age === AGE_LIMITS[lender.category].max + 1,
   };
 }
 

@@ -63,7 +63,7 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 ## Tests
 
-Er zijn 239 tests, voor de regellogica (`rules.js`), de artikeltekst-parser
+Er zijn 244 tests, voor de regellogica (`rules.js`), de artikeltekst-parser
 (`article-text.js`), de artikeltekst-extractie (`articles.js`), de tekst voor een onvolledige
 keuze (`selection.js`), de tekst op de pagina zelf (`test/page-text.test.js`), de open
 onduidelijkheden (`uncertainties.js`) en de tekst voor de weergave daarvan
@@ -112,6 +112,6 @@ PDF's in `bronnen/` en draai de artikelextractie opnieuw (zie hierboven).
 - `tools/extract-articles.mjs`: genereert `articles.js` uit de bron-PDF.
 - `tools/check-uncertainties.mjs`: controleert of `uncertainties.js` gelijk loopt met de open
   tickets op GitHub.
-- `test/`: de 239 tests.
+- `test/`: de 244 tests.
 - `bronnen/`: de twee bron-PDF's van de KNHB.
 - `CLAUDE.md`: de werkafspraken, waaronder de taalregel hieronder.

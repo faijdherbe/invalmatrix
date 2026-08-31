@@ -8,7 +8,7 @@ const LOW_CLASSES = ["5e", "6e", "7e", "8e"];
 // Builds the context that rules.js will hand over, so the predicates can be tested without
 // running the rules. Only the fields the predicates read are filled in; everything else takes a
 // neutral default.
-function context({ lender, borrower, periodId = null, ground = null, age = null }) {
+function context({ lender, borrower, periodId = null, ground = null, age = null, oneYearOverLenderLimit = false }) {
   return {
     lender,
     borrower,
@@ -21,6 +21,7 @@ function context({ lender, borrower, periodId = null, ground = null, age = null 
       (lender.category === category && lender.classId === classId) ||
       (borrower.category === category && borrower.classId === classId),
     bothFifthOrLower: LOW_CLASSES.includes(lender.classId) && LOW_CLASSES.includes(borrower.classId),
+    oneYearOverLenderLimit,
   };
 }
 
@@ -70,6 +71,19 @@ test("#11 applies between O11 and O12, in both directions", () => {
   assert.ok(tickets(context({ lender: { category: "O12", classId: "1e" }, borrower: { category: "O11", classId: "1e" } })).includes(11));
 });
 
+// The predicate was widened from "O11 and O12 on either side" to "O11 on exactly one side",
+// because melting O11 and O12 into one level shifts every distance measured from O11, not just
+// the O11/O12 pair itself (ticket #11, the O11 1e to O14 4e example). O11 against O14, O16 and
+// O18 now fires too.
+test("#11 applies on O11 against O14 and O18, in both directions", () => {
+  assert.ok(tickets(context({ lender: { category: "O11", classId: "1e" }, borrower: { category: "O14", classId: "4e" } })).includes(11));
+  assert.ok(tickets(context({ lender: { category: "O14", classId: "4e" }, borrower: { category: "O11", classId: "1e" } })).includes(11));
+  assert.ok(tickets(context({ lender: { category: "O11", classId: "1e" }, borrower: { category: "O18", classId: "3e" } })).includes(11));
+});
+
+// Still true under the widened predicate: two O11 teams never differ on the O11-question, and
+// O12 against O14 or older sits entirely outside the O11/O12 pair the widening is about, so both
+// readings of ticket #11 count the distance the same way there.
 test("#11 does not apply within O11 or between O12 and O14", () => {
   assert.ok(!tickets(context({ lender: { category: "O11", classId: "1e" }, borrower: { category: "O11", classId: "2e" } })).includes(11));
   assert.ok(!tickets(context({ lender: { category: "O12", classId: "1e" }, borrower: { category: "O14", classId: "1e" } })).includes(11));
@@ -108,10 +122,15 @@ test("#15 does not apply on ground too-high, nor with an older lender", () => {
   assert.ok(!tickets(context({ lender: { category: "O18", classId: "3e" }, borrower: { category: "O16", classId: "2e" }, ground: "equal-or-lower" })).includes(15));
 });
 
-test("#16 applies as soon as the age assessment reaches for article 5.2.4", () => {
+// #16 used to key off article 5.2.4 turning up in the age assessment, but rules.js only reaches
+// for that article from the 2nd class down (ticket #16: the 1st class has no such warning at
+// all). The predicate now reads oneYearOverLenderLimit directly, a field rules.js fills in
+// regardless of the lender's class, so the old expectation tied to "5.2.4 in age.articles" no
+// longer applies: the context field it depended on is gone.
+test("#16 applies as soon as the player sits one year over the lender's own limit", () => {
   const teams = { lender: { category: "O14", classId: "3e" }, borrower: { category: "O14", classId: "4e" } };
-  assert.ok(tickets(context({ ...teams, age: { articles: ["5.2.4"] } })).includes(16));
-  assert.ok(!tickets(context({ ...teams, age: { articles: ["3.1.1"] } })).includes(16));
+  assert.ok(tickets(context({ ...teams, oneYearOverLenderLimit: true })).includes(16));
+  assert.ok(!tickets(context({ ...teams, oneYearOverLenderLimit: false })).includes(16));
   assert.ok(!tickets(context(teams)).includes(16));
 });
 
