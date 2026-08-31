@@ -250,7 +250,13 @@ function periodCategoryIText(periodId) {
     const plural = contested.length > 1;
     const give = plural ? "geven" : "geeft";
     const column = plural ? "kolommen" : "kolom";
-    sentences.push(` Wat er in de ${periodName} voor ${names(contested)} geldt, laat het reglement in het midden, dus ${give} die ${column} ook daar geen oordeel.`);
+    // With a sentence about category I in front of it the period has just been named, so this one
+    // says "dan" instead of repeating the whole label, and "ook" belongs with the column: it is
+    // that column that gives no verdict either. Standing alone the sentence has to name the period
+    // itself, and there is no earlier column for "ook" to point back to.
+    sentences.push(settled.length > 0
+      ? ` Voor ${names(contested)} laat het reglement in het midden wat er dan geldt, dus ${give} ook die ${column} geen oordeel.`
+      : ` Wat er in de ${periodName} voor ${names(contested)} geldt, laat het reglement in het midden, dus ${give} die ${column} geen oordeel.`);
   }
   return sentences.join("");
 }
