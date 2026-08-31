@@ -4,7 +4,8 @@ import {
   AGE_CATEGORIES,
   COLUMNS,
   CATEGORY_I,
-  CATEGORY_I_PERIOD,
+  CATEGORY_I_UNTIL,
+  PERIODS,
   AGE_LIMITS,
   OLDER_PLAYER_EXCEPTION,
   O14_LEVEL_GROUPS,
@@ -258,17 +259,69 @@ export function assessLevel(lender, borrower) {
   return { allowed: false, ground: "too-high", conditions: [], reasoning, articles, caveats: [] };
 }
 
-// Returns an explanation when the team falls outside category II, otherwise null.
-export function categoryINotice(team) {
+// The place of a period in the season. PERIODS holds that order, so this is the only comparison
+// that knows which period comes first. Throws on an id that is not in PERIODS, rather than
+// returning -1: a silent -1 would sort before every real period index, so a typo in a
+// CATEGORY_I_UNTIL "until" value or a renamed PERIODS id would make categoryINotice below think
+// every period is past the boundary and start handing out ordinary category II verdicts for a
+// category I class. The caller keeps periodId === null out of this function entirely, so that path
+// is unaffected.
+function periodIndex(periodId) {
+  const index = PERIODS.findIndex((p) => p.id === periodId);
+  if (index === -1) throw new Error(`unknown period id: ${periodId}`);
+  return index;
+}
+
+// Throws on an unknown id for the same reason periodIndex does: a label that quietly falls back to
+// the raw id ends up in a sentence the user reads, and "in de null" is worse than a stack trace.
+export function periodLabel(periodId) {
+  const found = PERIODS.find((p) => p.id === periodId);
+  if (!found) throw new Error(`unknown period id: ${periodId}`);
+  return found.label;
+}
+
+// Returns an explanation when the team falls outside category II, otherwise null. periodId is null
+// as long as the user has chosen no period. The page never draws the grid in that state, but
+// rules.js is a module of its own and must never silently assume a period.
+export function categoryINotice(team, periodId = null) {
   const fixed = CATEGORY_I[team.category];
   if (fixed && fixed.includes(team.classId)) {
     return `${describe(team)} valt volgens hoofdstuk 2 van het Bondsreglement onder categorie I. Daarvoor gelden de speelgerechtigdheidsregels van hoofdstuk 4, die deze tool niet dekt.`;
   }
-  const period = CATEGORY_I_PERIOD[team.category];
-  if (period && period[team.classId]) {
-    return `${describe(team)} valt ${period[team.classId]} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. Deze tool weet niet in welke periode de wedstrijd valt en doet hier geen uitspraak over.`;
+
+  const switching = (CATEGORY_I_UNTIL[team.category] || {})[team.classId];
+  if (!switching) return null;
+
+  // From the period after the boundary the class is category II and an ordinary verdict follows.
+  // Without a chosen period every period is still possible, and then the conservative side is the
+  // one that gives no verdict.
+  if (periodId !== null && periodIndex(periodId) > periodIndex(switching.until)) return null;
+
+  const scope = periodId === null
+    ? "Zonder gekozen periode doet deze pagina hier geen uitspraak over."
+    : `In de ${periodLabel(periodId)} doet deze pagina hier geen uitspraak over.`;
+
+  if (switching.contested) {
+    return `Het reglement zet ${describe(team)} ${switching.fromPhrase} onder categorie II, maar laat in het midden wat er ${switching.phrase} geldt en of er dan wordt gespeeld (hoofdstuk 2 van het Bondsreglement, en de artikelen 4.3.9 en 5.3.5.4). ${scope}`;
   }
-  return null;
+  return `${describe(team)} valt ${switching.phrase} volgens hoofdstuk 2 van het Bondsreglement onder categorie I, met de speelgerechtigdheidsregels van hoofdstuk 4, en daarna onder categorie II. ${scope}`;
+}
+
+// The switching classes that are category I in this period, for the footnote under the grid. Asks
+// categoryINotice itself, so there is one place that decides when a class is category I. contested
+// is carried along so the footnote can tell apart the classes chapter 2 actually places under
+// category I from the one it leaves open (see the design document of 31 August 2026): both get a
+// column with no verdict, but for a different reason, and the footnote must not blur that.
+export function periodCategoryIClasses(periodId) {
+  const found = [];
+  for (const category of AGE_CATEGORIES) {
+    for (const classId of Object.keys(CATEGORY_I_UNTIL[category] || {})) {
+      if (categoryINotice({ category, classId }, periodId)) {
+        found.push({ category, classId, contested: Boolean(CATEGORY_I_UNTIL[category][classId].contested) });
+      }
+    }
+  }
+  return found;
 }
 
 export function ageOnReferenceDate(dateOfBirth) {
@@ -368,8 +421,8 @@ function hasValidDateOfBirth(dateOfBirth) {
 }
 
 // The only function the user interface calls.
-export function assess(lender, borrower, dateOfBirth) {
-  const outOfScope = categoryINotice(lender) || categoryINotice(borrower);
+export function assess(lender, borrower, dateOfBirth, periodId = null) {
+  const outOfScope = categoryINotice(lender, periodId) || categoryINotice(borrower, periodId);
   if (outOfScope) {
     return {
       verdict: "out-of-scope",
@@ -480,13 +533,13 @@ export function cellFromOutcome(outcome) {
 
 // Builds the data for the overview grid: one row per age category, one cell per column.
 // A cell without a date of birth, because the grid shows what is possible at class level.
-export function overview(borrower) {
+export function overview(borrower, periodId = null) {
   return AGE_CATEGORIES.map((category) => ({
     category,
     cells: COLUMNS.map((column) => {
       const classEntry = CLASSES[category].find((k) => k.id === column);
       if (!classEntry) return { classId: column, exists: false };
-      const outcome = assess({ category, classId: column }, borrower, null);
+      const outcome = assess({ category, classId: column }, borrower, null, periodId);
       const cell = cellFromOutcome(outcome);
       return {
         classId: column,

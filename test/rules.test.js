@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CLASSES, REFERENCE_DATE, COLUMNS, AGE_CATEGORIES } from "../data.js";
+import { CLASSES, REFERENCE_DATE, COLUMNS, AGE_CATEGORIES, PERIODS, CATEGORY_I_UNTIL } from "../data.js";
 import {
   level,
   assessLevel,
   categoryINotice,
+  periodCategoryIClasses,
+  periodLabel,
   ageOnReferenceDate,
   assessAge,
   formatDateDutch,
@@ -310,10 +312,16 @@ test("IDC-O14 is a class of its own next to Super O14, at the same level as Supe
   assert.equal(level("O14", "idc"), level("O14", "top"));
 });
 
-test("IDC-O14 falls under category I until the winter break and after that the tool makes no statement", () => {
+// The old expectation here was that IDC-O14 is category I until the winter break. That is a
+// statement chapter 2 does not make: it names IDC-O14 nowhere in the category I list and only says
+// that it falls under category II from the winter break on. The notice therefore no longer claims
+// a category, see the design of 31 August 2026.
+test("IDC-O14 gets no verdict without a chosen period, and the notice claims no category", () => {
   const notice = categoryINotice({ category: "O14", classId: "idc" });
-  assert.match(notice, /tot de winterstop/);
+  assert.match(notice, /vanaf de winterstop/);
   assert.match(notice, /geen uitspraak/);
+  // Use negative lookahead to avoid matching "onder categorie II" when testing for category I.
+  assert.doesNotMatch(notice, /onder categorie I(?!I)/);
 });
 
 test("Super O14 stays, apart from IDC-O14, unconditionally under category I", () => {
@@ -335,6 +343,146 @@ test("the category I notices name both chapter 2 and chapter 4", () => {
   const periodNotice = categoryINotice({ category: "O18", classId: "subtop" });
   assert.match(periodNotice, /hoofdstuk 2/);
   assert.match(periodNotice, /hoofdstuk 4/);
+});
+
+test("O18 Subtopklasse is category I up to and including the herfstvakantie and category II after", () => {
+  const team = { category: "O18", classId: "subtop" };
+  assert.ok(categoryINotice(team, "early"));
+  assert.equal(categoryINotice(team, "mid"), null);
+  assert.equal(categoryINotice(team, "late"), null);
+});
+
+test("O16 Subtopklasse is category I up to and including the winterstop and category II after", () => {
+  const team = { category: "O16", classId: "subtop" };
+  assert.ok(categoryINotice(team, "early"));
+  assert.ok(categoryINotice(team, "mid"));
+  assert.equal(categoryINotice(team, "late"), null);
+});
+
+test("IDC-O14 gets a verdict from the lentecompetitie on and none before that", () => {
+  const team = { category: "O14", classId: "idc" };
+  assert.ok(categoryINotice(team, "early"));
+  assert.ok(categoryINotice(team, "mid"));
+  assert.equal(categoryINotice(team, "late"), null);
+});
+
+test("the notice of a switching class names the chosen period", () => {
+  const notice = categoryINotice({ category: "O16", classId: "subtop" }, "mid");
+  assert.match(notice, /voorcompetitie na de herfstvakantie/);
+});
+
+test("the notice of IDC-O14 claims no category, because the reglement does not settle that", () => {
+  for (const periodId of [null, "early", "mid"]) {
+    const notice = categoryINotice({ category: "O14", classId: "idc" }, periodId);
+    assert.match(notice, /vanaf de winterstop/);
+    assert.match(notice, /geen uitspraak/);
+    assert.doesNotMatch(notice, /onder categorie I(?!I)/);
+  }
+});
+
+test("Super O14 stays category I in every period, chapter 2 names no period there", () => {
+  for (const periodId of [null, "early", "mid", "late"]) {
+    assert.ok(categoryINotice({ category: "O14", classId: "super" }, periodId));
+  }
+});
+
+test("without a chosen period a switching class keeps giving no verdict", () => {
+  assert.ok(categoryINotice({ category: "O18", classId: "subtop" }));
+  assert.ok(categoryINotice({ category: "O16", classId: "subtop" }));
+  assert.ok(categoryINotice({ category: "O14", classId: "idc" }));
+});
+
+test("periodCategoryIClasses names the switching classes that are category I in that period, and marks IDC-O14 as contested", () => {
+  assert.deepEqual(periodCategoryIClasses("early"), [
+    { category: "O14", classId: "idc", contested: true },
+    { category: "O16", classId: "subtop", contested: false },
+    { category: "O18", classId: "subtop", contested: false },
+  ]);
+  assert.deepEqual(periodCategoryIClasses("mid"), [
+    { category: "O14", classId: "idc", contested: true },
+    { category: "O16", classId: "subtop", contested: false },
+  ]);
+  assert.deepEqual(periodCategoryIClasses("late"), []);
+});
+
+// Ticket for finding 1 of the whole-branch review: a bad or renamed period id used to make
+// periodIndex return -1, which sorts before every real period index and silently turns a category
+// I class into category II in every period. periodIndex now throws instead, and this is the guard
+// against a silent regression on that.
+test("periodLabel throws on an unknown period id instead of echoing it into the text", () => {
+  assert.equal(periodLabel("early"), "voorcompetitie tot en met de herfstvakantie");
+  assert.throws(() => periodLabel("nonsense"), /unknown period id/);
+  assert.throws(() => periodLabel(null), /unknown period id/);
+});
+
+test("every entry in CATEGORY_I_UNTIL has a real until, a phrase, and a fromPhrase when contested", () => {
+  const ids = PERIODS.map((p) => p.id);
+  for (const category of Object.keys(CATEGORY_I_UNTIL)) {
+    for (const classId of Object.keys(CATEGORY_I_UNTIL[category])) {
+      const entry = CATEGORY_I_UNTIL[category][classId];
+      assert.ok(ids.includes(entry.until), `${category} ${classId} has until "${entry.until}", not a PERIODS id`);
+      assert.equal(typeof entry.phrase, "string", `${category} ${classId} has no string phrase`);
+      assert.ok(entry.phrase.length > 0, `${category} ${classId} has an empty phrase`);
+      // Without this, a contested entry with no fromPhrase would render "undefined" straight into
+      // the sentence categoryINotice builds for it (rules.js), the same species of bug periodLabel
+      // above was hardened against.
+      if (entry.contested) {
+        assert.equal(typeof entry.fromPhrase, "string", `${category} ${classId} is contested but has no string fromPhrase`);
+        assert.ok(entry.fromPhrase.length > 0, `${category} ${classId} is contested but has an empty fromPhrase`);
+      }
+    }
+  }
+});
+
+test("categoryINotice throws on an unknown period id instead of silently treating it as past every boundary", () => {
+  const team = { category: "O18", classId: "subtop" };
+  assert.throws(() => categoryINotice(team, "typo-period"));
+});
+
+test("categoryINotice does not throw when no period is chosen", () => {
+  const team = { category: "O18", classId: "subtop" };
+  assert.doesNotThrow(() => categoryINotice(team, null));
+  assert.doesNotThrow(() => categoryINotice(team));
+});
+
+test("periodCategoryIClasses names them all without a chosen period, because every period is still possible", () => {
+  assert.equal(periodCategoryIClasses(null).length, 3);
+});
+
+test("periodCategoryIClasses does not name the fixed category I classes, those are not switching", () => {
+  const all = ["early", "mid", "late", null].flatMap((p) => periodCategoryIClasses(p));
+  assert.ok(!all.some((c) => c.classId === "super" || c.classId === "landelijk"));
+});
+
+test("assess passes the period on: O18 Subtopklasse gets a verdict from the mid period on", () => {
+  const lender = { category: "O18", classId: "subtop" };
+  const borrower = { category: "O18", classId: "1e" };
+  assert.equal(assess(lender, borrower, null, "early").verdict, "out-of-scope");
+  assert.notEqual(assess(lender, borrower, null, "mid").verdict, "out-of-scope");
+});
+
+test("assess passes the period on with the switching class as the borrower too", () => {
+  const lender = { category: "O16", classId: "1e" };
+  const borrower = { category: "O16", classId: "subtop" };
+  assert.equal(assess(lender, borrower, null, "mid").verdict, "out-of-scope");
+  assert.notEqual(assess(lender, borrower, null, "late").verdict, "out-of-scope");
+});
+
+test("overview passes the period on: the Subtopklasse column of O16 fills up in the lentecompetitie", () => {
+  const borrower = { category: "O16", classId: "1e" };
+  const early = overview(borrower, "early").find((r) => r.category === "O16");
+  assert.equal(early.cells.find((c) => c.classId === "subtop").status, "out-of-scope");
+  const late = overview(borrower, "late").find((r) => r.category === "O16");
+  assert.notEqual(late.cells.find((c) => c.classId === "subtop").status, "out-of-scope");
+});
+
+test("article 5.3.5.4 gives the same conditions in every period, the period does not filter it", () => {
+  const lender = { category: "O14", classId: "top" };
+  const borrower = { category: "O14", classId: "subtop" };
+  const conditions = ["early", "mid", "late"].map((p) => assess(lender, borrower, null, p).conditions);
+  assert.deepEqual(conditions[1], conditions[0]);
+  assert.deepEqual(conditions[2], conditions[0]);
+  assert.ok(conditions[0].some((c) => /eerste team/.test(c)));
 });
 
 test("age is calculated on 1 October 2026", () => {

@@ -47,3 +47,21 @@ test("the first heading of the README names both field hockey and the KNHB", () 
   assert.match(heading, /veldhockey/i);
   assert.match(heading, /KNHB/);
 });
+
+test("the page asks in which period the match is played, before the team question", () => {
+  const period = html.indexOf('id="period"');
+  const category = html.indexOf('id="borrower-category"');
+  assert.ok(period > -1, "no select with id period found");
+  assert.ok(period < category, "the period choice must come before the team choice");
+  assert.match(html, /Wanneer wordt de wedstrijd gespeeld\?/);
+});
+
+test("there is a place for the message about an incomplete choice", () => {
+  assert.match(html, /id="missing-choices"/);
+});
+
+test("the page holds no hard preselected age category or class", () => {
+  const appJs = readFileSync(new URL("../app.js", import.meta.url), "utf8");
+  assert.ok(!/borrowerCategory\.value = "/.test(appJs));
+  assert.ok(!/borrowerClass\.value = "/.test(appJs));
+});

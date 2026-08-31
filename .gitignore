@@ -1,1 +1,5 @@
 .superpowers/
+
+# Emacs laat lockbestanden en backups achter. Die horen niet in de repo.
+.#*
+*~

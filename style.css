@@ -257,6 +257,17 @@ thead th, tbody th {
   font-size: 0.85rem;
 }
 
+/* The footnote can be empty: showGrid in app.js sets gridFootnote.textContent = "" on its early
+   returns, before there is a grid to annotate. Without this rule the empty element's top margin
+   still leaves a gap where the grid would be. */
+.footnote:empty {
+  display: none;
+}
+
+.missing-choices:empty {
+  display: none;
+}
+
 .out-of-scope-notice {
   padding: 0.9rem 1.1rem;
   border-left: 5px solid var(--grey);
