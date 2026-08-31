@@ -65,7 +65,9 @@ Er is geen build-stap. Voor lokaal bekijken:
 
 Er zijn 239 tests, voor de regellogica (`rules.js`), de artikeltekst-parser
 (`article-text.js`), de artikeltekst-extractie (`articles.js`), de tekst voor een onvolledige
-keuze (`selection.js`) en de tekst op de pagina zelf (`test/page-text.test.js`):
+keuze (`selection.js`), de tekst op de pagina zelf (`test/page-text.test.js`), de open
+onduidelijkheden (`uncertainties.js`) en de tekst voor de weergave daarvan
+(`uncertainty-text.js`):
 
     npm test
 
@@ -100,10 +102,16 @@ PDF's in `bronnen/` en draai de artikelextractie opnieuw (zie hierboven).
 - `selection.js`: de tekst die de pagina toont zolang de keuze onvolledig is.
 - `rules.js`: alle regellogica, inclusief het overzicht voor het raster. `app.js` rekent zelf
   niets uit.
+- `uncertainties.js`: de openstaande onduidelijkheden in het Bondsreglement, per ticket met een
+  kop, een uitleg en het predicaat dat bepaalt op welke combinaties ze van toepassing zijn.
 - `articles.js`: letterlijke artikelteksten, gegenereerd (zie hierboven, niet met de hand
   bewerken).
 - `article-text.js`: zet de letterlijke tekst uit `articles.js` om in weergeefbare blokken.
+- `uncertainty-text.js`: de teksten en markeringen voor de weergave van `uncertainties.js`,
+  zonder DOM, zodat ze getest kunnen worden.
 - `tools/extract-articles.mjs`: genereert `articles.js` uit de bron-PDF.
+- `tools/check-uncertainties.mjs`: controleert of `uncertainties.js` gelijk loopt met de open
+  tickets op GitHub.
 - `test/`: de 239 tests.
 - `bronnen/`: de twee bron-PDF's van de KNHB.
 - `CLAUDE.md`: de werkafspraken, waaronder de taalregel hieronder.
