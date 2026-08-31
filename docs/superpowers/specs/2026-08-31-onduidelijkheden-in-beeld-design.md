@@ -2,7 +2,7 @@
 
 Datum: 31 augustus 2026. Branch: `onduidelijkheden`.
 
-Er staan dertien tickets open waarin het Bondsreglement iets in het midden laat of zichzelf
+Er staan veertien tickets open waarin het Bondsreglement iets in het midden laat of zichzelf
 tegenspreekt. `CLAUDE.md` schrijft voor dat de tool dan de behoudende kant kiest en er een ticket
 van maakt. Dat gebeurt ook, maar de gebruiker ziet er niets van: het oordeel op het scherm ziet
 eruit als een vaststaand antwoord, ook waar het op een keuze rust die het reglement niet uitspreekt.
@@ -168,7 +168,7 @@ draaien.
 ## Tests
 
 - Per onzekerheid: een test die aantoont welke combinaties hij raakt en dat een aangrenzende
-  combinatie hem niet raakt. Dertien tickets, dus dertien paren.
+  combinatie hem niet raakt. Veertien tickets, dus veertien paren.
 - Een test die de hele ruimte doorloopt en vaststelt dat elke `applies` zonder fout draait voor
   alle combinaties van periode, categorie en klasse.
 - Een test dat elk `ticket` uniek is, elke `heading` en `explanation` gevuld, en dat geen tekst een

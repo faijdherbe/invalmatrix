@@ -4,7 +4,7 @@
 
 **Goal:** De pagina laat per combinatie van periode, teams en geboortedatum zien welke openstaande onduidelijkheden in het Bondsreglement erop van toepassing zijn, met een markering in het raster en een dichtgeklapte accordion in de uitleg.
 
-**Architecture:** Een nieuw bestand `uncertainties.js` houdt dertien onzekerheden vast, elk met ticketnummer, kop, uitleg en een predicaat. `rules.js` bouwt een context en geeft de geldende onzekerheden mee in het resultaat van `assess()`. `app.js` tekent ze als hoekje in het raster en als accordion in de uitleg. Een script plus twee GitHub Actions bewaken dat de lijst gelijk blijft met de tickets.
+**Architecture:** Een nieuw bestand `uncertainties.js` houdt veertien onzekerheden vast, elk met ticketnummer, kop, uitleg en een predicaat. `rules.js` bouwt een context en geeft de geldende onzekerheden mee in het resultaat van `assess()`. `app.js` tekent ze als hoekje in het raster en als accordion in de uitleg. Een script plus twee GitHub Actions bewaken dat de lijst gelijk blijft met de tickets.
 
 **Tech Stack:** ES-modules zonder build-stap, `node --test` voor de tests, `gh` voor de ticketcontrole, GitHub Actions voor de bewaking.
 
@@ -26,7 +26,7 @@
 
 | bestand | verantwoordelijkheid |
 |---|---|
-| `uncertainties.js` (nieuw) | De dertien onzekerheden en `uncertaintiesFor(context)`. Importeert alleen uit `data.js`. |
+| `uncertainties.js` (nieuw) | De veertien onzekerheden en `uncertaintiesFor(context)`. Importeert alleen uit `data.js`. |
 | `test/uncertainties.test.js` (nieuw) | Test de predicaten los van `rules.js`, op een handgemaakte context. |
 | `rules.js` (wijzigen) | Bouwt de context, geeft `uncertainties` mee in `assess()`, en levert de twee verhuisde teksten niet meer als caveat of conditie. |
 | `test/rules.test.js` (wijzigen) | Tests op de integratie, en de aangepaste bestaande tests. |
@@ -1426,7 +1426,7 @@ process.exit(1);
 - [ ] **Step 2: Run the script to verify it passes**
 
 Run: `node tools/check-uncertainties.mjs`
-Expected: `In orde: 13 waarschuwingen, allemaal met een openstaand ticket.` en afsluitcode 0.
+Expected: `In orde: 14 waarschuwingen, allemaal met een openstaand ticket.` en afsluitcode 0.
 
 - [ ] **Step 3: Verify it catches a mismatch**
 
@@ -1441,7 +1441,7 @@ import('./uncertainties.js').then(m => {
 ```
 Haal daarna tijdelijk het element met `ticket: 32` uit `uncertainties.js`, draai `node tools/check-uncertainties.mjs`.
 Expected: afsluitcode 1 met de regel `ticket #32 staat open maar heeft geen waarschuwing in uncertainties.js`. Zet het element daarna terug en draai het script opnieuw.
-Expected: weer `In orde: 13 waarschuwingen`.
+Expected: weer `In orde: 14 waarschuwingen`.
 
 - [ ] **Step 4: Commit**
 
@@ -1563,7 +1563,7 @@ Run: `npm test`
 Expected: PASS. Noteer het aantal tests en zet dat in `README.md` als het afwijkt.
 
 Run: `node tools/check-uncertainties.mjs`
-Expected: `In orde: 13 waarschuwingen, allemaal met een openstaand ticket.`
+Expected: `In orde: 14 waarschuwingen, allemaal met een openstaand ticket.`
 
 - [ ] **Step 5: Commit**
 
@@ -1585,7 +1585,7 @@ git commit -m "chore: laat de tests en de ticketcontrole als Action draaien"
 ```bash
 gh issue create --title "De pagina zegt niet dat een oordeel op een openstaande onduidelijkheid rust" \
   --label enhancement \
-  --body "Er staan dertien tickets open waarin het Bondsreglement iets in het midden laat. De tool kiest dan de behoudende kant, maar het scherm laat daar niets van zien: het oordeel ziet eruit als een vaststaand antwoord.
+  --body "Er staan veertien tickets open waarin het Bondsreglement iets in het midden laat. De tool kiest dan de behoudende kant, maar het scherm laat daar niets van zien: het oordeel ziet eruit als een vaststaand antwoord.
 
 Deze branch voegt \`uncertainties.js\` toe, met per ticket een predicaat dat bepaalt welke combinaties het raakt. De uitleg krijgt een dichtgeklapte accordion onder het oordeel, het raster een paars hoekje. \`tools/check-uncertainties.mjs\` plus twee GitHub Actions bewaken dat de lijst gelijk blijft met de tickets.
 
