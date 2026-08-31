@@ -444,10 +444,11 @@ footer {
   color: var(--purple);
 }
 
-/* The warning sign before the heading. A character rather than an image, and aria-hidden is not
-   needed: the text right after it says the same thing in words. */
+/* The warning sign before the heading. The one emoji this project allows, see the language rule in
+   CLAUDE.md: it has to read as a warning at a glance, and a drawn-out /!\ read as punctuation to a
+   screen reader. aria-hidden is not needed: the text right after it says the same thing in words. */
 .uncertainty > summary::before {
-  content: "/!\\  ";
+  content: "\26A0\FE0F  ";
   white-space: pre;
 }
 

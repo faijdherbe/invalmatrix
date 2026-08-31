@@ -20,7 +20,9 @@ Waarom die splitsing: de code wordt in het Engels onderhouden, maar de doelgroep
 de bron is een Nederlandstalig reglement. Een artikelcitaat vertalen zou de onderbouwing waardeloos
 maken, want dan staat er niet meer wat er in het reglement staat.
 
-Verder in alle talen: geen em-dash, geen emoji.
+Verder in alle talen: geen em-dash, geen emoji. Een uitzondering: het waarschuwingsteken voor het
+blok met openstaande onduidelijkheden, in `style.css`. Dat moet in een oogopslag als waarschuwing
+lezen, en een uitgeschreven variant wordt door een schermlezer als losse leestekens voorgelezen.
 
 De toon van het Nederlands is casual en direct.
 
