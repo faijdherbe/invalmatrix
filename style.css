@@ -153,6 +153,27 @@ thead th, tbody th {
   border-left: 0.6rem solid transparent;
 }
 
+/* Small triangle in the bottom left of the cell: the verdict here rests on a point the
+   Bondsreglement leaves open (see uncertainties.js). Deliberately a different corner and a
+   different color than the yellow triangle above, because a cell can carry both. It uses ::before
+   where the yellow one uses ::after, for the same reason. Purple, so it stands out against the
+   green, yellow, red and grey cell backgrounds alike. The marker is purely visual; see
+   SR_ONLY_UNCERTAIN in app.js for the textual counterpart. */
+.uncertain-corner {
+  position: relative;
+}
+
+.uncertain-corner::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-bottom: 0.6rem solid var(--purple);
+  border-right: 0.6rem solid transparent;
+}
+
 /* Small example of the triangle itself, used in the explanation line of the legend and under the
    mobile view. */
 .caveat-example {
@@ -240,6 +261,17 @@ thead th, tbody th {
    shape, a border around it reads more clearly in this list form. Same yellow/orange color. */
 .mobile-class.caveat {
   box-shadow: inset 0 0 0 2px var(--yellow);
+}
+
+/* In the mobile list the same reason as for .mobile-class.caveat above: a corner on a fully round
+   pill floats loose from the shape, so this is a border too. Carries a cell both markers, then the
+   purple ring sits inside the yellow one. */
+.mobile-class.uncertain {
+  box-shadow: inset 0 0 0 2px var(--purple);
+}
+
+.mobile-class.caveat.uncertain {
+  box-shadow: inset 0 0 0 2px var(--yellow), inset 0 0 0 4px var(--purple);
 }
 
 /* Explanation under the mobile view: a line per requirement with the short label, plus the

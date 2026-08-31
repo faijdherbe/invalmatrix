@@ -22,3 +22,14 @@ export function uncertaintyLines(uncertainties) {
     url: `${ISSUE_URL}/${uncertainty.ticket}`,
   }));
 }
+
+// The markers a cell in the overview grid carries, in a fixed order so the classes on the button
+// are predictable. max-two is the caveat of article 5.3.5.3, which already had its own marker;
+// uncertain is new and says that the verdict in this cell rests on an open point of the
+// Bondsreglement. A cell can carry both.
+export function cellMarkers(cell) {
+  const markers = [];
+  if (cell.requirements.includes("max-two")) markers.push("max-two");
+  if (cell.uncertain) markers.push("uncertain");
+  return markers;
+}
