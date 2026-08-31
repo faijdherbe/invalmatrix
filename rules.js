@@ -11,6 +11,7 @@ import {
   O14_LEVEL_GROUPS,
   REFERENCE_DATE,
 } from "./data.js";
+import { uncertaintiesFor } from "./uncertainties.js";
 
 const MONTH_NAMES = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
 
@@ -120,14 +121,6 @@ export function assessLevel(lender, borrower) {
     }
   }
 
-  // Borrowing from a younger age category is exactly what article 5.3.5.1 gives an example of, and
-  // the most common substitution situation of all. But article 3.1.3 and the class boundaries
-  // table say that the age limits are always decisive, and in case of doubt the competition
-  // management decides. That is not a condition the user can do anything about, but a caveat about
-  // the rule itself: it always applies when the lender is younger, regardless of date of birth,
-  // and it does not change the verdict.
-  const youngerCategoryCaveat = `De speler komt uit een jongere leeftijdscategorie dan ${borrower.category}. Artikel 5.3.5.1 staat dat toe en geeft er zelfs een voorbeeld van, maar artikel 3.1.3 en de tabel klassengrenzen zeggen dat de leeftijdsgrenzen altijd bepalend zijn. Bij twijfel beslist de competitieleiding.`;
-
   // Three caveats about articles that can reverse the verdict, but on which this tool cannot make
   // a statement: it does not know the match day, the round, the club or the matches played. They
   // do not change the verdict, just like the caveat above.
@@ -211,13 +204,9 @@ export function assessLevel(lender, borrower) {
     lowClassNumber(lender.classId) < lowClassNumber(borrower.classId);
   if (lenderPlaysHigherWithinLowClasses) {
     conditions.push("Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding.");
-    // The open question of ticket #13 remains: does this maximum always apply, or only when the
-    // team has eleven or more of its own players available. Article 5.3.5.1 cannot be the fallback
-    // here: the lender plays in a higher class than the borrower, so that article does not apply
-    // here by definition.
-    conditions.push(
-      "Onduidelijk is of dit maximum altijd geldt, of alleen als het team elf of meer eigen spelers beschikbaar heeft. Vraag dit na bij de competitieleiding.",
-    );
+    // Whether this maximum always applies or only with eleven or more of its own players is
+    // uncertainty #13 in uncertainties.js. It is not a condition a team can meet, so it does not
+    // belong in this list.
     addArticles("5.3.5.3");
     reasoning.push("De bron speelt in een hogere klasse dan de doel, allebei in de 5e klasse of lager binnen dezelfde leeftijdscategorie, dus de uitzondering van artikel 5.3.5.3 geldt.");
     caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
@@ -228,10 +217,10 @@ export function assessLevel(lender, borrower) {
   if (lenderLevel >= borrowerLevel) {
     addArticles("5.3.5.1");
     reasoning.push("Lenen uit een team op gelijk of lager niveau mag altijd, ongeacht het aantal eigen spelers.");
-    if (fromYoungerCategory) {
-      caveats.push(youngerCategoryCaveat);
-      addArticles("3.1.3");
-    }
+    // Borrowing from a younger age category is what article 5.3.5.1 gives an example of, while
+    // article 3.1.3 and the class boundaries table always let the age limits decide. That
+    // contradiction is uncertainty #15 in uncertainties.js; here only the article number remains.
+    if (fromYoungerCategory) addArticles("3.1.3");
     caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
     addArticles("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { allowed: true, ground: "equal-or-lower", conditions, reasoning, articles, caveats };
@@ -245,10 +234,10 @@ export function assessLevel(lender, borrower) {
     conditions.push("Voor het inlenen van een doelverdediger geldt de eis over het aantal eigen spelers niet.");
     addArticles("5.3.5.2");
     reasoning.push("Lenen uit een team dat precies een niveau hoger speelt mag alleen als aan alle voorwaarden van artikel 5.3.5.2 is voldaan.");
-    if (fromYoungerCategory) {
-      caveats.push(youngerCategoryCaveat);
-      addArticles("3.1.3");
-    }
+    // Borrowing from a younger age category is what article 5.3.5.1 gives an example of, while
+    // article 3.1.3 and the class boundaries table always let the age limits decide. That
+    // contradiction is uncertainty #15 in uncertainties.js; here only the article number remains.
+    if (fromYoungerCategory) addArticles("3.1.3");
     caveats.push(levelDeterminationCaveat, decidingMatchCaveat, differentClubsCaveat);
     addArticles("5.3.4", "5.3.6", "5.3.6.1", "5.1.1");
     return { allowed: true, ground: "one-higher", conditions, reasoning, articles, caveats };
@@ -420,6 +409,24 @@ function hasValidDateOfBirth(dateOfBirth) {
   return dateOfBirth instanceof Date && !Number.isNaN(dateOfBirth.getTime());
 }
 
+// The context the predicates in uncertainties.js read. Everything they need is calculated here, so
+// that file needs nothing from rules.js and there is no cycle between the two.
+function uncertaintyContext(lender, borrower, periodId, ground, age) {
+  return {
+    lender,
+    borrower,
+    periodId,
+    ground,
+    age,
+    categoryDistance:
+      AGE_CATEGORY_ORDER.indexOf(lender.category) - AGE_CATEGORY_ORDER.indexOf(borrower.category),
+    involves: (category, classId) =>
+      (lender.category === category && lender.classId === classId) ||
+      (borrower.category === category && borrower.classId === classId),
+    bothFifthOrLower: isFifthOrLower(lender.classId) && isFifthOrLower(borrower.classId),
+  };
+}
+
 // The only function the user interface calls.
 export function assess(lender, borrower, dateOfBirth, periodId = null) {
   const outOfScope = categoryINotice(lender, periodId) || categoryINotice(borrower, periodId);
@@ -433,6 +440,9 @@ export function assess(lender, borrower, dateOfBirth, periodId = null) {
       articles: [],
       ground: null,
       caveats: [],
+      // Out of scope is itself a verdict resting on the classification of chapter 2, and that is
+      // exactly what several tickets are about, so the uncertainties belong here too.
+      uncertainties: uncertaintiesFor(uncertaintyContext(lender, borrower, periodId, null, null)),
     };
   }
 
@@ -479,6 +489,10 @@ export function assess(lender, borrower, dateOfBirth, periodId = null) {
     conditions = [];
   }
 
+  const uncertainties = uncertaintiesFor(
+    uncertaintyContext(lender, borrower, periodId, levelOutcome.ground, age),
+  );
+
   return {
     verdict,
     summary,
@@ -488,6 +502,7 @@ export function assess(lender, borrower, dateOfBirth, periodId = null) {
     articles,
     ground: levelOutcome.ground,
     caveats: levelOutcome.caveats,
+    uncertainties,
   };
 }
 

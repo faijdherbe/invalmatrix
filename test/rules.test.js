@@ -156,14 +156,19 @@ test("article 5.3.5.3: the article list for ground fifth-class names 5.3.5.3, bu
 // Was: this test also expected a reference to 5.3.5.1 in the condition text, as a possible
 // fallback with fewer than eleven own players. After ticket #3 that is wrong: at ground
 // fifth-class the lender plays in a higher class than the borrower, so article 5.3.5.1 does not
-// apply there by definition. That sentence has been dropped from the condition text; the open
-// question about the maximum (ticket #13) simply remains.
-test("article 5.3.5.3: the conditions name the uncertainty about the number of available players", () => {
+// apply there by definition. And since this task the doubt about the maximum is no longer a
+// condition either: it was never something a team could meet, so it moved to uncertainties.js as
+// ticket #13. What stays here is the condition itself and the article; the ticket is checked
+// through assess() below, because check() calls assessLevel and that knows nothing of tickets.
+test("article 5.3.5.3: the conditions name the maximum, and the doubt about it is uncertainty #13", () => {
   const r = check("O14", "5e", "O14", "6e");
   assert.equal(r.ground, "fifth-class");
-  assert.ok(r.conditions.some((v) => /elf of meer eigen spelers/.test(v)));
+  assert.ok(!r.conditions.some((v) => /elf of meer eigen spelers/.test(v)), JSON.stringify(r.conditions));
   assert.ok(r.conditions.some((v) => /competitieleiding/.test(v)));
   assert.ok(!r.conditions.some((v) => /5\.3\.5\.1/.test(v)));
+
+  const outcome = assess({ category: "O14", classId: "5e" }, { category: "O14", classId: "6e" }, null);
+  assert.ok(outcome.uncertainties.map((u) => u.ticket).includes(13));
 });
 
 // Ticket #3: article 5.3.5.1 says a team may always borrow substitutes from a team that plays
@@ -941,34 +946,34 @@ test("O11 to O14 yields allowed, with and without a date of birth, with the same
   assert.equal(without.verdict, withDate.verdict);
 });
 
-test("caveat: with a younger lender the caveat is there without a date of birth too, with article 3.1.3", () => {
+test("uncertainty #15: with a younger lender it is there without a date of birth too, with article 3.1.3", () => {
   const r = check("O14", "1e", "O18", "3e");
   assert.equal(r.allowed, true);
-  // Was: caveats.length === 1. Since task 5 every verdict with ground equal-or-lower also gets
-  // the caveats about articles 5.3.4, 5.3.6/5.3.6.1 and 5.1.1, so the length is no longer 1. The
-  // core of this test stands: the younger-category caveat is present.
-  assert.ok(r.caveats.some((k) => /jongere leeftijdscategorie/.test(k)));
+  // Was: a caveat matching /jongere leeftijdscategorie/. That text was uncertainty about the
+  // reglement itself, not a caveat about what this tool cannot know, so it moved to
+  // uncertainties.js as ticket #15. assessLevel does not know about uncertainties, so what is left
+  // to check here is the article; the ticket itself is checked through assess() below.
   assert.ok(r.articles.includes("3.1.3"), "article 3.1.3 missing");
   assert.ok(r.articles.includes("5.3.5.1"), "article 5.3.5.1 missing");
 
   const withoutDateOfBirth = assess({ category: "O14", classId: "1e" }, { category: "O18", classId: "3e" }, null);
   assert.equal(withoutDateOfBirth.verdict, "allowed");
-  assert.ok(withoutDateOfBirth.caveats.some((k) => /jongere leeftijdscategorie/.test(k)));
+  assert.ok(withoutDateOfBirth.uncertainties.map((u) => u.ticket).includes(15));
   assert.ok(withoutDateOfBirth.articles.includes("3.1.3"));
 });
 
-test("caveat: an equal category yields no caveat about a younger category", () => {
-  const r = check("O16", "2e", "O16", "2e");
-  // Was: caveats deepEqual []. Since task 5 ground equal-or-lower always gets the caveats about
-  // 5.3.4, 5.3.6/5.3.6.1 and 5.1.1, so the list is no longer empty. What this is about still
-  // holds: no caveat about a younger age category.
-  assert.ok(!r.caveats.some((k) => /jongere leeftijdscategorie/.test(k)));
+test("uncertainty #15: an equal age category yields nothing about a younger category", () => {
+  // Was: no caveat matching /jongere leeftijdscategorie/. That text is now uncertainty #15, so
+  // this checks the same thing one level up.
+  const r = assess({ category: "O16", classId: "2e" }, { category: "O16", classId: "2e" }, null);
+  assert.ok(!r.uncertainties.map((u) => u.ticket).includes(15));
 });
 
-test("caveat: an older lender yields no caveat about a younger category", () => {
-  const r = check("O18", "3e", "O16", "2e");
-  // Was: caveats deepEqual []. See the previous test for why the list is no longer empty.
-  assert.ok(!r.caveats.some((k) => /jongere leeftijdscategorie/.test(k)));
+test("uncertainty #15: an older lender yields nothing about a younger category", () => {
+  // Was: no caveat matching /jongere leeftijdscategorie/. See the previous test for why this now
+  // goes through assess().
+  const r = assess({ category: "O18", classId: "3e" }, { category: "O16", classId: "2e" }, null);
+  assert.ok(!r.uncertainties.map((u) => u.ticket).includes(15));
 });
 
 test("the other direction stays blocked: too old for the borrower category with a lender from an older category", () => {
@@ -1275,11 +1280,13 @@ test("article 5.3.5.4: the condition text reads 'meerdere teams in de', not 'O14
 // a requirement". Without that reversal a new kind of condition in rules.js could slip through
 // the grid unnoticed without ever gaining a requirement, exactly as in tickets #1 and #2. When
 // adding a condition in rules.js, add a line here that links the text to its requirement.
+// The line about "Onduidelijk is of dit maximum altijd geldt" stood here until this task. It was
+// never a condition a team could meet, but uncertainty about article 5.3.5.3 itself, and it now
+// lives in uncertainties.js as ticket #13.
 const CONDITION_TO_REQUIREMENT = [
   [/leeftijdsgrenzen van/, "age"],
   [/zijn de spelers van het eerste team hier zonder toestemming van de competitieleiding niet speelgerechtigd/, "first-team"],
   [/^Er mogen maximaal twee spelers invallen zonder toestemming van de competitieleiding\.$/, "max-two"],
-  [/^Onduidelijk is of dit maximum altijd geldt/, "max-two"],
   [/heeft aantoonbaar maximaal \d+ spelers beschikbaar uit het eigen of een lager spelend niveau/, "player-count"],
   [/^Er zijn aantoonbaar geen invallers beschikbaar uit een gelijk of lager spelend niveau\.$/, "player-count"],
   [/^Er mogen maximaal twee spelers invallen, inclusief een vaste doelverdediger\.$/, "player-count"],
@@ -1637,4 +1644,89 @@ test("a player within the limits gets no dispensation note", () => {
   );
   assert.equal(outcome.blocks, false);
   assert.ok(!outcome.messages.some((v) => /3\.1\.3/.test(v)));
+});
+
+// Ticket #26 group: the open uncertainties of the Bondsreglement must reach the page, so a coach
+// can see that a verdict rests on a choice the reglement does not make. uncertainties.js holds the
+// list; these tests check that assess() hands it over on every kind of verdict.
+
+test("assess hands over the uncertainties that apply to the combination", () => {
+  const r = assess({ category: "O14", classId: "idc" }, { category: "O14", classId: "2e" }, null, "early");
+  const numbers = r.uncertainties.map((u) => u.ticket);
+  assert.ok(numbers.includes(19), `ticket 19 missing: ${numbers}`);
+  assert.ok(numbers.includes(30), `ticket 30 missing: ${numbers}`);
+});
+
+test("an ordinary combination in the numbered classes gets an empty list", () => {
+  const r = assess({ category: "O16", classId: "3e" }, { category: "O16", classId: "2e" }, null, "mid");
+  assert.deepEqual(r.uncertainties, []);
+});
+
+test("a verdict of not-allowed carries its uncertainties too", () => {
+  const r = assess({ category: "O14", classId: "top" }, { category: "O14", classId: "8e" }, null, "mid");
+  assert.equal(r.verdict, "not-allowed");
+  assert.ok(r.uncertainties.map((u) => u.ticket).includes(18));
+});
+
+test("a verdict of out-of-scope carries its uncertainties too, because that verdict rests on one", () => {
+  const r = assess({ category: "O14", classId: "super" }, { category: "O14", classId: "2e" }, null, "mid");
+  assert.equal(r.verdict, "out-of-scope");
+  assert.ok(r.uncertainties.map((u) => u.ticket).includes(27));
+});
+
+test("ticket #16 only shows up once a date of birth reaches article 5.2.4", () => {
+  const teams = [{ category: "O14", classId: "3e" }, { category: "O14", classId: "4e" }];
+  const without = assess(teams[0], teams[1], null, "mid");
+  assert.ok(!without.uncertainties.map((u) => u.ticket).includes(16));
+  const withDate = assess(teams[0], teams[1], d("2012-05-01"), "mid");
+  assert.ok(withDate.uncertainties.map((u) => u.ticket).includes(16));
+});
+
+test("every uncertainty in an outcome carries a heading and an explanation, ready for the page", () => {
+  const r = assess({ category: "O14", classId: "idc" }, { category: "O14", classId: "2e" }, null, "early");
+  for (const uncertainty of r.uncertainties) {
+    assert.ok(uncertainty.heading.length > 0);
+    assert.ok(uncertainty.explanation.length > 0);
+    assert.equal(uncertainty.applies, undefined);
+  }
+});
+
+// Ticket #15 used to sit in caveats without a ticket number, ticket #13 sat in conditions. Both are
+// uncertainty about the reglement itself and now live in uncertainties.js, where they carry their
+// number and a link. The old spots must therefore be empty.
+test("the younger-category text is no longer a caveat, it is uncertainty #15", () => {
+  const r = assess({ category: "O14", classId: "1e" }, { category: "O18", classId: "3e" }, null, "mid");
+  assert.ok(!r.caveats.some((k) => /jongere leeftijdscategorie/.test(k)), JSON.stringify(r.caveats));
+  assert.ok(r.uncertainties.map((u) => u.ticket).includes(15));
+});
+
+test("the max-two doubt is no longer a condition, it is uncertainty #13", () => {
+  const r = assess({ category: "O14", classId: "5e" }, { category: "O14", classId: "6e" }, null, "mid");
+  assert.equal(r.ground, "fifth-class");
+  assert.ok(!r.conditions.some((v) => /^Onduidelijk is of dit maximum altijd geldt/.test(v)), JSON.stringify(r.conditions));
+  assert.ok(r.conditions.some((v) => /^Er mogen maximaal twee spelers invallen zonder toestemming/.test(v)), "the max-two condition itself must stay");
+  assert.ok(r.uncertainties.map((u) => u.ticket).includes(13));
+});
+
+test("the verdict on ground fifth-class stays 'ja, mits', because the max-two condition remains", () => {
+  const r = assess({ category: "O14", classId: "5e" }, { category: "O14", classId: "6e" }, null, "mid");
+  assert.equal(r.verdict, "allowed");
+  assert.match(r.summary, /^Ja, mits/);
+});
+
+test("every combination of period, category and class yields a working list of uncertainties", () => {
+  for (const period of PERIODS) {
+    for (const borrowerCategory of AGE_CATEGORIES) {
+      for (const borrowerClass of CLASSES[borrowerCategory]) {
+        const borrower = { category: borrowerCategory, classId: borrowerClass.id };
+        for (const lenderCategory of AGE_CATEGORIES) {
+          for (const lenderClass of CLASSES[lenderCategory]) {
+            const lender = { category: lenderCategory, classId: lenderClass.id };
+            const r = assess(lender, borrower, null, period.id);
+            assert.ok(Array.isArray(r.uncertainties), `${period.id} ${lenderCategory} ${lenderClass.id} to ${borrowerCategory} ${borrowerClass.id}`);
+          }
+        }
+      }
+    }
+  }
 });
